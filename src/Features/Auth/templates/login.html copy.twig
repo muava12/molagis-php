@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+{% block title %}
+Login Admin Molagis
+{% endblock %}
+{% block content %}
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">Overview</div>
+                <h2 class="page-title">Condensed layout</h2>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="page-body">
+    <div class="container-xl">
+        {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+        {% endif %}
+        <div class="mb-3">
+            <form method="post" action="/index.php?action=login">
+                <label for="email" class="form-label">
+                    Email
+                </label>
+                <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">
+                Kata Sandi
+            </label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">
+            Login
+        </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{
+    "name": "molagis/admin-dashboard",
+    "description": "Dashboard admin untuk mengelola pesanan catering harian Molagis di Samarinda.",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Molagis\\Features\\": "src/Features/",
+            "Molagis\\Shared\\": "src/Shared/"
+        }
+    },
+    "authors": [
+        {
+            "name": "muava12",
+            "email": "moeaph@gmail.com"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.0",
+        "vlucas/phpdotenv": "^5.0",
+        "supabase-php/supabase-client": "^2.0",
+        "twig/twig": "^3.0",
+        "nikic/fast-route": "^1.3"
+    },
+    "scripts": {
+        "check-style": "phpcs --standard=PSR12 src/"
+    }
+}

@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+    {% block title %}Dashboard Molagis{% endblock %}
+    {% block content %}
+        <div class="page-header">
+            <h2 class="page-title">Dashboard</h2>
+        </div>
+        <div class="page-body">
+            <div class="container-xl">
+                {% if couriers is not empty %}
+                    {% for courier in couriers %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h3 class="card-title">{{ courier.nama }}</h3>
+                                <p>ID: {{ courier.id }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>Tidak ada kurir tersedia.</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endblock %}
