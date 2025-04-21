@@ -40,3 +40,33 @@ catering/
 │   │           └── footer.html.twig
 ├── .env
 ├── composer.json
+
+
+## URL dan Routing
+- Menggunakan **FastRoute** untuk routing bersih tanpa ekstensi (.php/.html).
+- **Pengembangan (Nginx, Valet)**:
+  - Default Valet tanpa konfigurasi tambahan.
+  - URL: `/login`, `/dashboard`.
+- **Produksi (Apache)**:
+  - `public/.htaccess` untuk URL bersih.
+  - Aktifkan `mod_rewrite` dan `AllowOverride All`.
+- Rute:
+  - `GET /` atau `/login`: Halaman login.
+  - `POST /login`: Proses login.
+  - `GET /dashboard`: Halaman dashboard.
+- Tambah rute di `index.php` dengan `$r->addRoute()`.
+- Jalankan `composer check-templates` untuk validasi folder.
+## URL dan Routing
+- Menggunakan **FastRoute** untuk routing bersih tanpa ekstensi (.php/.html).
+- **Pengembangan (Nginx, Valet)**:
+  - Default Valet tanpa konfigurasi tambahan.
+  - URL: `/login`, `/dashboard`.
+- **Produksi (Apache)**:
+  - `public/.htaccess` untuk URL bersih.
+  - Aktifkan `mod_rewrite` dan `AllowOverride All`.
+- Rute:
+  - `GET /` atau `/login`: Halaman login.
+  - `POST /login`: Proses login.
+  - `GET /dashboard`: Halaman dashboard.
+- Tambah rute di `index.php` dengan `$r->addRoute()`.
+- Jalankan `composer check-templates` untuk validasi folder.

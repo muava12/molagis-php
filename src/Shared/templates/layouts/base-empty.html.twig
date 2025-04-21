@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Judul Halaman -->
+    <title>
+        {% block title %}
+            Catering Molagis
+        {% endblock %}
+    </title>
+
+    <!-- Deskripsi Umum untuk SEO -->
+    <meta name="description" content="Catering Molagis menyediakan layanan catering berkualitas untuk berbagai acara dengan menu lezat dan harga terjangkau.">
+
+    <!-- Open Graph Metadata untuk Media Sosial -->
+    <meta property="og:title" content="{% block og_title %}Catering Molagis{% endblock %}">
+    <meta property="og:description" content="Nikmati layanan catering terbaik dari Catering Molagis untuk acara spesial Anda. Menu lezat, harga terjangkau!">
+    <meta property="og:image" content="/images/og-image.png"> <!-- Ganti dengan path gambar PNG/JPG yang sesuai -->
+    <meta property="og:image:alt" content="Catering Molagis - Menu Lezat untuk Acara Anda">
+    <meta property="og:url" content="{{ request.url }}"> <!-- URL dinamis, sesuaikan dengan framework Anda -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Catering Molagis">
+
+    <!-- Twitter Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}Catering Molagis{% endblock %}">
+    <meta name="twitter:description" content="Nikmati layanan catering terbaik dari Catering Molagis untuk acara spesial Anda. Menu lezat, harga terjangkau!">
+    <meta name="twitter:image" content="/images/og-image.png"> <!-- Ganti dengan path gambar PNG/JPG yang sesuai -->
+    <meta name="twitter:image:alt" content="Catering Molagis - Menu Lezat untuk Acara Anda">
+
+    <!-- Favicon dengan PNG -->
+    <link rel="icon" href="/images/fruit.png" type="image/png">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/tabler.min.css">
+
+    <!-- Tema dari localStorage -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="page page-center">
+        {% block content %}
+            {# Konten halaman spesifik akan diisi di sini #}
+        {% endblock %}
+    </div>
+    <script src="/js/tabler.min.js"></script>
+    <script type="module" src="/js/app/index.js"></script>
+</body>
+</html>
