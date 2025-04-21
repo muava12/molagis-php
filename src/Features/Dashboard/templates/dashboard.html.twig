@@ -43,7 +43,10 @@
                 <div class="col-lg-6">
                     <div class="card">
                         <div class="card-header border-0">
-                            <h2 class="h2 card-title me-auto">Pengantaran Hari Ini</h2>
+                            <div class="me-auto">
+                                <h2 class="h2 card-title">Daftar Pengantaran</h2>
+                                <div class="text-muted">{{ today_date }}</div>
+                            </div>
                             <a href="/delivery-admin" class="btn">Total <span class="badge bg-teal text-green-fg ms-2">{{ total_deliveries }}</span></a>
                         </div>
                         <div class="card-body p-1">
@@ -66,15 +69,18 @@
                                                             <div class="ms-2">{{ delivery.courier_name }}</div>
                                                         </div>
                                                     </td>
-                                                    <td>{{ delivery.jumlah_pengantaran }} titik Pengantaran</td>
                                                     <td>
-                                                        <a target="_blank" href="/delivery/{{ delivery.kurir_id }}" class="btn btn-icon" aria-label="Buka">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
-                                                                <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
-                                                            </svg>
-                                                        </a>
+                                                        {{ delivery.jumlah_pengantaran }} titik Pengantaran
+                                                        <div class="text-muted small">{{ delivery.jumlah_selesai }} sudah sampai</div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                      <a target="_blank" href="/delivery/{{ delivery.kurir_id }}" class="btn btn-icon" aria-label="Buka">
+                                                        <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                          <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
+                                                          <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
+                                                        </svg>
+                                                      </a>
                                                     </td>
                                                 </tr>
                                             {% endfor %}

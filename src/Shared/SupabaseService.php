@@ -95,20 +95,27 @@ class SupabaseService
     {
         try {
             $today = date('Y-m-d', strtotime('now +8 hours')); // WITA (UTC+8)
-            $response = $this->client->get("/rest/v1/deliverydates?select=kurir_id,couriers(nama)&tanggal=eq.{$today}&status=neq.canceled");
+            $response = $this->client->get("/rest/v1/deliverydates?select=kurir_id,couriers(nama),status&tanggal=eq.{$today}&status=neq.canceled");
             $data = json_decode((string) $response->getBody(), true);
 
-            // Kelompokkan per kurir dan hitung jumlah pengantaran
+            // Kelompokkan per kurir dan hitung jumlah pengantaran serta selesai
             $deliveries = [];
             $courierMap = [];
             foreach ($data as $delivery) {
                 $kurirId = $delivery['kurir_id'] ?? null;
                 if ($kurirId && isset($delivery['couriers']['nama'])) {
-                    $courierMap[$kurirId] = [
-                        'kurir_id' => $kurirId,
-                        'courier_name' => $delivery['couriers']['nama'],
-                        'jumlah_pengantaran' => ($courierMap[$kurirId]['jumlah_pengantaran'] ?? 0) + 1,
-                    ];
+                    if (!isset($courierMap[$kurirId])) {
+                        $courierMap[$kurirId] = [
+                            'kurir_id' => $kurirId,
+                            'courier_name' => $delivery['couriers']['nama'],
+                            'jumlah_pengantaran' => 0,
+                            'jumlah_selesai' => 0,
+                        ];
+                    }
+                    $courierMap[$kurirId]['jumlah_pengantaran']++;
+                    if ($delivery['status'] === 'completed') {
+                        $courierMap[$kurirId]['jumlah_selesai']++;
+                    }
                 }
             }
             $deliveries = array_values($courierMap);
