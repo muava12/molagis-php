@@ -91,11 +91,14 @@ class SupabaseService
         }
     }
 
-    public function getTodayDeliveries(): array
+    public function getDeliveriesByDate(string $date): array
     {
         try {
-            $today = date('Y-m-d', strtotime('now +8 hours')); // WITA (UTC+8)
-            $response = $this->client->get("/rest/v1/deliverydates?select=kurir_id,couriers(nama),status&tanggal=eq.{$today}&status=neq.canceled");
+            // Validasi format tanggal YYYY-MM-DD
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                throw new \InvalidArgumentException('Format tanggal tidak valid');
+            }
+            $response = $this->client->get("/rest/v1/deliverydates?select=kurir_id,couriers(nama),status&tanggal=eq.{$date}&status=neq.canceled");
             $data = json_decode((string) $response->getBody(), true);
 
             // Kelompokkan per kurir dan hitung jumlah pengantaran serta selesai
@@ -139,6 +142,13 @@ class SupabaseService
                 'data' => [],
                 'total' => 0,
                 'error' => 'Gagal mengambil data pengantaran: ' . $e->getMessage(),
+            ];
+        } catch (\InvalidArgumentException $e) {
+            error_log('Invalid date format: ' . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'error' => 'Format tanggal tidak valid',
             ];
         }
     }

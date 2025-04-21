@@ -1,0 +1,119 @@
+export function initDashboard() {
+    console.log('Initializing dashboard event listeners');
+    const prevButton = document.getElementById('prev-day');
+    const nextButton = document.getElementById('next-day');
+    const tableBody = document.querySelector('#deliveries-table tbody');
+    const totalBadge = document.getElementById('total-badge');
+    const dateSubtitle = document.getElementById('date-subtitle');
+
+    if (!prevButton || !nextButton || !tableBody || !totalBadge || !dateSubtitle) {
+        console.error('One or more DOM elements not found:', {
+            prevButton: !!prevButton,
+            nextButton: !!nextButton,
+            tableBody: !!tableBody,
+            totalBadge: !!totalBadge,
+            dateSubtitle: !!dateSubtitle,
+        });
+        return;
+    }
+
+    const fetchDeliveries = async (date, button) => {
+        console.log('Fetching deliveries for date:', date);
+        prevButton.disabled = true;
+        nextButton.disabled = true;
+        const spinner = button.querySelector('.spinner-border');
+        const svg = button.querySelector('svg');
+        spinner.classList.remove('d-none');
+        svg.classList.add('d-none');
+
+        try {
+            const response = await fetch(`/api/deliveries?date=${date}`);
+            const data = await response.json();
+
+            if (response.ok && !data.error) {
+                tableBody.innerHTML = '';
+                if (data.deliveries.length > 0) {
+                    data.deliveries.forEach(delivery => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id})"></span>
+                                    <div class="ms-2">${delivery.courier_name}</div>
+                                </div>
+                            </td>
+                            <td>
+                                ${delivery.jumlah_pengantaran} titik Pengantaran
+                                <div class="text-muted small">${delivery.jumlah_selesai} sudah sampai</div>
+                            </td>
+                            <td class="text-center">
+                                <a target="_blank" href="/delivery/${delivery.kurir_id}" class="btn btn-icon" aria-label="Buka">
+                                    <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
+                                        <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
+                                    </svg>
+                                </a>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="3" class="text-center">Tidak ada pengantaran hari ini</td></tr>';
+                }
+
+                totalBadge.textContent = data.total_deliveries;
+                dateSubtitle.textContent = data.today_date;
+                prevButton.dataset.date = data.current_date;
+                nextButton.dataset.date = data.current_date;
+            } else {
+                const errorDiv = document.querySelector('.container-xl .alert');
+                if (!errorDiv) {
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-danger alert-dismissible';
+                    alert.innerHTML = `
+                        <div class="d-flex">
+                            <div>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>
+                                    <path d="M12 8l0 4"/>
+                                    <path d="M12 16l0 .01"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="alert-title">Koneksi Bermasalah</h4>
+                                <div class="text-secondary">${data.error || 'Gagal mengambil data'}</div>
+                            </div>
+                        </div>
+                        <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                    `;
+                    document.querySelector('.container-xl').prepend(alert);
+                }
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+        } finally {
+            spinner.classList.add('d-none');
+            svg.classList.remove('d-none');
+            prevButton.disabled = false;
+            nextButton.disabled = false;
+        }
+    };
+
+    prevButton.addEventListener('click', () => {
+        console.log('Previous button clicked');
+        const currentDate = new Date(prevButton.dataset.date);
+        currentDate.setDate(currentDate.getDate() - 1);
+        const newDate = currentDate.toISOString().split('T')[0];
+        fetchDeliveries(newDate, prevButton);
+    });
+
+    nextButton.addEventListener('click', () => {
+        console.log('Next button clicked');
+        const currentDate = new Date(nextButton.dataset.date);
+        currentDate.setDate(currentDate.getDate() + 1);
+        const newDate = currentDate.toISOString().split('T')[0];
+        fetchDeliveries(newDate, nextButton);
+    });
+}

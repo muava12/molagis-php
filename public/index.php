@@ -42,15 +42,15 @@ $dispatcher = FastRoute\simpleDispatcher(function (RouteCollector $r) use ($auth
     $r->addRoute('GET', '/', [$authController, 'showLogin']);
     $r->addRoute('GET', '/login', [$authController, 'showLogin']);
     $r->addRoute('POST', '/login', [$authController, 'handleLogin']);
-    $r->addRoute('POST', '/logout', [$authController, 'logout']);
+    $r->addRoute('GET', '/logout', [$authController, 'logout']);
     $r->addRoute('GET', '/dashboard', [$dashboardController, 'showDashboard']);
-    $r->addRoute('GET', '/halo', [$dashboardController, 'showDashboard']);
+    $r->addRoute('GET', '/api/deliveries', [$dashboardController, 'getDeliveries']);
+    // $r->addRoute('GET', '/delivery/{id:\d+}', [$dashboardController, 'showDelivery']);
 });
 
 // Ambil method dan path dari request
 $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-// Normalisasi path untuk Valet (Nginx) dan Apache
 $uri = rtrim($uri, '/');
 $uri = $uri === '' ? '/' : $uri;
 $uri = rawurldecode($uri);
@@ -74,6 +74,8 @@ switch ($routeInfo[0]) {
             [$controller, $method] = $handler;
             if ($method === 'handleLogin') {
                 $controller->$method($_POST);
+            } elseif ($method === 'showDelivery') {
+                $controller->$method((int)$vars['id']);
             } else {
                 $controller->$method();
             }

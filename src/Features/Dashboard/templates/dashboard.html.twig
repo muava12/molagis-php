@@ -39,19 +39,35 @@
                 </div>
             {% endif %}
             <div class="row row-deck row-cards">
-                <!-- Card Pengantaran Hari Ini -->
+                <!-- Card Daftar Pengantaran -->
                 <div class="col-lg-6">
                     <div class="card">
                         <div class="card-header border-0">
                             <div class="me-auto">
                                 <h2 class="h2 card-title">Daftar Pengantaran</h2>
-                                <div class="text-muted">{{ today_date }}</div>
+                                <div class="text-muted" id="date-subtitle">{{ today_date }}</div>
                             </div>
-                            <a href="/delivery-admin" class="btn">Total <span class="badge bg-teal text-green-fg ms-2">{{ total_deliveries }}</span></a>
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-icon me-2" id="prev-day" title="Hari Sebelumnya" data-date="{{ current_date }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M15 6l-6 6l6 6"/>
+                                    </svg>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                </button>
+                                <button class="btn btn-icon me-2" id="next-day" title="Hari Berikutnya" data-date="{{ current_date }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M9 6l6 6l-6 6"/>
+                                    </svg>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                </button>
+                                <a href="/delivery-admin" class="btn">Total <span class="badge bg-teal text-green-fg ms-2" id="total-badge">{{ total_deliveries }}</span></a>
+                            </div>
                         </div>
                         <div class="card-body p-1">
                             <div class="table-responsive">
-                                <table class="table table-vcenter">
+                                <table class="table table-vcenter" id="deliveries-table">
                                     <thead>
                                         <tr>
                                             <th>Kurir</th>
@@ -74,13 +90,13 @@
                                                         <div class="text-muted small">{{ delivery.jumlah_selesai }} sudah sampai</div>
                                                     </td>
                                                     <td class="text-center">
-                                                      <a target="_blank" href="/delivery/{{ delivery.kurir_id }}" class="btn btn-icon" aria-label="Buka">
-                                                        <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                                          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                          <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
-                                                          <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
-                                                        </svg>
-                                                      </a>
+                                                        <a target="_blank" href="/delivery/{{ delivery.kurir_id }}" class="btn btn-icon" aria-label="Buka">
+                                                            <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                                <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
+                                                                <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
+                                                            </svg>
+                                                        </a>
                                                     </td>
                                                 </tr>
                                             {% endfor %}
@@ -95,7 +111,7 @@
                         </div>
                     </div>
                 </div>
-                <!-- Card Statistik (sebelumnya) -->
+                <!-- Card Statistik -->
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
