@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Molagis\Shared;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 
 class SupabaseService
@@ -36,6 +37,9 @@ class SupabaseService
                 ],
             ]);
             return json_decode((string) $response->getBody(), true);
+        } catch (ConnectException $e) {
+            error_log('Supabase connection error: ' . $e->getMessage());
+            throw new \RuntimeException('Koneksi internet bermasalah, silakan cek koneksi Anda');
         } catch (RequestException $e) {
             error_log('Supabase auth error: ' . $e->getMessage());
             if ($e->getCode() === 400) {
@@ -55,6 +59,9 @@ class SupabaseService
             ]);
             $body = (string) $response->getBody();
             return json_decode($body, true);
+        } catch (ConnectException $e) {
+            error_log('Supabase connection error: ' . $e->getMessage());
+            return null;
         } catch (RequestException $e) {
             error_log('Supabase user fetch error: ' . $e->getMessage());
             return null;
@@ -65,10 +72,22 @@ class SupabaseService
     {
         try {
             $response = $this->client->get('/rest/v1/couriers?select=id,nama&aktif=eq.true');
-            return json_decode((string) $response->getBody(), true);
+            return [
+                'data' => json_decode((string) $response->getBody(), true),
+                'error' => null,
+            ];
+        } catch (ConnectException $e) {
+            error_log('Supabase connection error: ' . $e->getMessage());
+            return [
+                'data' => [],
+                'error' => 'Koneksi internet bermasalah, silakan cek koneksi Anda',
+            ];
         } catch (RequestException $e) {
             error_log('Supabase couriers fetch error: ' . $e->getMessage());
-            return [];
+            return [
+                'data' => [],
+                'error' => 'Gagal mengambil data kurir: ' . $e->getMessage(),
+            ];
         }
     }
 
@@ -80,6 +99,9 @@ class SupabaseService
                     'Authorization' => 'Bearer ' . $accessToken,
                 ],
             ]);
+        } catch (ConnectException $e) {
+            error_log('Supabase connection error: ' . $e->getMessage());
+            throw new \RuntimeException('Koneksi internet bermasalah, silakan cek koneksi Anda');
         } catch (RequestException $e) {
             error_log('Supabase logout error: ' . $e->getMessage());
             throw new \RuntimeException('Gagal logout: ' . $e->getMessage());

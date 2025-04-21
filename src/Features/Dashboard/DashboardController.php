@@ -27,12 +27,13 @@ class DashboardController
             exit;
         }
 
-        $couriers = $this->supabase->getActiveCouriers();
+        $couriersResult = $this->supabase->getActiveCouriers();
         $user = $this->authController->getUserData();
 
         echo $this->twig->render('dashboard.html.twig', [
             'title' => 'Dashboard Molagis',
-            'couriers' => $couriers,
+            'couriers' => $couriersResult['data'],
+            'error' => $couriersResult['error'],
             'user_id' => $user ? $user['id'] : 'default-seed',
         ]);
     }
