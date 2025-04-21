@@ -91,6 +91,51 @@ class SupabaseService
         }
     }
 
+    public function getTodayDeliveries(): array
+    {
+        try {
+            $today = date('Y-m-d', strtotime('now +8 hours')); // WITA (UTC+8)
+            $response = $this->client->get("/rest/v1/deliverydates?select=kurir_id,couriers(nama)&tanggal=eq.{$today}&status=neq.canceled");
+            $data = json_decode((string) $response->getBody(), true);
+
+            // Kelompokkan per kurir dan hitung jumlah pengantaran
+            $deliveries = [];
+            $courierMap = [];
+            foreach ($data as $delivery) {
+                $kurirId = $delivery['kurir_id'] ?? null;
+                if ($kurirId && isset($delivery['couriers']['nama'])) {
+                    $courierMap[$kurirId] = [
+                        'kurir_id' => $kurirId,
+                        'courier_name' => $delivery['couriers']['nama'],
+                        'jumlah_pengantaran' => ($courierMap[$kurirId]['jumlah_pengantaran'] ?? 0) + 1,
+                    ];
+                }
+            }
+            $deliveries = array_values($courierMap);
+            $total = array_sum(array_column($deliveries, 'jumlah_pengantaran'));
+
+            return [
+                'data' => $deliveries,
+                'total' => $total,
+                'error' => null,
+            ];
+        } catch (ConnectException $e) {
+            error_log('Supabase connection error: ' . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'error' => 'Koneksi internet bermasalah, silakan cek koneksi Anda',
+            ];
+        } catch (RequestException $e) {
+            error_log('Supabase deliveries fetch error: ' . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'error' => 'Gagal mengambil data pengantaran: ' . $e->getMessage(),
+            ];
+        }
+    }
+
     public function signOut(string $accessToken): void
     {
         try {
