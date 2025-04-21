@@ -23,14 +23,14 @@ class DashboardController
     public function showDashboard(): void
     {
         if (!isset($_SESSION['user_token'])) {
-            header('Location: /index.php?action=login');
+            header('Location: /login');
             exit;
         }
 
         $couriers = $this->supabase->getActiveCouriers();
         $user = $this->authController->getUserData();
 
-        echo $this->twig->render('index.html.twig', [
+        echo $this->twig->render('dashboard.html.twig', [
             'title' => 'Dashboard Molagis',
             'couriers' => $couriers,
             'user_id' => $user ? $user['id'] : 'default-seed',

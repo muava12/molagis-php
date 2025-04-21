@@ -20,7 +20,7 @@ class AuthController
     public function showLogin(): void
     {
         if (isset($_SESSION['user_token'])) {
-            header('Location: /index.php?action=dashboard');
+            header('Location: /dashboard');
             exit;
         }
         echo $this->twig->render('login.html.twig', ['title' => 'Login Admin Molagis']);
@@ -39,7 +39,7 @@ class AuthController
             if ($response && isset($response['access_token'])) {
                 $_SESSION['user_token'] = $response['access_token'];
                 $_SESSION['user_id'] = $response['user']['id'];
-                header('Location: /index.php?action=dashboard');
+                header('Location: /dashboard');
                 exit;
             }
             throw new \InvalidArgumentException('Login gagal');
@@ -59,7 +59,7 @@ class AuthController
             }
             session_unset();
             session_destroy();
-            header('Location: /index.php?action=login');
+            header('Location: /login');
             exit;
         } catch (\Exception $e) {
             echo $this->twig->render('login.html.twig', [
