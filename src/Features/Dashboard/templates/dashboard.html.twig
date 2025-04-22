@@ -12,29 +12,50 @@
             <h2 class="page-title">Dashboard</h2>
             <div class="text-muted mt-1">Selamat datang kembali, Admin!</div>
           </div>
+          <div class="col-auto ms-auto d-print-none">
+            <div class="btn-list">
+              <span class="d-none d-sm-inline"><a href="#" class="btn btn-1">New Customer</a></span>
+              <a href="#" class="btn btn-primary btn-5 d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-report">
+                <!-- Download SVG icon from http://tabler.io/icons/icon/plus -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2">
+                  <path d="M12 5l0 14"></path>
+                  <path d="M5 12l14 0"></path>
+                </svg>Create new order
+              </a>
+              <a href="#" class="btn btn-primary btn-6 d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-report" aria-label="Create new report">
+                <!-- Download SVG icon from http://tabler.io/icons/icon/plus -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2">
+                  <path d="M12 5l0 14"></path>
+                  <path d="M5 12l14 0"></path>
+                </svg>
+              </a>
+            </div>
+            <!-- BEGIN MODAL -->
+            <!-- END MODAL -->
+          </div>
         </div>
       </div>
     </div>
     <div class="page-body">
       <div class="container-xl">
         <div id="error-container">
-        {% if error %}
-          <div class="alert alert-danger alert-dismissible" role="alert">
-            <div class="alert-icon">
-              <!-- Download SVG icon from http://tabler.io/icons/icon/alert-circle -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon alert-icon icon-2">
-                <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"></path>
-                <path d="M12 8v4"></path>
-                <path d="M12 16h.01"></path>
-              </svg>
+          {% if error %}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+              <div class="alert-icon">
+                <!-- Download SVG icon from http://tabler.io/icons/icon/alert-circle -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon alert-icon icon-2">
+                  <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"></path>
+                  <path d="M12 8v4"></path>
+                  <path d="M12 16h.01"></path>
+                </svg>
+              </div>
+              <div>
+                <h4 class="alert-heading">Koneksi bermasalah 🫤</h4>
+                <div class="alert-description">{{ error }}</div>
+              </div>
+              <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
             </div>
-            <div>
-              <h4 class="alert-heading">Koneksi bermasalah 🫤</h4>
-              <div class="alert-description">{{ error }}</div>
-            </div>
-            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-          </div>
-        {% endif %}
+          {% endif %}
         </div>
         <div class="row row-deck row-cards">
           <!-- Card Daftar Pengantaran -->
