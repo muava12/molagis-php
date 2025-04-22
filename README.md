@@ -70,3 +70,17 @@ catering/
   - `GET /dashboard`: Halaman dashboard.
 - Tambah rute di `index.php` dengan `$r->addRoute()`.
 - Jalankan `composer check-templates` untuk validasi folder.
+
+## JavaScript Structure
+- **dashboard.js**:
+  - Struktur: Variabel DOM di awal, fungsi utilitas (`fetchDeliveries`), event listener di akhir.
+  - Fungsi `renderErrorAlert` dipindah ke `utils.js` untuk reusability.
+  - Menggunakan Tabler CSS untuk alert dan spinner.
+  - Pembersihan listener untuk mencegah duplikasi.
+- **Error Handling**:
+  - Server-side: Twig (`error_alert.html.twig`) untuk alert awal.
+  - Client-side: JavaScript (`renderErrorAlert`) untuk alert dinamis, lebih efisien daripada Twig client-side.
+  - Alert ditampilkan di `#error-container` (page-body).
+- **Verifikasi**:
+  - Cek konsol untuk log: `Fetch error:`, `Previous button clicked`.
+  - Uji error dengan hard-coded error di `getDeliveries` atau matikan internet.
