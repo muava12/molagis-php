@@ -55,6 +55,26 @@ $uri = rtrim($uri, '/');
 $uri = $uri === '' ? '/' : $uri;
 $uri = rawurldecode($uri);
 
+
+// Tangani file statis dengan header no-cache
+$staticExtensions = ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'ico'];
+$extension = pathinfo($uri, PATHINFO_EXTENSION);
+if (in_array($extension, $staticExtensions)) {
+    $filePath = __DIR__ . $uri;
+    if (file_exists($filePath)) {
+        $mimeTypes = [
+            'js' => 'application/javascript',
+            'css' => 'text/css',
+        ];
+        header('Content-Type: ' . ($mimeTypes[$extension] ?? 'application/octet-stream'));
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        readfile($filePath);
+        exit;
+    }
+}
+
 // Dispatch rute
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
