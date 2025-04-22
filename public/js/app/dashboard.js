@@ -1,3 +1,5 @@
+import { renderErrorAlert } from './utils.js';
+
 export function initDashboard() {
     console.log('Initializing dashboard event listeners');
     const prevButton = document.getElementById('prev-day');
@@ -66,33 +68,18 @@ export function initDashboard() {
                 dateSubtitle.textContent = data.today_date;
                 prevButton.dataset.date = data.current_date;
                 nextButton.dataset.date = data.current_date;
+
+                const errorContainer = document.querySelector('#error-container');
+                if (errorContainer) errorContainer.innerHTML = '';
             } else {
-                const errorDiv = document.querySelector('.container-xl .alert');
-                if (!errorDiv) {
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-danger alert-dismissible';
-                    alert.innerHTML = `
-                        <div class="d-flex">
-                            <div>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>
-                                    <path d="M12 8l0 4"/>
-                                    <path d="M12 16l0 .01"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="alert-title">Koneksi Bermasalah</h4>
-                                <div class="text-secondary">${data.error || 'Gagal mengambil data'}</div>
-                            </div>
-                        </div>
-                        <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                    `;
-                    document.querySelector('.container-xl').prepend(alert);
+                const errorContainer = document.querySelector('#error-container');
+                if (errorContainer && !errorContainer.querySelector('.alert')) {
+                    renderErrorAlert(data.error || 'Gagal mengambil data');
                 }
             }
         } catch (error) {
             console.error('Fetch error:', error);
+            renderErrorAlert('Gagal mengambil data: ' + error.message);
         } finally {
             spinner.classList.add('d-none');
             svg.classList.remove('d-none');
@@ -101,19 +88,23 @@ export function initDashboard() {
         }
     };
 
-    prevButton.addEventListener('click', () => {
+    const prevHandler = () => {
         console.log('Previous button clicked');
         const currentDate = new Date(prevButton.dataset.date);
         currentDate.setDate(currentDate.getDate() - 1);
         const newDate = currentDate.toISOString().split('T')[0];
         fetchDeliveries(newDate, prevButton);
-    });
-
-    nextButton.addEventListener('click', () => {
+    };
+    const nextHandler = () => {
         console.log('Next button clicked');
         const currentDate = new Date(nextButton.dataset.date);
         currentDate.setDate(currentDate.getDate() + 1);
         const newDate = currentDate.toISOString().split('T')[0];
         fetchDeliveries(newDate, nextButton);
-    });
+    };
+
+    prevButton.removeEventListener('click', prevHandler);
+    nextButton.removeEventListener('click', nextHandler);
+    prevButton.addEventListener('click', prevHandler);
+    nextButton.addEventListener('click', nextHandler);
 }

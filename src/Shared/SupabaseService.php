@@ -80,7 +80,7 @@ class SupabaseService
             error_log('Supabase connection error: ' . $e->getMessage());
             return [
                 'data' => [],
-                'error' => 'Koneksi internet bermasalah, silakan cek koneksi Anda',
+                'error' => 'Gagal mengambil data kurir, koneksi internet bermasalah',
             ];
         } catch (RequestException $e) {
             error_log('Supabase couriers fetch error: ' . $e->getMessage());
@@ -158,7 +158,7 @@ class SupabaseService
         try {
             $this->client->post('/auth/v1/logout', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Authorization' => "Bearer {$accessToken}",
                 ],
             ]);
         } catch (ConnectException $e) {

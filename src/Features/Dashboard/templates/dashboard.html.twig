@@ -3,125 +3,122 @@
   Dashboard Molagis
 {% endblock %}
 {% block content %}
-<div class="page-wrapper">
-    <div class="container-xl">
-        <!-- Page title -->
-        <div class="page-header d-print-none">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h2 class="page-title">
-                        Dashboard
-                    </h2>
-                    <div class="text-muted mt-1">Selamat datang kembali, Admin!</div>
-                </div>
-            </div>
+  <div class="page-wrapper">
+    <!-- Page title -->
+    <div class="page-header d-print-none">
+      <div class="container-xl">
+        <div class="row align-items-center">
+          <div class="col">
+            <h2 class="page-title">Dashboard</h2>
+            <div class="text-muted mt-1">Selamat datang kembali, Admin!</div>
+          </div>
         </div>
+      </div>
     </div>
     <div class="page-body">
-        <div class="container-xl">
-            {% if error %}
-                <div class="alert alert-danger alert-dismissible" role="alert">
-                    <div class="d-flex">
-                        <div>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>
-                                <path d="M12 8l0 4"/>
-                                <path d="M12 16l0 .01"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 class="alert-title">Koneksi Bermasalah</h4>
-                            <div class="text-secondary">{{ error }}</div>
-                        </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                </div>
-            {% endif %}
-            <div class="row row-deck row-cards">
-                <!-- Card Daftar Pengantaran -->
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header border-0">
-                            <div class="me-auto">
-                                <h2 class="h2 card-title">Daftar Pengantaran</h2>
-                                <div class="text-muted" id="date-subtitle">{{ today_date }}</div>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <button class="btn btn-icon me-2" id="prev-day" title="Hari Sebelumnya" data-date="{{ current_date }}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M15 6l-6 6l6 6"/>
-                                    </svg>
-                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                </button>
-                                <button class="btn btn-icon me-2" id="next-day" title="Hari Berikutnya" data-date="{{ current_date }}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M9 6l6 6l-6 6"/>
-                                    </svg>
-                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                </button>
-                                <a href="/delivery-admin" class="btn">Total <span class="badge bg-teal text-green-fg ms-2" id="total-badge">{{ total_deliveries }}</span></a>
-                            </div>
-                        </div>
-                        <div class="card-body p-1">
-                            <div class="table-responsive">
-                                <table class="table table-vcenter" id="deliveries-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Kurir</th>
-                                            <th>Jumlah Pengantaran</th>
-                                            <th class="w-1">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% if deliveries is not empty %}
-                                            {% for delivery in deliveries %}
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ delivery.kurir_id }})"></span>
-                                                            <div class="ms-2">{{ delivery.courier_name }}</div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        {{ delivery.jumlah_pengantaran }} titik Pengantaran
-                                                        <div class="text-muted small">{{ delivery.jumlah_selesai }} sudah sampai</div>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <a target="_blank" href="/delivery/{{ delivery.kurir_id }}" class="btn btn-icon" aria-label="Buka">
-                                                            <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                                <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
-                                                                <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
-                                                            </svg>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        {% else %}
-                                            <tr>
-                                                <td colspan="3" class="text-center">Tidak ada pengantaran hari ini</td>
-                                            </tr>
-                                        {% endif %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Card Statistik -->
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h3 class="card-title">Statistik</h3>
-                            <p>Selamat datang di dashboard Molagis. Pilih menu di navbar untuk mengelola pelanggan, pesanan, atau pengiriman.</p>
-                        </div>
-                    </div>
-                </div>
+      <div class="container-xl">
+        <div id="error-container">
+        {% if error %}
+          <div class="alert alert-danger alert-dismissible" role="alert">
+            <div class="alert-icon">
+              <!-- Download SVG icon from http://tabler.io/icons/icon/alert-circle -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon alert-icon icon-2">
+                <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"></path>
+                <path d="M12 8v4"></path>
+                <path d="M12 16h.01"></path>
+              </svg>
             </div>
+            <div>
+              <h4 class="alert-heading">Koneksi bermasalah 🫤</h4>
+              <div class="alert-description">{{ error }}</div>
+            </div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+          </div>
+        {% endif %}
         </div>
+        <div class="row row-deck row-cards">
+          <!-- Card Daftar Pengantaran -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header border-0">
+                <div class="me-auto">
+                  <h2 class="h2 card-title">Daftar Pengantaran</h2>
+                  <div class="text-muted" id="date-subtitle">{{ today_date }}</div>
+                </div>
+                <div class="d-flex align-items-center">
+                  <button class="btn btn-icon me-2" id="prev-day" title="Hari Sebelumnya" data-date="{{ current_date }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M15 6l-6 6l6 6" />
+                    </svg>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  </button>
+                  <button class="btn btn-icon me-2" id="next-day" title="Hari Berikutnya" data-date="{{ current_date }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M9 6l6 6l-6 6" />
+                    </svg>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  </button>
+                  <a href="/delivery-admin" class="btn">Total <span class="badge bg-teal text-green-fg ms-2" id="total-badge">{{ total_deliveries }}</span></a>
+                </div>
+              </div>
+              <div class="card-body p-1">
+                <div class="table-responsive">
+                  <table class="table table-vcenter" id="deliveries-table">
+                    <thead>
+                      <tr>
+                        <th>Kurir</th>
+                        <th>Jumlah Pengantaran</th>
+                        <th class="w-1">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% if deliveries is not empty %}
+                        {% for delivery in deliveries %}
+                          <tr>
+                            <td>
+                              <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ delivery.kurir_id }})"></span>
+                                <div class="ms-2">{{ delivery.courier_name }}</div>
+                              </div>
+                            </td>
+                            <td>
+                              {{ delivery.jumlah_pengantaran }} titik Pengantaran<div class="text-muted small">{{ delivery.jumlah_selesai }} sudah sampai</div>
+                            </td>
+                            <td class="text-center">
+                              <a target="_blank" href="/delivery/{{ delivery.kurir_id }}" class="btn btn-icon" aria-label="Buka">
+                                <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                  <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+                                  <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
+                                </svg>
+                              </a>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      {% else %}
+                        <tr>
+                          <td colspan="3" class="text-center">Tidak ada pengantaran hari ini</td>
+                        </tr>
+                      {% endif %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Card Statistik -->
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body">
+                <h3 class="card-title">Statistik</h3>
+                <p>Selamat datang di dashboard Molagis. Pilih menu di navbar untuk mengelola pelanggan, pesanan, atau pengiriman.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-</div>
+  </div>
 {% endblock %}
