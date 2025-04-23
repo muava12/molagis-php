@@ -3,20 +3,19 @@ declare(strict_types=1);
 
 namespace Molagis\Features\Dashboard;
 
-use Molagis\Shared\SupabaseService;
 use Molagis\Features\Auth\AuthController;
 use Twig\Environment;
 use IntlDateFormatter;
 
 class DashboardController
 {
-    private SupabaseService $supabase;
+    private DashboardService $dashboardService;
     private AuthController $authController;
     private Environment $twig;
 
-    public function __construct(SupabaseService $supabase, AuthController $authController, Environment $twig)
+    public function __construct(DashboardService $dashboardService, AuthController $authController, Environment $twig)
     {
-        $this->supabase = $supabase;
+        $this->dashboardService = $dashboardService;
         $this->authController = $authController;
         $this->twig = $twig;
     }
@@ -28,10 +27,10 @@ class DashboardController
             exit;
         }
 
-        $couriersResult = $this->supabase->getActiveCouriers();
+        $couriersResult = $this->dashboardService->getActiveCouriers();
         $date = new \DateTime('now', new \DateTimeZone('Asia/Makassar'));
         $currentDate = $date->format('Y-m-d');
-        $deliveriesResult = $this->supabase->getDeliveriesByDate($currentDate);
+        $deliveriesResult = $this->dashboardService->getDeliveriesByDate($currentDate);
         $user = $this->authController->getUserData();
 
         // Format tanggal dalam bahasa Indonesia dengan WITA
@@ -67,7 +66,7 @@ class DashboardController
         }
 
         $date = $_GET['date'] ?? date('Y-m-d', strtotime('now'));
-        $result = $this->supabase->getDeliveriesByDate($date);
+        $result = $this->dashboardService->getDeliveriesByDate($date);
 
         // Format tanggal untuk subtitle
         $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));

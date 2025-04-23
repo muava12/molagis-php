@@ -5,8 +5,10 @@ $basePath = dirname(__DIR__);
 require "{$basePath}/vendor/autoload.php";
 
 use Molagis\Shared\SupabaseService;
+use Molagis\Shared\SupabaseClient;
 use Molagis\Features\Auth\AuthController;
 use Molagis\Features\Dashboard\DashboardController;
+use Molagis\Features\Dashboard\DashboardService;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -30,12 +32,12 @@ $twig = new Environment($loader, [
 ]);
 $twig->addExtension(new \Twig\Extension\DebugExtension());
 
-$supabase = new SupabaseService(
-    $_ENV['SUPABASE_URL'],
-    $_ENV['SUPABASE_APIKEY']
-);
-$authController = new AuthController($supabase, $twig);
-$dashboardController = new DashboardController($supabase, $authController, $twig);
+// Initialize services
+$supabaseClient = new SupabaseClient($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']);
+$supabaseService = new SupabaseService($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']);
+$dashboardService = new DashboardService($supabaseClient);
+$authController = new AuthController($supabaseService, $twig);
+$dashboardController = new DashboardController($dashboardService, $authController, $twig);
 
 // Definisikan rute dengan FastRoute
 $dispatcher = FastRoute\simpleDispatcher(function (RouteCollector $r) use ($authController, $dashboardController) {
@@ -54,7 +56,6 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = rtrim($uri, '/');
 $uri = $uri === '' ? '/' : $uri;
 $uri = rawurldecode($uri);
-
 
 // Tangani file statis dengan header no-cache
 $staticExtensions = ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'ico'];
