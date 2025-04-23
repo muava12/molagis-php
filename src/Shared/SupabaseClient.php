@@ -87,4 +87,65 @@ class SupabaseClient
             ];
         }
     }
+
+    /**
+     * Melakukan PATCH request ke endpoint Supabase untuk memperbarui data.
+     * @param string $endpoint Endpoint API (misalnya, '/rest/v1/couriers?id=eq.1')
+     * @param array $data Data JSON untuk body
+     * @param array $options Opsi tambahan untuk Guzzle
+     * @return array ['data' => array|null, 'error' => string|null]
+     */
+    public function update(string $endpoint, array $data, array $options = []): array
+    {
+        try {
+            $response = $this->client->patch($endpoint, array_merge([
+                'json' => $data,
+            ], $options));
+            return [
+                'data' => json_decode((string) $response->getBody(), true),
+                'error' => null,
+            ];
+        } catch (ConnectException $e) {
+            error_log('Supabase connection error: ' . $e->getMessage());
+            return [
+                'data' => null,
+                'error' => 'Koneksi internet bermasalah, silakan cek koneksi Anda',
+            ];
+        } catch (RequestException $e) {
+            error_log('Supabase update error: ' . $e->getMessage());
+            return [
+                'data' => null,
+                'error' => 'Gagal memperbarui data: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Melakukan DELETE request ke endpoint Supabase untuk menghapus data.
+     * @param string $endpoint Endpoint API (misalnya, '/rest/v1/couriers?id=eq.1')
+     * @param array $options Opsi tambahan untuk Guzzle
+     * @return array ['data' => array|null, 'error' => string|null]
+     */
+    public function delete(string $endpoint, array $options = []): array
+    {
+        try {
+            $response = $this->client->delete($endpoint, $options);
+            return [
+                'data' => json_decode((string) $response->getBody(), true),
+                'error' => null,
+            ];
+        } catch (ConnectException $e) {
+            error_log('Supabase connection error: ' . $e->getMessage());
+            return [
+                'data' => null,
+                'error' => 'Koneksi internet bermasalah, silakan cek koneksi Anda',
+            ];
+        } catch (RequestException $e) {
+            error_log('Supabase delete error: ' . $e->getMessage());
+            return [
+                'data' => null,
+                'error' => 'Gagal menghapus data: ' . $e->getMessage(),
+            ];
+        }
+    }
 }
