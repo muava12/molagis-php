@@ -4,9 +4,10 @@ declare(strict_types=1);
 $basePath = dirname(__DIR__);
 require "{$basePath}/vendor/autoload.php";
 
-use Molagis\Shared\SupabaseService;
 use Molagis\Shared\SupabaseClient;
+use Molagis\Shared\SupabaseService;
 use Molagis\Features\Auth\AuthController;
+use Molagis\Features\Auth\AuthServices;
 use Molagis\Features\Dashboard\DashboardController;
 use Molagis\Features\Dashboard\DashboardService;
 use Twig\Environment;
@@ -15,10 +16,14 @@ use Dotenv\Dotenv;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 
+// Start session
 session_start();
-$dotenv = Dotenv::createImmutable($basePath);
-$dotenv->load();
 
+// Load environment variables
+$dotenv = Dotenv::createImmutable($basePath);
+$dotenv->safeLoad();
+
+// Initialize Twig
 $loader = new FilesystemLoader([
     "{$basePath}/src/Shared/templates",
     "{$basePath}/src/Shared/templates/layouts",
@@ -34,12 +39,13 @@ $twig->addExtension(new \Twig\Extension\DebugExtension());
 
 // Initialize services
 $supabaseClient = new SupabaseClient($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']);
-$supabaseService = new SupabaseService($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']);
-$dashboardService = new DashboardService($supabaseClient);
+$supabaseService = new SupabaseService($supabaseClient);
+$authServices = new AuthServices($supabaseService);
 $authController = new AuthController($supabaseService, $twig);
+$dashboardService = new DashboardService($supabaseClient);
 $dashboardController = new DashboardController($dashboardService, $authController, $twig);
 
-// Definisikan rute dengan FastRoute
+// Define routes
 $dispatcher = FastRoute\simpleDispatcher(function (RouteCollector $r) use ($authController, $dashboardController) {
     $r->addRoute('GET', '/', [$authController, 'showLogin']);
     $r->addRoute('GET', '/login', [$authController, 'showLogin']);
@@ -47,25 +53,31 @@ $dispatcher = FastRoute\simpleDispatcher(function (RouteCollector $r) use ($auth
     $r->addRoute('GET', '/logout', [$authController, 'logout']);
     $r->addRoute('GET', '/dashboard', [$dashboardController, 'showDashboard']);
     $r->addRoute('GET', '/api/deliveries', [$dashboardController, 'getDeliveries']);
-    // $r->addRoute('GET', '/delivery/{id:\d+}', [$dashboardController, 'showDelivery']);
 });
 
-// Ambil method dan path dari request
+// Handle request
 $httpMethod = $_SERVER['REQUEST_METHOD'];
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$uri = rtrim($uri, '/');
-$uri = $uri === '' ? '/' : $uri;
-$uri = rawurldecode($uri);
+$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$uri = rawurldecode(rtrim($uri, '/') ?: '/');
 
-// Tangani file statis dengan header no-cache
-$staticExtensions = ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'ico'];
+// Serve static files
+$staticExtensions = ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'woff', 'woff2', 'ttf'];
 $extension = pathinfo($uri, PATHINFO_EXTENSION);
-if (in_array($extension, $staticExtensions)) {
+if (in_array($extension, $staticExtensions, true)) {
     $filePath = __DIR__ . $uri;
-    if (file_exists($filePath)) {
+    if (file_exists($filePath) && is_file($filePath)) {
         $mimeTypes = [
             'js' => 'application/javascript',
             'css' => 'text/css',
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'ico' => 'image/x-icon',
+            'svg' => 'image/svg+xml',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf' => 'font/ttf',
         ];
         header('Content-Type: ' . ($mimeTypes[$extension] ?? 'application/octet-stream'));
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -76,7 +88,7 @@ if (in_array($extension, $staticExtensions)) {
     }
 }
 
-// Dispatch rute
+// Dispatch route
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 switch ($routeInfo[0]) {
@@ -93,13 +105,12 @@ switch ($routeInfo[0]) {
         $vars = $routeInfo[2];
         if (is_array($handler)) {
             [$controller, $method] = $handler;
-            if ($method === 'handleLogin') {
-                $controller->$method($_POST);
-            } elseif ($method === 'showDelivery') {
-                $controller->$method((int)$vars['id']);
-            } else {
-                $controller->$method();
-            }
+            $params = match($method) {
+                'handleLogin' => [$_POST],
+                'showDelivery' => [(int)$vars['id']],
+                default => []
+            };
+            $controller->$method(...$params);
         }
         break;
 }

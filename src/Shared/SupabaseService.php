@@ -3,92 +3,68 @@ declare(strict_types=1);
 
 namespace Molagis\Shared;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
-use Molagis\Shared\SupabaseClient;
-
 class SupabaseService
 {
-    private Client $client;
-    private string $baseUrl;
-    private string $apiKey;
     private SupabaseClient $supabaseClient;
 
-    public function __construct(string $baseUrl, string $apiKey)
+    public function __construct(SupabaseClient $supabaseClient)
     {
-        $this->baseUrl = $baseUrl;
-        $this->apiKey = $apiKey;
-        $this->client = new Client([
-            'base_uri' => $baseUrl,
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
-                'apikey' => $apiKey,
-                'Content-Type' => 'application/json',
-            ],
-        ]);
+        $this->supabaseClient = $supabaseClient;
     }
 
-    public function signIn(string $email, string $password): ?array
+    public function signIn(string $email, string $password): array
     {
-        try {
-            $response = $this->client->post('/auth/v1/token?grant_type=password', [
-                'json' => [
-                    'email' => $email,
-                    'password' => $password,
-                ],
-            ]);
-            return json_decode((string) $response->getBody(), true);
-        } catch (ConnectException $e) {
-            error_log('Supabase connection error: ' . $e->getMessage());
-            throw new \RuntimeException('Koneksi internet bermasalah, silakan cek koneksi Anda');
-        } catch (RequestException $e) {
-            error_log('Supabase auth error: ' . $e->getMessage());
-            if ($e->getCode() === 400) {
+        $response = $this->supabaseClient->post('/auth/v1/token?grant_type=password', [
+            'email' => $email,
+            'password' => $password,
+        ]);
+
+        if ($response['error']) {
+            if (str_contains($response['error'], '400')) {
                 throw new \InvalidArgumentException('Email atau kata sandi salah');
             }
-            throw new \RuntimeException('Gagal autentikasi: ' . $e->getMessage());
+            throw new \RuntimeException('Gagal autentikasi: ' . $response['error']);
         }
+
+        return $response['data'] ?? [];
     }
 
     public function getUser(string $accessToken): ?array
     {
-        try {
-            $response = $this->client->get('/auth/v1/user', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $accessToken,
-                ],
-            ]);
-            $body = (string) $response->getBody();
-            return json_decode($body, true);
-        } catch (ConnectException $e) {
-            error_log('Supabase connection error: ' . $e->getMessage());
-            return null;
-        } catch (RequestException $e) {
-            error_log('Supabase user fetch error: ' . $e->getMessage());
-            return null;
-        }
+        $response = $this->supabaseClient->get('/auth/v1/user', [
+            'headers' => [
+                'Authorization' => "Bearer $accessToken",
+            ],
+        ]);
+
+        return $response['error'] ? null : $response['data'];
     }
 
     public function getActiveCouriers(): array
     {
-        return $this->supabaseClient->get('/rest/v1/couriers?select=id,nama&aktif=eq.true');
+        $response = $this->supabaseClient->get('/rest/v1/couriers?select=id,nama&aktif=eq.true');
+        return $response['error'] ? [] : $response['data'];
     }
 
     public function signOut(string $accessToken): void
     {
-        try {
-            $this->client->post('/auth/v1/logout', [
-                'headers' => [
-                    'Authorization' => "Bearer {$accessToken}",
-                ],
-            ]);
-        } catch (ConnectException $e) {
-            error_log('Supabase connection error: ' . $e->getMessage());
-            throw new \RuntimeException('Koneksi internet bermasalah, silakan cek koneksi Anda');
-        } catch (RequestException $e) {
-            error_log('Supabase logout error: ' . $e->getMessage());
-            throw new \RuntimeException('Gagal logout: ' . $e->getMessage());
+        $response = $this->supabaseClient->post('/auth/v1/logout', [], [
+            'headers' => [
+                'Authorization' => "Bearer $accessToken",
+            ],
+        ]);
+
+        if ($response['error']) {
+            throw new \RuntimeException('Gagal logout: ' . $response['error']);
         }
+    }
+
+    public function refreshToken(string $refreshToken): ?array
+    {
+        $response = $this->supabaseClient->post('/auth/v1/token?grant_type=refresh_token', [
+            'refresh_token' => $refreshToken,
+        ]);
+
+        return $response['error'] ? null : $response['data'];
     }
 }
