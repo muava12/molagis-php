@@ -1,0 +1,14 @@
+<div class="modal modal-blur fade" id="{{ id|default('reusable-modal') }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <h5 class="modal-title">{{ title|default('Konfirmasi') }}</h5>
+                <div class="modal-message">{{ message|default('Apakah Anda yakin?') }}</div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="{{ id|default('reusable-modal') }}-confirm">{{ confirmText|default('Konfirmasi') }}</button>
+            </div>
+        </div>
+    </div>
+</div>

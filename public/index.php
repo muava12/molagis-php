@@ -10,6 +10,8 @@ use Molagis\Shared\Middleware\AuthMiddleware;
 use Molagis\Features\Auth\AuthController;
 use Molagis\Features\Dashboard\DashboardController;
 use Molagis\Features\Dashboard\DashboardService;
+use Molagis\Features\Customers\CustomersController;
+use Molagis\Features\Customers\CustomersService;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -34,6 +36,7 @@ $loader = new FilesystemLoader([
     "{$basePath}/src/Shared/templates/partials",
     "{$basePath}/src/Features/Auth/templates",
     "{$basePath}/src/Features/Dashboard/templates",
+    "{$basePath}/src/Features/Customers/templates",
 ]);
 $twig = new Environment($loader, [
     'debug' => $_ENV['APP_ENV'] === 'development',
@@ -48,9 +51,23 @@ $authMiddleware = new AuthMiddleware($supabaseService);
 $authController = new AuthController($supabaseService, $twig);
 $dashboardService = new DashboardService($supabaseClient);
 $dashboardController = new DashboardController($dashboardService, $supabaseService, $twig);
+$customersService = new CustomersService($supabaseClient);
+$customersController = new CustomersController($customersService, $supabaseService, $twig);
 
-// Create PSR-7 request
+// Create PSR-7 request with explicit body parsing
 $request = ServerRequestFactory::fromGlobals();
+if (in_array($request->getMethod(), ['POST', 'PUT', 'PATCH'], true)) {
+    $contentType = $request->getHeaderLine('Content-Type');
+    if (str_contains($contentType, 'application/json')) {
+        $rawBody = file_get_contents('php://input');
+        $parsedBody = json_decode($rawBody, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            $request = $request->withParsedBody($parsedBody);
+        } else {
+            error_log('Failed to parse JSON body: ' . json_last_error_msg());
+        }
+    }
+}
 
 // Define routes with middleware mapping
 $routes = [
@@ -60,15 +77,14 @@ $routes = [
     ['POST', '/login', [$authController, 'handleLogin'], []],
     
     // Protected routes
-    ['GET', '/dashboard', [$dashboardController, 'showDashboard'], []],
+    ['GET', '/dashboard', [$dashboardController, 'showDashboard'], [$authMiddleware]],
     ['GET', '/api/deliveries', [$dashboardController, 'getDeliveries'], [$authMiddleware]],
     ['GET', '/logout', [$authController, 'logout'], [$authMiddleware]],
-    // ['GET', '/customers', [$customersController, 'showCustomers'], [$authMiddleware]],
-    // ['GET', '/couriers', [$dashboardController, 'showCouriers'], [$authMiddleware]],
-    // ['GET', '/deliveries', [$dashboardController, 'showDeliveries'], [$authMiddleware]],
-    // ['GET', '/orders', [$dashboardController, 'showOrders'], [$authMiddleware]],
-    // ['GET', '/products', [$dashboardController, 'showProducts'], [$authMiddleware]],
-    // ['GET', '/settings', [$dashboardController, 'showSettings'], [$authMiddleware]],
+    ['GET', '/customers', [$customersController, 'showCustomers'], [$authMiddleware]],
+    ['GET', '/api/customers', [$customersController, 'getCustomers'], [$authMiddleware]],
+    ['POST', '/api/customers/add', [$customersController, 'addCustomer'], [$authMiddleware]],
+    ['POST', '/api/customers/update', [$customersController, 'updateCustomer'], [$authMiddleware]],
+    ['POST', '/api/customers/delete', [$customersController, 'deleteCustomer'], [$authMiddleware]],
 ];
 
 // Create FastRoute dispatcher
@@ -124,8 +140,8 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
             $response = new Response();
             $response->getBody()->write(
                 $twig->render('404.html.twig', [
-                    'title' => 'Halaman Gak Ketemu, Bro!',
-                    'message' => 'Hidup ini bagaikan puisi, penuh dengan bait-bait indah yang menghanyutkan.'
+                    'title' => 'Halaman Tidak Ditemukan',
+                    'active_couriers' => []
                 ])
             );
             return $response->withStatus(404);
@@ -133,9 +149,9 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
         case Dispatcher::METHOD_NOT_ALLOWED:
             $response = new Response();
             $response->getBody()->write(
-                $twig->render('404.html.twig', [
+                $twig->render('405.html.twig', [
                     'title' => 'Metode Tidak Diizinkan',
-                    'message'=> 'Metode yang Anda gunakan tidak diizinkan untuk halaman ini.'
+                    'active_couriers' => []
                 ])
             );
             return $response->withStatus(405);
@@ -152,12 +168,11 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleLogin' => [$request->getParsedBody()],
                     'showDashboard' => [$request],
                     'getDeliveries' => [$request],
-                    // 'showCustomers' => [$request],
-                    // 'showCouriers' => [$request],
-                    // 'showDeliveries' => [$request],
-                    // 'showOrders' => [$request],
-                    // 'showProducts' => [$request],
-                    // 'showSettings' => [$request],
+                    'showCustomers' => [$request],
+                    'getCustomers' => [$request],
+                    'addCustomer' => [$request],
+                    'updateCustomer' => [$request],
+                    'deleteCustomer' => [$request],
                     default => []
                 };
                 
@@ -172,9 +187,7 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                 $couriersResult = $supabaseService->getActiveCouriers($accessToken);
                 
                 $response = new Response();
-                $response->getBody()->write(
-                    $result
-                );
+                $response->getBody()->write($result);
                 return $response;
             };
 
@@ -195,7 +208,8 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
     $response = new Response();
     $response->getBody()->write(
         $twig->render('404.html.twig', [
-            'title' => 'Halaman Tidak Ditemukan'
+            'title' => 'Halaman Tidak Ditemukan',
+            'active_couriers' => []
         ])
     );
     return $response->withStatus(404);
