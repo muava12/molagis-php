@@ -8,14 +8,10 @@ use Twig\Environment;
 
 class AuthController
 {
-    private SupabaseService $supabase;
-    private Environment $twig;
-
-    public function __construct(SupabaseService $supabase, Environment $twig)
-    {
-        $this->supabase = $supabase;
-        $this->twig = $twig;
-    }
+    public function __construct(
+        private SupabaseService $supabase,
+        private Environment $twig
+    ) {}
 
     public function showLogin(): void
     {
@@ -31,22 +27,28 @@ class AuthController
         try {
             $email = $post['email'] ?? '';
             $password = $post['password'] ?? '';
+            
             if (empty($email) || empty($password)) {
                 throw new \InvalidArgumentException('Email dan kata sandi wajib diisi');
             }
-            $authService = new AuthServices($this->supabase);
-            $response = $authService->signIn($email, $password);
-            if ($response && isset($response['access_token'])) {
-                $_SESSION['user_token'] = $response['access_token'];
-                $_SESSION['user_id'] = $response['user']['id'];
-                header('Location: /dashboard');
-                exit;
+
+            $response = $this->supabase->signIn($email, $password);
+            
+            if (!isset($response['access_token'])) {
+                throw new \RuntimeException('Login gagal: Token tidak diterima');
             }
-            throw new \InvalidArgumentException('Login gagal');
+
+            $_SESSION['user_token'] = $response['access_token'];
+            $_SESSION['user_id'] = $response['user']['id'] ?? null;
+            $_SESSION['refresh_token'] = $response['refresh_token'] ?? null;
+            
+            header('Location: /dashboard');
+            exit;
         } catch (\Exception $e) {
             echo $this->twig->render('login.html.twig', [
                 'title' => 'Login Admin Molagis',
                 'error' => $e->getMessage(),
+                'email' => $email ?? '',
             ]);
         }
     }
@@ -57,15 +59,13 @@ class AuthController
             if (isset($_SESSION['user_token'])) {
                 $this->supabase->signOut($_SESSION['user_token']);
             }
+        } catch (\Exception) {
+            // Ignore logout errors
+        } finally {
             session_unset();
             session_destroy();
             header('Location: /login');
             exit;
-        } catch (\Exception $e) {
-            echo $this->twig->render('login.html.twig', [
-                'title' => 'Login Admin Molagis',
-                'error' => 'Gagal logout: ' . $e->getMessage(),
-            ]);
         }
     }
 
@@ -74,6 +74,7 @@ class AuthController
         if (!isset($_SESSION['user_token'])) {
             return null;
         }
+        
         $user = $this->supabase->getUser($_SESSION['user_token']);
         return $user ? ['id' => $user['id']] : null;
     }

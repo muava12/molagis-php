@@ -40,10 +40,14 @@ class SupabaseService
         return $response['error'] ? null : $response['data'];
     }
 
-    public function getActiveCouriers(): array
+    /**
+     * Mengambil daftar kur灣 aktif dari Supabase untuk dropdown di semua halaman.
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
+     * @return array ['data' => array, 'error' => string|null]
+     */
+    public function getActiveCouriers(?string $accessToken = null): array
     {
-        $response = $this->supabaseClient->get('/rest/v1/couriers?select=id,nama&aktif=eq.true');
-        return $response['error'] ? [] : $response['data'];
+        return $this->supabaseClient->get('/rest/v1/couriers?select=id,nama&aktif=eq.true', [], $accessToken);
     }
 
     public function signOut(string $accessToken): void

@@ -20,7 +20,6 @@ class SupabaseClient
         $this->client = new Client([
             'base_uri' => $baseUrl,
             'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
                 'apikey' => $apiKey,
                 'Content-Type' => 'application/json',
             ],
@@ -31,11 +30,19 @@ class SupabaseClient
      * Melakukan GET request ke endpoint Supabase.
      * @param string $endpoint Endpoint API (misalnya, '/rest/v1/couriers')
      * @param array $options Opsi tambahan untuk Guzzle (misalnya, headers)
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
      * @return array ['data' => array, 'error' => string|null]
      */
-    public function get(string $endpoint, array $options = []): array
+    public function get(string $endpoint, array $options = [], ?string $accessToken = null): array
     {
         try {
+            // Tambahkan header Authorization jika accessToken tersedia
+            if ($accessToken) {
+                $options['headers'] = array_merge(
+                    $options['headers'] ?? [],
+                    ['Authorization' => "Bearer $accessToken"]
+                );
+            }
             $response = $this->client->get($endpoint, $options);
             return [
                 'data' => json_decode((string) $response->getBody(), true),
@@ -61,11 +68,19 @@ class SupabaseClient
      * @param string $endpoint Endpoint API (misalnya, '/auth/v1/token')
      * @param array $data Data JSON untuk body
      * @param array $options Opsi tambahan untuk Guzzle
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
      * @return array ['data' => array|null, 'error' => string|null]
      */
-    public function post(string $endpoint, array $data, array $options = []): array
+    public function post(string $endpoint, array $data, array $options = [], ?string $accessToken = null): array
     {
         try {
+            // Tambahkan header Authorization jika accessToken tersedia
+            if ($accessToken) {
+                $options['headers'] = array_merge(
+                    $options['headers'] ?? [],
+                    ['Authorization' => "Bearer $accessToken"]
+                );
+            }
             $response = $this->client->post($endpoint, array_merge([
                 'json' => $data,
             ], $options));
@@ -93,11 +108,19 @@ class SupabaseClient
      * @param string $endpoint Endpoint API (misalnya, '/rest/v1/couriers?id=eq.1')
      * @param array $data Data JSON untuk body
      * @param array $options Opsi tambahan untuk Guzzle
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
      * @return array ['data' => array|null, 'error' => string|null]
      */
-    public function update(string $endpoint, array $data, array $options = []): array
+    public function update(string $endpoint, array $data, array $options = [], ?string $accessToken = null): array
     {
         try {
+            // Tambahkan header Authorization jika accessToken tersedia
+            if ($accessToken) {
+                $options['headers'] = array_merge(
+                    $options['headers'] ?? [],
+                    ['Authorization' => "Bearer $accessToken"]
+                );
+            }
             $response = $this->client->patch($endpoint, array_merge([
                 'json' => $data,
             ], $options));
@@ -124,11 +147,19 @@ class SupabaseClient
      * Melakukan DELETE request ke endpoint Supabase untuk menghapus data.
      * @param string $endpoint Endpoint API (misalnya, '/rest/v1/couriers?id=eq.1')
      * @param array $options Opsi tambahan untuk Guzzle
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
      * @return array ['data' => array|null, 'error' => string|null]
      */
-    public function delete(string $endpoint, array $options = []): array
+    public function delete(string $endpoint, array $options = [], ?string $accessToken = null): array
     {
         try {
+            // Tambahkan header Authorization jika accessToken tersedia
+            if ($accessToken) {
+                $options['headers'] = array_merge(
+                    $options['headers'] ?? [],
+                    ['Authorization' => "Bearer $accessToken"]
+                );
+            }
             $response = $this->client->delete($endpoint, $options);
             return [
                 'data' => json_decode((string) $response->getBody(), true),

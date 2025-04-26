@@ -16,26 +16,32 @@ class DashboardService
 
     /**
      * Mengambil daftar kurir aktif dari Supabase.
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
      * @return array ['data' => array, 'error' => string|null]
      */
-    public function getActiveCouriers(): array
-    {
-        return $this->client->get('/rest/v1/couriers?select=id,nama&aktif=eq.true');
-    }
+    // public function getActiveCouriers(?string $accessToken = null): array
+    // {
+    //     return $this->client->get('/rest/v1/couriers?select=id,nama&aktif=eq.true', [], $accessToken);
+    // }
 
     /**
      * Mengambil data pengantaran berdasarkan tanggal.
      * @param string $date Format YYYY-MM-DD
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
      * @return array ['data' => array, 'total' => int, 'error' => string|null]
      */
-    public function getDeliveriesByDate(string $date): array
+    public function getDeliveriesByDate(string $date, ?string $accessToken = null): array
     {
         try {
             // Validasi format tanggal YYYY-MM-DD
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                 throw new \InvalidArgumentException('Format tanggal tidak valid');
             }
-            $response = $this->client->get("/rest/v1/deliverydates?select=kurir_id,couriers(nama),status&tanggal=eq.{$date}&status=neq.canceled");
+            $response = $this->client->get(
+                "/rest/v1/deliverydates?select=kurir_id,couriers(nama),status&tanggal=eq.{$date}&status=neq.canceled",
+                [],
+                $accessToken
+            );
             if ($response['error']) {
                 return [
                     'data' => [],

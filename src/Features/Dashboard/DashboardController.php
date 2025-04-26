@@ -3,35 +3,29 @@ declare(strict_types=1);
 
 namespace Molagis\Features\Dashboard;
 
-use Molagis\Features\Auth\AuthController;
+use Psr\Http\Message\ServerRequestInterface;
 use Twig\Environment;
 use IntlDateFormatter;
+use Laminas\Diactoros\Response\JsonResponse;
+use Psr\Http\Message\ResponseInterface;
+use Molagis\Shared\SupabaseService;
 
 class DashboardController
 {
-    private DashboardService $dashboardService;
-    private AuthController $authController;
-    private Environment $twig;
+    public function __construct(
+        private DashboardService $dashboardService,
+        private SupabaseService $supabaseService,
+        private Environment $twig
+    ) {}
 
-    public function __construct(DashboardService $dashboardService, AuthController $authController, Environment $twig)
+    public function showDashboard(ServerRequestInterface $request): string
     {
-        $this->dashboardService = $dashboardService;
-        $this->authController = $authController;
-        $this->twig = $twig;
-    }
-
-    public function showDashboard(): void
-    {
-        if (!isset($_SESSION['user_token'])) {
-            header('Location: /login');
-            exit;
-        }
-
-        $couriersResult = $this->dashboardService->getActiveCouriers();
+        $user = $request->getAttribute('user');
+        $accessToken = $_SESSION['user_token'] ?? null;
         $date = new \DateTime('now', new \DateTimeZone('Asia/Makassar'));
         $currentDate = $date->format('Y-m-d');
-        $deliveriesResult = $this->dashboardService->getDeliveriesByDate($currentDate);
-        $user = $this->authController->getUserData();
+        $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
+        $deliveriesResult = $this->dashboardService->getDeliveriesByDate($currentDate, $accessToken);
 
         // Format tanggal dalam bahasa Indonesia dengan WITA
         $formatter = new IntlDateFormatter(
@@ -44,29 +38,23 @@ class DashboardController
         );
         $todayDate = $formatter->format($date);
 
-        echo $this->twig->render('dashboard.html.twig', [
+        return $this->twig->render('dashboard.html.twig', [
             'title' => 'Dashboard Molagis',
-            'couriers' => $couriersResult['data'],
-            'deliveries' => $deliveriesResult['data'],
-            'total_deliveries' => $deliveriesResult['total'],
+            'couriers' => $couriersResult['data'] ?? [],
+            'deliveries' => $deliveriesResult['data'] ?? [],
+            'total_deliveries' => $deliveriesResult['total'] ?? 0,
             'current_date' => $currentDate,
             'today_date' => $todayDate,
-            'error' => $couriersResult['error'] ?: $deliveriesResult['error'],
-            'user_id' => $user ? $user['id'] : 'default-seed',
+            'error' => $couriersResult['error'] ?? $deliveriesResult['error'] ?? null,
+            'user_id' => $user['id'] ?? 'default-seed',
         ]);
     }
 
-    public function getDeliveries(): void
+    public function getDeliveries(ServerRequestInterface $request): ResponseInterface
     {
-        if (!isset($_SESSION['user_token'])) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['error' => 'Unauthorized']);
-            exit;
-        }
-
-        $date = $_GET['date'] ?? date('Y-m-d', strtotime('now'));
-        $result = $this->dashboardService->getDeliveriesByDate($date);
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $date = $request->getQueryParams()['date'] ?? date('Y-m-d');
+        $result = $this->dashboardService->getDeliveriesByDate($date, $accessToken);
 
         // Format tanggal untuk subtitle
         $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
@@ -80,13 +68,12 @@ class DashboardController
         );
         $formattedDate = $formatter->format($dateObj);
 
-        header('Content-Type: application/json');
-        echo json_encode([
-            'deliveries' => $result['data'],
-            'total_deliveries' => $result['total'],
+        return new JsonResponse([
+            'deliveries' => $result['data'] ?? [],
+            'total_deliveries' => $result['total'] ?? 0,
             'today_date' => $formattedDate,
             'current_date' => $date,
-            'error' => $result['error'],
+            'error' => $result['error'] ?? null,
         ]);
     }
 }

@@ -96,8 +96,9 @@
               <path d="M501.775 256.991C497.672 256.079 492.049 254.407 486.122 251.368C480.802 248.632 476.851 245.593 473.812 243.009C476.243 242.705 483.234 242.249 490.529 246.049C497.216 249.544 500.559 254.711 501.775 256.991Z" fill="#232B41" class="tblr-illustrations-not-found-c"></path>
             </svg>
           </div>
-          <p class="empty-title">Oops… You just found an error page</p>
-          <p class="empty-subtitle text-secondary">We are sorry but the page you are looking for was not found</p>
+          <!-- <p class="empty-title">Oops… You just found an error page</p> -->
+          <p class="empty-title">{{ title }}</p>
+            <p class="empty-subtitle text-secondary">{{ message|default('We are sorry but the page you are looking for was not found') }}</p>
           <div class="empty-action">
             <a href="/dashboard" class="btn btn-primary btn-4">
               <!-- Download SVG icon from http://tabler.io/icons/icon/arrow-left -->
