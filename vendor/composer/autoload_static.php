@@ -15,6 +15,13 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         '6779143a5ff130e7e153c2c3cc56b49d' => __DIR__ . '/..' . '/jerome/matrix/src/Matrix/Support/async.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         '7fa0587042203711a0a09684e784ce0a' => __DIR__ . '/..' . '/jerome/fetch-php/src/Fetch/Http/fetch.php',
+        '07d7f1a47144818725fd8d91a907ac57' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/create_uploaded_file.php',
+        'da94ac5d3ca7d2dbab84ce561ce72bfd' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/marshal_headers_from_sapi.php',
+        '3d97c8dcdfba8cb85d3b34f116bb248b' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/marshal_method_from_sapi.php',
+        'e6f3bc6883e449ab367280b34158c05b' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/marshal_protocol_version_from_sapi.php',
+        'de95e0ac670b27c84ef8c5ac41fc1b34' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/normalize_server.php',
+        'b6c2870932b0250c10334a86dcb33c7f' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/normalize_uploaded_files.php',
+        'd02cf21124526632320d6f20b1bbf905' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/parse_cookie_header.php',
         '253c157292f75eb38082b5acb06f3f01' => __DIR__ . '/..' . '/nikic/fast-route/src/functions.php',
         '89efb1254ef2d1c5d80096acd12c4098' => __DIR__ . '/..' . '/twig/twig/src/Resources/core.php',
         'ffecb95d45175fd40f75be8a23b34f90' => __DIR__ . '/..' . '/twig/twig/src/Resources/debug.php',
@@ -45,6 +52,10 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
             'Molagis\\Shared\\' => 15,
             'Molagis\\Features\\' => 17,
             'Matrix\\' => 7,
+        ),
+        'L' => 
+        array (
+            'Laminas\\Diactoros\\' => 18,
         ),
         'G' => 
         array (
@@ -109,6 +120,10 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         'Matrix\\' => 
         array (
             0 => __DIR__ . '/..' . '/jerome/matrix/src/Matrix',
+        ),
+        'Laminas\\Diactoros\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-diactoros/src',
         ),
         'GuzzleHttp\\Psr7\\' => 
         array (

@@ -17,6 +17,7 @@ return array(
     'Molagis\\Shared\\' => array($baseDir . '/src/Shared'),
     'Molagis\\Features\\' => array($baseDir . '/src/Features'),
     'Matrix\\' => array($vendorDir . '/jerome/matrix/src/Matrix'),
+    'Laminas\\Diactoros\\' => array($vendorDir . '/laminas/laminas-diactoros/src'),
     'GuzzleHttp\\Psr7\\' => array($vendorDir . '/guzzlehttp/psr7/src'),
     'GuzzleHttp\\Promise\\' => array($vendorDir . '/guzzlehttp/promises/src'),
     'GuzzleHttp\\' => array($vendorDir . '/guzzlehttp/guzzle/src'),
