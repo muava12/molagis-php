@@ -32,8 +32,8 @@ $loader = new FilesystemLoader([
     "{$basePath}/src/Features/Dashboard/templates",
 ]);
 $twig = new Environment($loader, [
-    'debug' => true,
-    'cache' => false,
+    'debug' => $_ENV['APP_ENV'] === 'development',
+    'cache' => $_ENV['APP_ENV'] === 'production' ? "{$basePath}/cache/twig" : false,
 ]);
 $twig->addExtension(new \Twig\Extension\DebugExtension());
 
