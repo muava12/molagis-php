@@ -26,7 +26,7 @@ class CustomersController
         return $this->twig->render('customers.html.twig', [
             'title' => 'Customers Bro',
             'user_id' => $user['id'] ?? 'default-seed',
-            'active_couriers' => $couriersResult['data'] ?? [],
+            'couriers' => $couriersResult['data'] ?? [],
             'error' => $couriersResult['error'] ?? null,
         ]);
     }

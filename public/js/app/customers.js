@@ -4,6 +4,7 @@ let customers = [];
 let currentPage = 1;
 let itemsPerPage = 100;
 let fetchTimeout = null;
+var bootstrap = tabler.bootstrap;
 
 const refreshButton = document.getElementById('refresh-button');
 const saveAddButton = document.getElementById('save-add');
