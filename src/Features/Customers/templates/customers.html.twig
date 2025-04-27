@@ -10,133 +10,83 @@
     {% include 'svg/chevron-left.svg.twig' %}
     {% include 'svg/chevron-right.svg.twig' %}
 </div>
-    <div class="page-wrapper">
-        <div class="page-header d-print-none">
-            <div class="container-xl">
-                <div class="row g-2 align-items-center">
-                    <div class="col">
-                        <h2 class="page-title">Customers</h2>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="page-body">
-            <div class="container-xl">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Daftar Customers<span id="loading-dots" class="animated-dots ms-1" role="status"></span></h3>
-                        <button id="refresh-button" class="btn btn-sm btn-pill btn-outline btn-icon d-none ms-2">
-                            {% include 'svg/refresh.svg.twig' %}
-                        </button>
-                        <div class="ms-auto">
-                            <button type="button" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#add-modal">
-                                {% include 'svg/plus.svg.twig' %}
-                                Tambah Customer
-                            </button>
-                            <button id="add-customer-btn" class="btn btn-6 d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#add-modal" aria-label="Add new customer">
-                                {% include 'svg/plus.svg.twig' %}
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body border-bottom py-3">
-                        <div class="d-flex">
-                            <div class="text-secondary">
-                                Show
-                                <div class="mx-2 d-inline-block">
-                                    <input type="text" class="form-control form-control-sm" id="itemsPerPageInput" value="100" size="3" aria-label="Items per page">
-                                </div>
-                                entries
-                            </div>
-                            <div class="ms-auto text-secondary">
-                                Search:
-                                <div class="ms-2 d-inline-block">
-                                    <input type="text" class="form-control form-control-sm" id="filterInput" placeholder="Cari nama...">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-selectable card-table table-vcenter table-striped table-hover datatable">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Nama</th>
-                                    <th>Alamat</th>
-                                    <th>Kontak & Info</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customer-list">
-                                <!-- Data akan di-render oleh JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="card-footer d-flex align-items-center">
-                        <p class="m-0 text-secondary">Showing <span>1</span> to <span>10</span> of <span>100</span> entries</p>
-                        <ul class="pagination m-0 ms-auto" id="pagination">
-                            <!-- Pagination akan di-render oleh JavaScript -->
-                        </ul>
-                    </div>
+<div class="page-wrapper">
+    <div class="page-header d-print-none">
+        <div class="container-xl">
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <h2 class="page-title">Customers</h2>
                 </div>
             </div>
         </div>
     </div>
-
-
-<!-- Modal Add Customer -->
-<div class="modal modal-blur fade" id="add-modal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Tambah Customer</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label required">Nama</label>
-                    <input type="text" class="form-control" id="add-nama" placeholder="Nama customer" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Alamat</label>
-                    <textarea class="form-control" id="add-alamat" rows="3" placeholder="Alamat customer"></textarea>
-                </div>
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="mb-3">
-                            <label class="form-label">Telepon</label>
-                            <input type="text" class="form-control" id="add-telepon" placeholder="Nomor telepon">
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <div class="mb-3">
-                            <label class="form-label">Telepon Alternatif</label>
-                            <input type="text" class="form-control" id="add-telepon-alt" placeholder="Nomor telepon alternatif">
-                        </div>
+    <div class="page-body">
+        <div class="container-xl">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Daftar Customers<span id="loading-dots" class="animated-dots ms-1" role="status"></span></h3>
+                    <button id="refresh-button" class="btn btn-sm btn-pill btn-outline btn-icon d-none ms-2">
+                        {% include 'svg/refresh.svg.twig' %}
+                    </button>
+                    <div class="ms-auto">
+                        <button type="button" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#add-modal">
+                            {% include 'svg/plus.svg.twig' %}
+                            Tambah Customer
+                        </button>
+                        <button id="add-customer-btn" class="btn btn-6 d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#add-modal" aria-label="Add new customer">
+                            {% include 'svg/plus.svg.twig' %}
+                        </button>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Telepon Pemesan</label>
-                    <input type="text" class="form-control" id="add-telepon-pemesan" placeholder="Nomor telepon pemesan">
+                <div class="card-body border-bottom py-3">
+                    <div class="d-flex">
+                        <div class="text-secondary">
+                            Show
+                            <div class="mx-2 d-inline-block">
+                                <input type="text" class="form-control form-control-sm" id="itemsPerPageInput" value="100" size="3" aria-label="Items per page">
+                            </div>
+                            entries
+                        </div>
+                        <div class="ms-auto text-secondary">
+                            Search:
+                            <div class="ms-2 d-inline-block">
+                                <input type="text" class="form-control form-control-sm" id="filterInput" placeholder="Cari nama...">
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Maps</label>
-                    <input type="text" class="form-control" id="add-maps" placeholder="Link Google Maps">
+                <div class="table-responsive">
+                    <table class="table table-selectable card-table table-vcenter table-striped table-hover datatable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nama</th>
+                                <th>Alamat</th>
+                                <th>Kontak & Info</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-list">
+                            <!-- Data akan di-render oleh JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Ongkir</label>
-                    <input type="number" class="form-control" id="add-ongkir" placeholder="Biaya ongkir">
+                <div class="card-footer d-flex align-items-center">
+                    <p class="m-0 text-secondary">Showing <span>1</span> to <span>10</span> of <span>100</span> entries</p>
+                    <ul class="pagination m-0 ms-auto" id="pagination">
+                        <!-- Pagination akan di-render oleh JavaScript -->
+                    </ul>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
-                <a href="#" class="btn btn-primary ms-auto" id="save-add">
-                    {% include 'svg/plus.svg.twig' %}
-                    Tambah Customer
-                </a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal Add Customer -->
+{% include 'add-customer-modal.html.twig' with {
+    'modal_id': 'add-modal',
+    'button_text': 'Tambah Customer'
+} %}
 
 <!-- Modal Edit Customer -->
 <div class="modal modal-blur fade" id="edit-modal" tabindex="-1" role="dialog" aria-hidden="true">
@@ -199,10 +149,10 @@
 
 <!-- Modal Konfirmasi -->
 {% include 'confirmation-modal.html.twig' with {
-    id: 'delete-confirm-modal',
-    title: 'Yakin mau dihapus?',
-    message: 'Data akan dihapus permanen.',
-    confirmText: 'Hapus'
+    'id': 'delete-confirm-modal',
+    'title': 'Yakin mau dihapus?',
+    'message': 'Data akan dihapus permanen.',
+    'confirmText': 'Hapus'
 } %}
 
 <!-- Toast -->
@@ -210,6 +160,5 @@
 {% endblock %}
 
 {% block javascripts %}
-<script src="/js/app/customers.js?v={{ 'now'|date('U') }}"></script>
-<!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.min.js" integrity="sha384-VQqxDN0EQCkWoxt/0vsQvZswzTHUVOImccYmSyhJTp7kGtPed0Qcx8rK9h9YEgx+" crossorigin="anonymous"></script> -->
+<script type="module" src="/js/app/customers.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

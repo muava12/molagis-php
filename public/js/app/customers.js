@@ -5,9 +5,10 @@ let currentPage = 1;
 let itemsPerPage = 100;
 let fetchTimeout = null;
 var bootstrap = tabler.bootstrap;
+let idAddModal = 'add-modal'
 
 const refreshButton = document.getElementById('refresh-button');
-const saveAddButton = document.getElementById('save-add');
+const saveAddButton = document.getElementById(`${idAddModal}-save`);
 const saveChangesButton = document.getElementById('save-changes');
 const filterInput = document.getElementById('filterInput');
 const itemsPerPageInput = document.getElementById('itemsPerPageInput');
@@ -44,7 +45,7 @@ async function fetchCustomers() {
         clearTimeout(fetchTimeout);
         loadingDots.classList.add('d-none');
         refreshButton.classList.remove('d-none');
-        showToast('Error', 'Gagal mengambil data pelanggan. Silakan cek koneksi internet.');
+        showErrorToast('Error', 'Gagal mengambil data pelanggan. Silakan cek koneksi internet.');
     }
 }
 
@@ -117,7 +118,7 @@ function updatePaginationControls(totalItems) {
 async function handleEditClick(event) {
     const customerId = event.target.getAttribute('data-id');
     if (!customerId) {
-        showToast('Error', 'ID pelanggan tidak valid.');
+        showErrorToast('Error', 'ID pelanggan tidak valid.');
         return;
     }
 
@@ -160,7 +161,7 @@ async function handleEditClick(event) {
             editModal.show();
         } catch (error) {
             console.error('Error fetching customer:', error);
-            showToast('Error', 'Gagal mengambil data pelanggan. Silakan cek koneksi internet.');
+            showErrorToast('Error', 'Gagal mengambil data pelanggan. Silakan cek koneksi internet.');
         }
     }
 }
@@ -212,7 +213,7 @@ async function saveChanges() {
 
     if (!selectedCustomerId) {
         saveChangesButton.classList.remove('btn-loading');
-        showToast('Error', 'ID pelanggan tidak valid.');
+        showErrorToast('Error', 'ID pelanggan tidak valid.');
         return;
     }
 
@@ -248,7 +249,7 @@ async function saveChanges() {
     } catch (error) {
         console.error('Error updating customer:', error);
         saveChangesButton.classList.remove('btn-loading');
-        showToast('Error', 'Gagal menyimpan perubahan: ' + error.message);
+        showErrorToast('Error', 'Gagal menyimpan perubahan: ' + error.message);
     }
 }
 
@@ -271,47 +272,109 @@ async function filterTable() {
     renderCustomers(filteredCustomers);
 }
 
+// async function saveNewCustomer() {
+//     saveAddButton.classList.add('btn-loading');
+
+//     const newCustomer = {
+//         nama: document.getElementById(`${idAddModal}-nama`).value,
+//         alamat: document.getElementById(`${idAddModal}-alamat`).value,
+//         telepon: document.getElementById(`${idAddModal}-telepon`).value,
+//         telepon_alt: document.getElementById(`${idAddModal}-telepon-alt`).value || null,
+//         telepon_pemesan: document.getElementById(`${idAddModal}-telepon-pemesan`).value || null,
+//         maps: document.getElementById(`${idAddModal}-maps`).value || null,
+//         ongkir: document.getElementById(`${idAddModal}-ongkir`).value || null,
+//     };
+
+//     try {
+//         const response = await fetch('/api/customers/add', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'X-Requested-With': 'XMLHttpRequest'
+//             },
+//             body: JSON.stringify(newCustomer)
+//         });
+//         const result = await response.json();
+//         if (result.error) throw new Error(result.error);
+
+//         saveAddButton.classList.remove('btn-loading');
+//         closeAddModal();
+//         fetchCustomers();
+//         showToast('Sukses', 'Pelanggan berhasil ditambahkan.');
+
+//         document.getElementById('add-nama').value = '';
+//         document.getElementById('add-alamat').value = '';
+//         document.getElementById('add-telepon').value = '';
+//         document.getElementById('add-telepon-alt').value = '';
+//         document.getElementById('add-telepon-pemesan').value = '';
+//         document.getElementById('add-maps').value = '';
+//         document.getElementById('add-ongkir').value = '';
+//     } catch (error) {
+//         console.error('Error adding customer:', error);
+//         saveAddButton.classList.remove('btn-loading');
+//         showToast('Error', 'Gagal menambahkan pelanggan. Silakan cek koneksi internet.');
+//     }
+// }
 async function saveNewCustomer() {
     saveAddButton.classList.add('btn-loading');
 
+    // 1. Ambil nilai form
     const newCustomer = {
-        nama: document.getElementById('add-nama').value,
-        alamat: document.getElementById('add-alamat').value,
-        telepon: document.getElementById('add-telepon').value,
-        telepon_alt: document.getElementById('add-telepon-alt').value || null,
-        telepon_pemesan: document.getElementById('add-telepon-pemesan').value || null,
-        maps: document.getElementById('add-maps').value || null,
-        ongkir: document.getElementById('add-ongkir').value || null,
+        nama: document.getElementById(`${idAddModal}-nama`)?.value || '',
+        alamat: document.getElementById(`${idAddModal}-alamat`)?.value || '',
+        telepon: document.getElementById(`${idAddModal}-telepon`)?.value || '',
+        telepon_alt: document.getElementById(`${idAddModal}-telepon-alt`)?.value || null,
+        telepon_pemesan: document.getElementById(`${idAddModal}-telepon-pemesan`)?.value || null,
+        maps: document.getElementById(`${idAddModal}-maps`)?.value || null,
+        ongkir: document.getElementById(`${idAddModal}-ongkir`)?.value || null,
     };
 
     try {
+        // 2. API call dengan timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         const response = await fetch('/api/customers/add', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(newCustomer)
+            body: JSON.stringify(newCustomer),
+            signal: controller.signal
         });
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
+        clearTimeout(timeoutId);
 
-        saveAddButton.classList.remove('btn-loading');
+        if (!response.ok) {
+            const error = await response.json();
+            // throw new Error(error.message || 'Gagal menambahkan pelanggan');
+            showErrorToast('Error', error.message || 'Gagal menambahkan pelanggan');
+        }
+
+        // 3. Reset form field secara manual
+        const resetField = (id) => {
+            const el = document.getElementById(`${idAddModal}-${id}`);
+            if (el) el.value = '';
+        };
+
+        resetField('nama');
+        resetField('alamat');
+        resetField('telepon');
+        resetField('telepon-alt');
+        resetField('telepon-pemesan');
+        resetField('maps');
+        resetField('ongkir');
+
+        // 4. Update UI
         closeAddModal();
-        fetchCustomers();
+        await fetchCustomers();
         showToast('Sukses', 'Pelanggan berhasil ditambahkan.');
 
-        document.getElementById('add-nama').value = '';
-        document.getElementById('add-alamat').value = '';
-        document.getElementById('add-telepon').value = '';
-        document.getElementById('add-telepon-alt').value = '';
-        document.getElementById('add-telepon-pemesan').value = '';
-        document.getElementById('add-maps').value = '';
-        document.getElementById('add-ongkir').value = '';
     } catch (error) {
-        console.error('Error adding customer:', error);
+        console.error('Error:', error);
+        showErrorToast('Error', error.message || 'Terjadi kesalahan saat menyimpan data');
+    } finally {
         saveAddButton.classList.remove('btn-loading');
-        showToast('Error', 'Gagal menambahkan pelanggan. Silakan cek koneksi internet.');
     }
 }
 
@@ -344,7 +407,7 @@ function handleDeleteClick(event) {
                 showToast('Sukses', 'Pelanggan berhasil dihapus.');
             } catch (error) {
                 console.error('Error deleting customer:', error);
-                showToast('Error', 'Gagal menghapus pelanggan. Silakan cek koneksi internet.');
+                showErrorToast('Error', 'Gagal menghapus pelanggan. Silakan cek koneksi internet.');
             }
         },
         'Hapus'
@@ -380,6 +443,7 @@ function showConfirmation(title, message, onConfirm, confirmText = 'Konfirmasi')
     modal.show();
 }
 
+// Fungsi untuk menampilkan toast default
 function showToast(title, message) {
     const toast = new bootstrap.Toast(document.getElementById('toast'));
     document.getElementById('toast-title').textContent = title;
@@ -387,6 +451,13 @@ function showToast(title, message) {
     toast.show();
 }
 
+// Fungsi untuk menampilkan toast error
+function showErrorToast(title, message) {
+    const toast = new bootstrap.Toast(document.getElementById('toast-error'));
+    document.getElementById('toast-error-title').textContent = title;
+    document.getElementById('toast-error-message').textContent = message;
+    toast.show();
+}
 // Event listener dalam satu fungsi
 function setupEventListeners() {
     refreshButton.addEventListener('click', fetchCustomers);
