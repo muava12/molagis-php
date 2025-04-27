@@ -1,7 +1,91 @@
-import { renderErrorAlert } from './utils.js';
+// dashboard.js
+import { renderErrorAlert, showToast } from './utils.js';
 
-export function initDashboard() {
+// Variabel global
+const bootstrap = tabler.bootstrap;
+let idAddModal = 'dashboard-add-modal';
+
+// Fungsi untuk menyimpan customer baru
+async function saveNewCustomer() {
+    const saveAddButton = document.getElementById(`${idAddModal}-save`);
+    saveAddButton.classList.add('btn-loading');
+
+    // 1. Ambil nilai form
+    const newCustomer = {
+        nama: document.getElementById(`${idAddModal}-nama`)?.value || '',
+        alamat: document.getElementById(`${idAddModal}-alamat`)?.value || '',
+        telepon: document.getElementById(`${idAddModal}-telepon`)?.value || '',
+        telepon_alt: document.getElementById(`${idAddModal}-telepon-alt`)?.value || null,
+        telepon_pemesan: document.getElementById(`${idAddModal}-telepon-pemesan`)?.value || null,
+        maps: document.getElementById(`${idAddModal}-maps`)?.value || null,
+        ongkir: document.getElementById(`${idAddModal}-ongkir`)?.value || null,
+    };
+
+    try {
+        // 2. API call dengan timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch('/api/customers/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(newCustomer),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Gagal menambahkan pelanggan');
+        }
+
+        // 3. Reset form field secara manual
+        const resetField = (id) => {
+            const el = document.getElementById(`${idAddModal}-${id}`);
+            if (el) el.value = '';
+        };
+
+        resetField('nama');
+        resetField('alamat');
+        resetField('telepon');
+        resetField('telepon-alt');
+        resetField('telepon-pemesan');
+        resetField('maps');
+        resetField('ongkir');
+
+        // 4. Update UI
+        closeAddModal();
+        showToast('Sukses', 'Pelanggan berhasil ditambahkan.');
+
+    } catch (error) {
+        console.error('Error:', error);
+        renderErrorAlert(error.message || 'Terjadi kesalahan saat menyimpan data');
+    } finally {
+        saveAddButton.classList.remove('btn-loading');
+    }
+}
+
+function closeAddModal() {
+    const addModal = bootstrap.Modal.getInstance(document.getElementById(idAddModal));
+    addModal?.hide();
+}
+
+// Event listener dalam satu fungsi
+function setupEventListeners() {
+    const saveAddButton = document.getElementById(`${idAddModal}-save`);
+    if (saveAddButton) {
+        saveAddButton.addEventListener('click', saveNewCustomer);
+    }
+}
+
+// Fungsi utama untuk inisialisasi dashboard
+export function initDashboard() {  
     console.log('Initializing dashboard event listeners');
+    
+    // Inisialisasi event listener untuk navigasi hari
     const prevButton = document.getElementById('prev-day');
     const nextButton = document.getElementById('next-day');
     const tableBody = document.querySelector('#deliveries-table tbody');
@@ -107,4 +191,16 @@ export function initDashboard() {
     nextButton.removeEventListener('click', nextHandler);
     prevButton.addEventListener('click', prevHandler);
     nextButton.addEventListener('click', nextHandler);
+
+    // Setup event listeners lainnya
+    setupEventListeners();
 }
+
+// Inisialisasi standalone jika diperlukan
+function initialize() {
+    initDashboard();
+}
+
+initialize();
+// Export fungsi initialize jika diperlukan
+// export { initialize };
