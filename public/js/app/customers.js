@@ -1,17 +1,22 @@
+/*
+ * File: customers.js
+ * Description: Logika untuk halaman manajemen pelanggan, termasuk pengambilan, penyaringan, edit, dan penghapusan data pelanggan.
+ */
+
 // Variabel global
 let selectedCustomerId = null;
 let customers = [];
 let currentPage = 1;
 let itemsPerPage = 100;
 let fetchTimeout = null;
-var bootstrap = tabler.bootstrap;
-let idAddModal = 'add-modal'
+const bootstrap = window.tabler?.bootstrap;
 
 const refreshButton = document.getElementById('refresh-button');
-const saveAddButton = document.getElementById(`${idAddModal}-save`);
-const saveChangesButton = document.getElementById('save-changes');
 const filterInput = document.getElementById('filterInput');
 const itemsPerPageInput = document.getElementById('itemsPerPageInput');
+
+// Impor modul add-customer-modal
+import { initAddCustomerModal } from './add-customer-modal.js';
 
 // Fungsi utilitas
 async function fetchCustomers() {
@@ -26,7 +31,7 @@ async function fetchCustomers() {
 
     try {
         const response = await fetch('/api/customers', {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
         });
         const result = await response.json();
         if (result.error) throw new Error(result.error);
@@ -55,22 +60,43 @@ function renderCustomers(customerData) {
     const endIndex = startIndex + itemsPerPage;
     const paginatedCustomers = customerData.slice(startIndex, endIndex);
 
-    customerList.innerHTML = paginatedCustomers.map(customer => {
-        const telepon = customer.telepon ? customer.telepon.replace(/^0/, '') : '';
-        const teleponAlt = customer.telepon_alt ? customer.telepon_alt.replace(/^0/, '') : '';
-        const teleponPemesan = customer.telepon_pemesan ? customer.telepon_pemesan.replace(/^0/, '') : '';
-        return `
+    customerList.innerHTML = paginatedCustomers
+        .map((customer) => {
+            const telepon = customer.telepon ? customer.telepon.replace(/^0/, '') : '';
+            const teleponAlt = customer.telepon_alt ? customer.telepon_alt.replace(/^0/, '') : '';
+            const teleponPemesan = customer.telepon_pemesan ? customer.telepon_pemesan.replace(/^0/, '') : '';
+            return `
             <tr>
                 <td class="w-5">${customer.number}</td>
                 <td class="w-20">${customer.nama}</td>
                 <td class="w-55">${customer.alamat || ''}</td>
                 <td class="w-10">
                     <div class="tags-list">
-                        ${customer.telepon ? `<a href="https://wa.me/62${telepon}" target="_blank" class="badge bg-teal-lt">${document.querySelector('.icon-tabler-brand-whatsapp').outerHTML}</a>` : ''}
-                        ${customer.telepon_alt ? `<a href="https://wa.me/62${teleponAlt}" target="_blank" class="badge bg-cyan-lt">${document.querySelector('.icon-tabler-brand-whatsapp').outerHTML}</a>` : ''}
-                        ${customer.telepon_pemesan ? `<a href="https://wa.me/62${teleponPemesan}" target="_blank" class="badge bg-indigo-lt">${document.querySelector('.icon-tabler-brand-whatsapp').outerHTML}</a>` : ''}
-                        ${customer.maps ? `<a href="${customer.maps}" target="_blank" class="badge bg-blue-lt">${document.querySelector('.icon-tabler-map-pin').outerHTML}</a>` : ''}
-                        ${customer.ongkir ? `<span class="badge bg-lime-lt">${document.querySelector('.icon-tabler-truck-delivery').outerHTML} ${customer.ongkir}</span>` : ''}
+                        ${
+                            customer.telepon
+                                ? `<a href="https://wa.me/62${telepon}" target="_blank" class="badge bg-teal-lt">${document.querySelector('.icon-tabler-brand-whatsapp').outerHTML}</a>`
+                                : ''
+                        }
+                        ${
+                            customer.telepon_alt
+                                ? `<a href="https://wa.me/62${teleponAlt}" target="_blank" class="badge bg-cyan-lt">${document.querySelector('.icon-tabler-brand-whatsapp').outerHTML}</a>`
+                                : ''
+                        }
+                        ${
+                            customer.telepon_pemesan
+                                ? `<a href="https://wa.me/62${teleponPemesan}" target="_blank" class="badge bg-indigo-lt">${document.querySelector('.icon-tabler-brand-whatsapp').outerHTML}</a>`
+                                : ''
+                        }
+                        ${
+                            customer.maps
+                                ? `<a href="${customer.maps}" target="_blank" class="badge bg-blue-lt">${document.querySelector('.icon-tabler-map-pin').outerHTML}</a>`
+                                : ''
+                        }
+                        ${
+                            customer.ongkir
+                                ? `<span class="badge bg-lime-lt">${document.querySelector('.icon-tabler-truck-delivery').outerHTML} ${customer.ongkir}</span>`
+                                : ''
+                        }
                     </div>
                 </td>
                 <td class="w-10">
@@ -81,7 +107,8 @@ function renderCustomers(customerData) {
                 </td>
             </tr>
         `;
-    }).join('');
+        })
+        .join('');
 
     updatePaginationControls(customerData.length);
     addEventListenersToButtons();
@@ -92,7 +119,10 @@ function updatePaginationControls(totalItems) {
     const paginationInfo = document.querySelector('.card-footer p');
     const paginationList = document.getElementById('pagination');
 
-    paginationInfo.innerHTML = `Showing <span>${(currentPage - 1) * itemsPerPage + 1}</span> to <span>${Math.min(currentPage * itemsPerPage, totalItems)}</span> of <span>${totalItems}</span> entries`;
+    paginationInfo.innerHTML = `Showing <span>${(currentPage - 1) * itemsPerPage + 1}</span> to <span>${Math.min(
+        currentPage * itemsPerPage,
+        totalItems
+    )}</span> of <span>${totalItems}</span> entries`;
 
     paginationList.innerHTML = `
         <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
@@ -123,7 +153,7 @@ async function handleEditClick(event) {
     }
 
     // Cari pelanggan dari data lokal terlebih dahulu
-    const customer = customers.find(cust => cust.id == customerId);
+    const customer = customers.find((cust) => cust.id == customerId);
     if (customer) {
         document.getElementById('edit-nama').value = customer.nama;
         document.getElementById('edit-alamat').value = customer.alamat || '';
@@ -140,7 +170,7 @@ async function handleEditClick(event) {
         // Jika tidak ada di data lokal, ambil dari server
         try {
             const response = await fetch(`/api/customers?id=eq.${customerId}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
             });
             const result = await response.json();
             if (result.error || !result.customers || result.customers.length === 0) {
@@ -166,94 +196,83 @@ async function handleEditClick(event) {
     }
 }
 
-// async function saveChanges() {
-//     saveChangesButton.classList.add('btn-loading');
+async function saveChanges(event) {
+    event.preventDefault(); // Mencegah submit default
 
-//     if (!selectedCustomerId) {
-//         saveChangesButton.classList.remove('btn-loading');
-//         showToast('Error', 'ID pelanggan tidak valid.');
-//         return;
-//     }
+    const form = document.getElementById('edit-modal-form');
+    const saveButtons = [
+        document.getElementById('edit-save-changes'),
+        document.getElementById('edit-save-changes-mobile'),
+    ];
 
-//     const updatedCustomer = {
-//         id: selectedCustomerId, // Kirim sebagai string, bukan integer
-//         nama: document.getElementById('edit-nama').value,
-//         alamat: document.getElementById('edit-alamat').value || null,
-//         telepon: document.getElementById('edit-telepon').value || null,
-//         telepon_alt: document.getElementById('edit-telepon-alt').value || null,
-//         telepon_pemesan: document.getElementById('edit-telepon-pemesan').value || null,
-//         maps: document.getElementById('edit-maps').value || null,
-//         ongkir: document.getElementById('edit-ongkir').value || null,
-//     };
+    // Validasi form
+    if (!form.checkValidity()) {
+        form.reportValidity(); // Tampilkan pesan validasi HTML5
+        return;
+    }
 
-//     try {
-//         const response = await fetch('/api/customers/update', {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'X-Requested-With': 'XMLHttpRequest'
-//             },
-//             body: JSON.stringify(updatedCustomer)
-//         });
-//         const result = await response.json();
-//         if (result.error) throw new Error(result.error);
-
-//         saveChangesButton.classList.remove('btn-loading');
-//         closeEditModal();
-//         fetchCustomers();
-//         showToast('Sukses', 'Perubahan pelanggan berhasil disimpan.');
-//     } catch (error) {
-//         console.error('Error updating customer:', error);
-//         saveChangesButton.classList.remove('btn-loading');
-//         showToast('Error', 'Gagal menyimpan perubahan: ' + error.message);
-//     }
-// }
-async function saveChanges() {
-    saveChangesButton.classList.add('btn-loading');
+    // Nonaktifkan tombol submit
+    saveButtons.forEach((button) => {
+        if (button) {
+            button.classList.add('btn-loading');
+            button.disabled = true;
+        }
+    });
 
     if (!selectedCustomerId) {
-        saveChangesButton.classList.remove('btn-loading');
+        saveButtons.forEach((button) => {
+            if (button) {
+                button.classList.remove('btn-loading');
+                button.disabled = false;
+            }
+        });
         showErrorToast('Error', 'ID pelanggan tidak valid.');
         return;
     }
 
     const updatedCustomer = {
         id: selectedCustomerId, // Kirim sebagai string, bukan integer
-        nama: document.getElementById('edit-nama').value,
-        alamat: document.getElementById('edit-alamat').value || null,
-        telepon: document.getElementById('edit-telepon').value || null,
-        telepon_alt: document.getElementById('edit-telepon-alt').value || null,
-        telepon_pemesan: document.getElementById('edit-telepon-pemesan').value || null,
-        maps: document.getElementById('edit-maps').value || null,
-        ongkir: document.getElementById('edit-ongkir').value || null,
+        nama: document.getElementById('edit-nama').value.trim(),
+        alamat: document.getElementById('edit-alamat').value.trim() || null,
+        telepon: document.getElementById('edit-telepon').value.trim() || null,
+        telepon_alt: document.getElementById('edit-telepon-alt').value.trim() || null,
+        telepon_pemesan: document.getElementById('edit-telepon-pemesan').value.trim() || null,
+        maps: document.getElementById('edit-maps').value.trim() || null,
+        ongkir: document.getElementById('edit-ongkir').value.trim() ? parseFloat(document.getElementById('edit-ongkir').value.trim()) : null,
     };
 
-    console.log('Sending updatedCustomer:', JSON.stringify(updatedCustomer)); // Tambahkan logging
+    console.log('Sending updatedCustomer:', JSON.stringify(updatedCustomer)); // Logging untuk debugging
 
     try {
         const response = await fetch('/api/customers/update', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify(updatedCustomer)
+            body: JSON.stringify(updatedCustomer),
         });
         const result = await response.json();
         if (result.error) throw new Error(result.error);
 
-        saveChangesButton.classList.remove('btn-loading');
+        form.reset();
         closeEditModal();
         fetchCustomers();
         showToast('Sukses', 'Perubahan pelanggan berhasil disimpan.');
     } catch (error) {
         console.error('Error updating customer:', error);
-        saveChangesButton.classList.remove('btn-loading');
         showErrorToast('Error', 'Gagal menyimpan perubahan: ' + error.message);
+    } finally {
+        // Aktifkan kembali tombol submit
+        saveButtons.forEach((button) => {
+            if (button) {
+                button.classList.remove('btn-loading');
+                button.disabled = false;
+            }
+        });
     }
 }
 
-// Fungsi lainnya tetap sama
 function changePage(newPage) {
     currentPage = newPage;
     renderCustomers(customers);
@@ -261,7 +280,7 @@ function changePage(newPage) {
 
 async function filterTable() {
     const filter = filterInput.value.toLowerCase();
-    const filteredCustomers = customers.filter(customer => customer.nama.toLowerCase().includes(filter));
+    const filteredCustomers = customers.filter((customer) => customer.nama.toLowerCase().includes(filter));
 
     filteredCustomers.sort((a, b) => {
         const posA = a.nama.toLowerCase().indexOf(filter);
@@ -272,115 +291,9 @@ async function filterTable() {
     renderCustomers(filteredCustomers);
 }
 
-// async function saveNewCustomer() {
-//     saveAddButton.classList.add('btn-loading');
-
-//     const newCustomer = {
-//         nama: document.getElementById(`${idAddModal}-nama`).value,
-//         alamat: document.getElementById(`${idAddModal}-alamat`).value,
-//         telepon: document.getElementById(`${idAddModal}-telepon`).value,
-//         telepon_alt: document.getElementById(`${idAddModal}-telepon-alt`).value || null,
-//         telepon_pemesan: document.getElementById(`${idAddModal}-telepon-pemesan`).value || null,
-//         maps: document.getElementById(`${idAddModal}-maps`).value || null,
-//         ongkir: document.getElementById(`${idAddModal}-ongkir`).value || null,
-//     };
-
-//     try {
-//         const response = await fetch('/api/customers/add', {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'X-Requested-With': 'XMLHttpRequest'
-//             },
-//             body: JSON.stringify(newCustomer)
-//         });
-//         const result = await response.json();
-//         if (result.error) throw new Error(result.error);
-
-//         saveAddButton.classList.remove('btn-loading');
-//         closeAddModal();
-//         fetchCustomers();
-//         showToast('Sukses', 'Pelanggan berhasil ditambahkan.');
-
-//         document.getElementById('add-nama').value = '';
-//         document.getElementById('add-alamat').value = '';
-//         document.getElementById('add-telepon').value = '';
-//         document.getElementById('add-telepon-alt').value = '';
-//         document.getElementById('add-telepon-pemesan').value = '';
-//         document.getElementById('add-maps').value = '';
-//         document.getElementById('add-ongkir').value = '';
-//     } catch (error) {
-//         console.error('Error adding customer:', error);
-//         saveAddButton.classList.remove('btn-loading');
-//         showToast('Error', 'Gagal menambahkan pelanggan. Silakan cek koneksi internet.');
-//     }
-// }
-async function saveNewCustomer() {
-    saveAddButton.classList.add('btn-loading');
-
-    // 1. Ambil nilai form
-    const newCustomer = {
-        nama: document.getElementById(`${idAddModal}-nama`)?.value || '',
-        alamat: document.getElementById(`${idAddModal}-alamat`)?.value || '',
-        telepon: document.getElementById(`${idAddModal}-telepon`)?.value || '',
-        telepon_alt: document.getElementById(`${idAddModal}-telepon-alt`)?.value || null,
-        telepon_pemesan: document.getElementById(`${idAddModal}-telepon-pemesan`)?.value || null,
-        maps: document.getElementById(`${idAddModal}-maps`)?.value || null,
-        ongkir: document.getElementById(`${idAddModal}-ongkir`)?.value || null,
-    };
-
-    try {
-        // 2. API call dengan timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch('/api/customers/add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(newCustomer),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            const error = await response.json();
-            // throw new Error(error.message || 'Gagal menambahkan pelanggan');
-            showErrorToast('Error', error.message || 'Gagal menambahkan pelanggan');
-        }
-
-        // 3. Reset form field secara manual
-        const resetField = (id) => {
-            const el = document.getElementById(`${idAddModal}-${id}`);
-            if (el) el.value = '';
-        };
-
-        resetField('nama');
-        resetField('alamat');
-        resetField('telepon');
-        resetField('telepon-alt');
-        resetField('telepon-pemesan');
-        resetField('maps');
-        resetField('ongkir');
-
-        // 4. Update UI
-        closeAddModal();
-        await fetchCustomers();
-        showToast('Sukses', 'Pelanggan berhasil ditambahkan.');
-
-    } catch (error) {
-        console.error('Error:', error);
-        showErrorToast('Error', error.message || 'Terjadi kesalahan saat menyimpan data');
-    } finally {
-        saveAddButton.classList.remove('btn-loading');
-    }
-}
-
 function handleDeleteClick(event) {
     const customerId = event.target.getAttribute('data-id');
-    const customer = customers.find(cust => cust.id == customerId);
+    const customer = customers.find((cust) => cust.id == customerId);
 
     if (!customer) {
         console.error('Customer not found');
@@ -396,9 +309,9 @@ function handleDeleteClick(event) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
                     },
-                    body: JSON.stringify({ id: customerId })
+                    body: JSON.stringify({ id: customerId }),
                 });
                 const result = await response.json();
                 if (result.error) throw new Error(result.error);
@@ -412,11 +325,6 @@ function handleDeleteClick(event) {
         },
         'Hapus'
     );
-}
-
-function closeAddModal() {
-    const addModal = bootstrap.Modal.getInstance(document.getElementById('add-modal'));
-    addModal.hide();
 }
 
 function closeEditModal() {
@@ -433,12 +341,16 @@ function showConfirmation(title, message, onConfirm, confirmText = 'Konfirmasi')
     confirmButton.textContent = confirmText;
     confirmButton.replaceWith(confirmButton.cloneNode(true));
 
-    document.getElementById('delete-confirm-modal-confirm').addEventListener('click', () => {
-        if (typeof onConfirm === 'function') {
-            onConfirm();
-        }
-        modal.hide();
-    }, { once: true });
+    document.getElementById('delete-confirm-modal-confirm').addEventListener(
+        'click',
+        () => {
+            if (typeof onConfirm === 'function') {
+                onConfirm();
+            }
+            modal.hide();
+        },
+        { once: true }
+    );
 
     modal.show();
 }
@@ -458,11 +370,10 @@ function showErrorToast(title, message) {
     document.getElementById('toast-error-message').textContent = message;
     toast.show();
 }
+
 // Event listener dalam satu fungsi
 function setupEventListeners() {
     refreshButton.addEventListener('click', fetchCustomers);
-    saveAddButton.addEventListener('click', saveNewCustomer);
-    saveChangesButton.addEventListener('click', saveChanges);
     filterInput.addEventListener('input', filterTable);
     itemsPerPageInput.addEventListener('change', () => {
         itemsPerPage = parseInt(itemsPerPageInput.value, 10);
@@ -479,14 +390,29 @@ function setupEventListeners() {
             }
         }
     });
+
+    // Inisialisasi modal tambah customer
+    initAddCustomerModal('add-modal', {
+        showToast,
+        showErrorToast,
+        onSuccess: fetchCustomers, // Refresh daftar pelanggan setelah sukses
+    });
+
+    // Inisialisasi modal edit customer
+    const editForm = document.getElementById('edit-modal-form');
+    if (editForm) {
+        editForm.addEventListener('submit', saveChanges);
+    } else {
+        console.error('Edit modal form not found');
+    }
 }
 
 function addEventListenersToButtons() {
-    document.querySelectorAll('.edit-btn').forEach(button => {
+    document.querySelectorAll('.edit-btn').forEach((button) => {
         button.removeEventListener('click', handleEditClick);
         button.addEventListener('click', handleEditClick);
     });
-    document.querySelectorAll('.delete-btn').forEach(button => {
+    document.querySelectorAll('.delete-btn').forEach((button) => {
         button.removeEventListener('click', handleDeleteClick);
         button.addEventListener('click', handleDeleteClick);
     });

@@ -1,90 +1,20 @@
-// dashboard.js
+/*
+ * File: dashboard.js
+ * Description: Logika untuk halaman dashboard, termasuk pengambilan data pengantaran dan inisialisasi modal tambah customer.
+ */
+
 import { renderErrorAlert, showToast } from './utils.js';
 
+// Impor modul add-customer-modal
+import { initAddCustomerModal } from './add-customer-modal.js';
+
 // Variabel global
-const bootstrap = tabler.bootstrap;
-let idAddModal = 'dashboard-add-modal';
-
-// Fungsi untuk menyimpan customer baru
-async function saveNewCustomer() {
-    const saveAddButton = document.getElementById(`${idAddModal}-save`);
-    saveAddButton.classList.add('btn-loading');
-
-    // 1. Ambil nilai form
-    const newCustomer = {
-        nama: document.getElementById(`${idAddModal}-nama`)?.value || '',
-        alamat: document.getElementById(`${idAddModal}-alamat`)?.value || '',
-        telepon: document.getElementById(`${idAddModal}-telepon`)?.value || '',
-        telepon_alt: document.getElementById(`${idAddModal}-telepon-alt`)?.value || null,
-        telepon_pemesan: document.getElementById(`${idAddModal}-telepon-pemesan`)?.value || null,
-        maps: document.getElementById(`${idAddModal}-maps`)?.value || null,
-        ongkir: document.getElementById(`${idAddModal}-ongkir`)?.value || null,
-    };
-
-    try {
-        // 2. API call dengan timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch('/api/customers/add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(newCustomer),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Gagal menambahkan pelanggan');
-        }
-
-        // 3. Reset form field secara manual
-        const resetField = (id) => {
-            const el = document.getElementById(`${idAddModal}-${id}`);
-            if (el) el.value = '';
-        };
-
-        resetField('nama');
-        resetField('alamat');
-        resetField('telepon');
-        resetField('telepon-alt');
-        resetField('telepon-pemesan');
-        resetField('maps');
-        resetField('ongkir');
-
-        // 4. Update UI
-        closeAddModal();
-        showToast('Sukses', 'Pelanggan berhasil ditambahkan.');
-
-    } catch (error) {
-        console.error('Error:', error);
-        renderErrorAlert(error.message || 'Terjadi kesalahan saat menyimpan data');
-    } finally {
-        saveAddButton.classList.remove('btn-loading');
-    }
-}
-
-function closeAddModal() {
-    const addModal = bootstrap.Modal.getInstance(document.getElementById(idAddModal));
-    addModal?.hide();
-}
-
-// Event listener dalam satu fungsi
-function setupEventListeners() {
-    const saveAddButton = document.getElementById(`${idAddModal}-save`);
-    if (saveAddButton) {
-        saveAddButton.addEventListener('click', saveNewCustomer);
-    }
-}
+const bootstrap = window.tabler?.bootstrap;
 
 // Fungsi utama untuk inisialisasi dashboard
-export function initDashboard() {  
+export function initDashboard() {
     console.log('Initializing dashboard event listeners');
-    
+
     // Inisialisasi event listener untuk navigasi hari
     const prevButton = document.getElementById('prev-day');
     const nextButton = document.getElementById('next-day');
@@ -119,7 +49,7 @@ export function initDashboard() {
             if (response.ok && !data.error) {
                 tableBody.innerHTML = '';
                 if (data.deliveries.length > 0) {
-                    data.deliveries.forEach(delivery => {
+                    data.deliveries.forEach((delivery) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>
@@ -192,8 +122,11 @@ export function initDashboard() {
     prevButton.addEventListener('click', prevHandler);
     nextButton.addEventListener('click', nextHandler);
 
-    // Setup event listeners lainnya
-    setupEventListeners();
+    // Inisialisasi modal tambah customer
+    initAddCustomerModal('dashboard-add-modal', {
+        showToast,
+        showErrorToast: (title, message) => renderErrorAlert(message), // Sesuaikan dengan renderErrorAlert
+    });
 }
 
 // Inisialisasi standalone jika diperlukan
@@ -202,5 +135,3 @@ function initialize() {
 }
 
 initialize();
-// Export fungsi initialize jika diperlukan
-// export { initialize };
