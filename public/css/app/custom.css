@@ -1,0 +1,4 @@
+::selection,
+.text-selected {
+  background-color: color-mix(in srgb, var(--tblr-teal) 30%, transparent);
+}
