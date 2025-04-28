@@ -13,43 +13,69 @@ class AuthController
         private Environment $twig
     ) {}
 
-    public function showLogin(): void
+    public function showLogin(): string
     {
         if (isset($_SESSION['user_token'])) {
             header('Location: /dashboard');
             exit;
         }
-        echo $this->twig->render('login.html.twig', ['title' => 'Login Admin Molagis']);
+        try {
+            return $this->twig->render('login.html.twig', ['title' => 'Login Admin Molagis']);
+        } catch (\Twig\Error\Error $e) {
+            error_log('Twig error in showLogin: ' . $e->getMessage());
+            return 'Error rendering login page: ' . htmlspecialchars($e->getMessage());
+        }
     }
 
-    public function handleLogin(array $post): void
+    public function handleLogin(array $post): string
     {
         try {
             $email = $post['email'] ?? '';
             $password = $post['password'] ?? '';
-            
+            $remember = isset($post['remember']) && $post['remember'] === 'on';
+
             if (empty($email) || empty($password)) {
                 throw new \InvalidArgumentException('Email dan kata sandi wajib diisi');
             }
 
             $response = $this->supabase->signIn($email, $password);
-            
+
             if (!isset($response['access_token'])) {
                 throw new \RuntimeException('Login gagal: Token tidak diterima');
+            }
+
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
             }
 
             $_SESSION['user_token'] = $response['access_token'];
             $_SESSION['user_id'] = $response['user']['id'] ?? null;
             $_SESSION['refresh_token'] = $response['refresh_token'] ?? null;
-            
+
+            if ($remember) {
+                $sessionLifetime = 7 * 24 * 60 * 60;
+                ini_set('session.gc_maxlifetime', (string)$sessionLifetime);
+                ini_set('session.cookie_lifetime', (string)$sessionLifetime);
+                session_set_cookie_params($sessionLifetime);
+                session_regenerate_id(true);
+            } else {
+                ini_set('session.cookie_lifetime', '0');
+                session_set_cookie_params(0);
+            }
+
             header('Location: /dashboard');
             exit;
         } catch (\Exception $e) {
-            echo $this->twig->render('login.html.twig', [
-                'title' => 'Login Admin Molagis',
-                'error' => $e->getMessage(),
-                'email' => $email ?? '',
-            ]);
+            try {
+                return $this->twig->render('login.html.twig', [
+                    'title' => 'Login Admin Molagis',
+                    'error' => $e->getMessage(),
+                    'email' => $email ?? '',
+                ]);
+            } catch (\Twig\Error\Error $e) {
+                error_log('Twig error in handleLogin: ' . $e->getMessage());
+                return 'Error rendering login page: ' . htmlspecialchars($e->getMessage());
+            }
         }
     }
 
@@ -74,7 +100,7 @@ class AuthController
         if (!isset($_SESSION['user_token'])) {
             return null;
         }
-        
+
         $user = $this->supabase->getUser($_SESSION['user_token']);
         return $user ? ['id' => $user['id']] : null;
     }
