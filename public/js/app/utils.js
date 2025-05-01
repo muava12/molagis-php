@@ -25,10 +25,12 @@ export function renderErrorAlert(errorMessage) {
     errorContainer.appendChild(alert);
 }
 
-// Fungsi untuk menampilkan toast
-export function showToast(title, message) {
-    const toast = new tabler.bootstrap.Toast(document.getElementById('toast'));
-    document.getElementById('toast-title').textContent = title;
-    document.getElementById('toast-message').textContent = message;
+export function showToast(title, message, isError = false) {
+    const toastId = isError ? 'toast-error' : 'toast';
+    const titleId = isError ? 'toast-error-title' : 'toast-title';
+    const messageId = isError ? 'toast-error-message' : 'toast-message';
+    const toast = new tabler.bootstrap.Toast(document.getElementById(toastId));
+    document.getElementById(titleId).textContent = title;
+    document.getElementById(messageId).textContent = message;
     toast.show();
 }

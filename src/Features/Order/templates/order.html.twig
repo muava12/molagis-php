@@ -4,143 +4,8 @@
 {% block twitter_title %}Input Pesanan Catering Harian{% endblock %}
 {% block stylesheets %}
     <link rel="stylesheet" href="/css/awesomplete.min.css">
-    <link rel="stylesheet" href="/css/app/awesomplete.css">
-    <link rel="stylesheet" href="/css/app/custom.css">
-    <style>
-        .date-picker-container {
-            max-width: 300px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            background: var(--tblr-bg-surface, #fff);
-            padding: 10px;
-            user-select: none;
-        }
-        .date-picker-buttons {
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        .date-picker-buttons .btn {
-            font-size: 12px;
-            padding: 5px 10px;
-        }
-        .date-picker-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .date-picker-month {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .date-picker-weekdays {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            text-align: center;
-            font-size: 12px;
-            margin-bottom: 5px;
-            user-select: none;
-        }
-        .date-picker-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-            user-select: none;
-        }
-        .date-picker-day {
-            text-align: center;
-            padding: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 50%;
-            transition: background 0.2s, color 0.2s;
-            position: relative;
-        }
-        .date-picker-day:hover:not(.disabled) {
-            background: var(--tblr-primary-bg-subtle);
-            color: var(--tblr-primary-text-emphasis);
-        }
-        .date-picker-day.today {
-            border: 1px solid var(--tblr-primary);
-        }
-        .date-picker-day.disabled {
-            cursor: not-allowed;
-            background: transparent !important;
-            color: var(--tblr-muted) !important;
-        }
-        .date-picker-day.non-current-month {
-            color: var(--tblr-muted) !important;
-            opacity: 0.5 !important;
-        }
-        .date-picker-day.non-current-month.selected {
-            opacity: 1;
-            color: var(--tblr-white) !important;
-        }
-        .date-picker-day.selected {
-            background: var(--tblr-primary) !important;
-            color: var(--tblr-white) !important;
-        }
-        .date-picker-day.holiday {
-            color: var(--tblr-danger);
-            background: var(--tblr-danger-bg-subtle);
-        }
-        .date-picker-day.holiday:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--tblr-dark);
-            color: var(--tblr-white);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 1000;
-            margin-top: 4px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .date-picker-day.holiday:hover::after {
-            opacity: 1;
-        }
-        .selected-dates {
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-        .selected-dates-count {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 5px;
-            color: var(--tblr-muted);
-        }
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 2px 4px;
-        }
-        .badge-close-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 16px;
-            height: 16px;
-            padding: 0;
-            border: none;
-            background: transparent;
-            color: var(--tblr-muted);
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .badge-close-btn:hover {
-            color: var(--tblr-danger);
-        }
-    </style>
+    <link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
+    <link rel="stylesheet" href="/css/app/custom.css?v={{ 'now'|date('U') }}">
 {% endblock %}
 {% block content %}
     <div class="page-header d-print-none">
@@ -156,7 +21,7 @@
     <div class="page-body">
         <div class="container-md">
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-12 col-sm-6 col-md-4">
                     <div class="date-picker-container">
                         <div class="date-picker-buttons">
                             <button class="btn" id="today-btn">Hari Ini</button>
@@ -188,7 +53,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-sm-6 col-md-4">
                     <form id="order-form">
                         <div class="mb-3">
                             <label for="customer-input" class="form-label text-opacity-25">Pelanggan</label>
@@ -209,7 +74,7 @@
                                 <input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
                             </div>
                             <div class="tambah-paket ms-2">
-                                <button type="button" class="btn btn-icon btn-primary w-100 add-package">
+                                <button type="button" class="btn btn-icon btn-outline w-100 add-package">
                                     {% include 'svg/plus.svg.twig' %}
                                 </button>
                             </div>
@@ -283,7 +148,9 @@
                         </div>
                         <input type="hidden" id="selected-dates-hidden" name="selectedDates" />
                         <div class="d-grid mt-3">
-                            <button type="submit" class="btn btn-primary">Simpan Pesanan</button>
+                            <button type="submit" class="btn btn-primary">
+                                {% include 'svg/check.svg.twig' %}
+                                Simpan Pesanan</button>
                             <div class="alert alert-danger d-none" id="error-notification"></div>
                         </div>
                     </form>
@@ -308,5 +175,6 @@
 {% endblock %}
 {% block javascripts %}
     <script src="/js/awesomplete.min.js"></script>
+    <!-- <script type="module" src="https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale/id/cdn.min.js"></script> -->
     <script type="module" src="/js/app/order.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

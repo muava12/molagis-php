@@ -12,6 +12,7 @@ import {
     isSameMonth,
 } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 import { id } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale/+esm';
+import { showToast } from './utils.js'; // Impor showToast dari utils.js
 
 const selectedDates = new Set();
 let customerId = null;
@@ -41,9 +42,13 @@ const paymentMethod = document.getElementById('payment-method');
 const errorNotification = document.getElementById('error-notification');
 const courierSelect = document.getElementById('courier-select');
 
+let displayedYear = new Date().getFullYear();
+let displayedMonth = new Date().getMonth();
+let isDragging = false;
+
 async function initialize() {
     try {
-        cachedHolidays = await fetchHolidayDates(new Date().getFullYear());
+        cachedHolidays = await fetchHolidayDates(displayedYear);
         await Promise.all([
             initializeCalendar(),
             fetchCustomers(),
@@ -54,85 +59,92 @@ async function initialize() {
         addPackageListeners(document.querySelector('.package-list'));
     } catch (error) {
         console.error('Initialization error:', error);
-        showErrorToast('Gagal memuat data awal: ' + error.message);
+        showToast('Error', 'Gagal memuat data awal: ' + error.message, true);
     }
 }
 
 async function initializeCalendar() {
     try {
-        await renderCalendar(new Date().getFullYear(), new Date().getMonth());
+        await renderCalendar(displayedYear, displayedMonth);
     } catch (error) {
         console.error('Failed to initialize calendar:', error);
-        showErrorToast('Gagal memuat kalender');
+        showToast('Error', 'Gagal memuat kalender', true);
     }
 }
 
 async function renderCalendar(year, month) {
-    const displayedMonth = new Date(year, month, 1);
-    calendarMonthYear.textContent = format(displayedMonth, 'MMMM yyyy', { locale: id });
-
-    const firstDayOfMonth = startOfMonth(displayedMonth);
-    const lastDayOfMonth = endOfMonth(displayedMonth);
-    const firstDayIndex = (firstDayOfMonth.getDay() + 6) % 7; // Adjust to start week on Monday
-    const daysInMonth = getDaysInMonth(displayedMonth);
-    const prevMonthDays = firstDayIndex;
-    const lastDayOfPrevMonth = endOfMonth(subMonths(displayedMonth, 1));
-    const prevMonthDaysCount = lastDayOfPrevMonth.getDate();
-
-    calendarDays.innerHTML = '';
-
-    let dayCounter = 0;
-    // Render days from previous month
-    for (let i = prevMonthDays - 1; i >= 0; i--) {
-        const day = prevMonthDaysCount - i;
-        const date = new Date(year, month - 1, day);
-        const fullDate = format(date, 'yyyy-MM-dd');
-        const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
-        calendarDays.appendChild(dayElement);
-    }
-
-    // Render days from current month
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        const fullDate = format(date, 'yyyy-MM-dd');
-        const dayElement = createDayElement(date, fullDate, 'text-body', dayCounter++);
-        if (isSameDay(date, new Date())) {
-            dayElement.classList.add('today');
-        }
-        calendarDays.appendChild(dayElement);
-    }
-
-    // Render days from next month
-    const totalDaysRendered = prevMonthDays + daysInMonth;
-    const remainingDays = (7 - (totalDaysRendered % 7)) % 7;
-    for (let day = 1; day <= remainingDays; day++) {
-        const date = new Date(year, month + 1, day);
-        const fullDate = format(date, 'yyyy-MM-dd');
-        const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
-        calendarDays.appendChild(dayElement);
-    }
-
-    renderSelectedDates();
-}
-
-async function fetchHolidayDates(year) {
     try {
-        if (cachedHolidays.length > 0) return cachedHolidays;
-        const response = await fetch(`https://dayoffapi.vercel.app/api?year=${year}`);
-        if (!response.ok) throw new Error('Gagal mengambil data hari libur');
-        const holidays = await response.json();
-        return holidays
-            .filter(h => h.is_cuti === false)
-            .map(h => ({ date: h.tanggal, name: h.keterangan }));
+        if (!calendarDays) {
+            console.error('calendar-days element not found');
+            showToast('Error', 'Elemen kalender tidak ditemukan', true);
+            return;
+        }
+        const displayedMonth = new Date(year, month, 1);
+        if (calendarMonthYear.textContent !== format(displayedMonth, 'MMMM yyyy', { locale: id })) {
+            calendarMonthYear.textContent = format(displayedMonth, 'MMMM yyyy', { locale: id });
+        }
+
+        const firstDayOfMonth = startOfMonth(displayedMonth);
+        const lastDayOfMonth = endOfMonth(displayedMonth);
+        const firstDayIndex = (firstDayOfMonth.getDay() + 6) % 7;
+        const daysInMonth = getDaysInMonth(displayedMonth);
+        const prevMonthDays = firstDayIndex;
+        const lastDayOfPrevMonth = endOfMonth(subMonths(displayedMonth, 1));
+        const prevMonthDaysCount = lastDayOfPrevMonth.getDate();
+
+        calendarDays.innerHTML = '';
+        let dayCounter = 0;
+
+        for (let i = prevMonthDays - 1; i >= 0; i--) {
+            const day = prevMonthDaysCount - i;
+            const date = new Date(year, month - 1, day);
+            const fullDate = format(date, 'yyyy-MM-dd');
+            const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
+            calendarDays.appendChild(dayElement);
+            console.debug(`Rendered prev month day: ${fullDate}`);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month, day);
+            const fullDate = format(date, 'yyyy-MM-dd');
+            const extraClass = isSameDay(date, new Date()) ? 'today' : '';
+            const dayElement = createDayElement(date, fullDate, 'text-body', dayCounter++, extraClass);
+            calendarDays.appendChild(dayElement);
+            console.debug(`Rendered current month day: ${fullDate}`);
+        }
+
+        const totalDaysRendered = prevMonthDays + daysInMonth;
+        const remainingDays = (7 - (totalDaysRendered % 7)) % 7;
+        for (let day = 1; day <= remainingDays; day++) {
+            const date = new Date(year, month + 1, day);
+            const fullDate = format(date, 'yyyy-MM-dd');
+            const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
+            calendarDays.appendChild(dayElement);
+            console.debug(`Rendered next month day: ${fullDate}`);
+        }
+
+        console.debug(`Total days rendered: ${dayCounter}`);
+        renderSelectedDates();
+
+        // Inisialisasi Bootstrap Tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl, {
+                container: 'body', // Hindari masalah rendering
+                trigger: 'hover', // Hanya aktif saat hover
+                delay: { show: 100, hide: 200 } // Tambahkan sedikit delay untuk UX
+            });
+        });
     } catch (error) {
-        console.error('Failed to fetch holidays:', error);
-        return [];
+        console.error('Failed to render calendar:', error);
+        showToast('Error', 'Gagal merender kalender: ' + error.message, true);
     }
 }
 
-function createDayElement(date, fullDate, textClass, index) {
+function createDayElement(date, fullDate, textClass, index, extraClass = '') {
     const dayElement = document.createElement('div');
     dayElement.classList.add('date-picker-day', textClass);
+    if (extraClass) dayElement.classList.add(extraClass);
     dayElement.textContent = date.getDate();
     dayElement.dataset.date = fullDate;
     dayElement.dataset.index = index;
@@ -143,12 +155,15 @@ function createDayElement(date, fullDate, textClass, index) {
         dayElement.classList.add('disabled', 'text-muted');
     } else if (holiday) {
         dayElement.classList.add('holiday');
-        dayElement.setAttribute('data-tooltip', holiday.name);
+        // Gunakan Bootstrap Tooltip
+        dayElement.setAttribute('data-bs-toggle', 'tooltip');
+        dayElement.setAttribute('data-bs-placement', 'bottom');
+        dayElement.setAttribute('title', holiday.name);
     }
 
     if (selectedDates.has(fullDate)) {
         dayElement.classList.add('selected');
-        if (textClass === 'text-body') {
+        if (isSameMonth(date, new Date(displayedYear, displayedMonth, 1))) {
             dayElement.classList.remove('text-body');
         }
     }
@@ -159,9 +174,7 @@ function createDayElement(date, fullDate, textClass, index) {
 
 function addDayEventListeners(dayElement, date) {
     const isSunday = getDay(date) === 0;
-    if (isSunday) {
-        return;
-    }
+    if (isSunday) return;
 
     if (dayElement.classList.contains('text-muted') && !dayElement.classList.contains('selected')) {
         dayElement.addEventListener('click', () => {
@@ -180,15 +193,14 @@ function addDayEventListeners(dayElement, date) {
         return;
     }
 
-    dayElement.addEventListener('mousedown', () => {
+    dayElement.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Prevent text selection
         isDragging = true;
         toggleDate(dayElement);
     });
 
     dayElement.addEventListener('mouseover', () => {
-        if (isDragging) {
-            toggleDate(dayElement);
-        }
+        if (isDragging) toggleDate(dayElement);
     });
 
     dayElement.addEventListener('mouseup', () => {
@@ -245,7 +257,7 @@ function renderSelectedDates() {
         closeButton.addEventListener('click', (e) => {
             e.stopPropagation();
             selectedDates.delete(dateStr);
-            renderCalendar(displayedYear, displayedMonth);
+            renderCalendar(displayedYear, displayedMonth); // Re-render calendar to update UI
             renderSelectedDates();
             calculateTotalPayment();
         });
@@ -257,23 +269,32 @@ function renderSelectedDates() {
     selectedDatesHidden.value = JSON.stringify(sortedDates);
 }
 
+async function fetchHolidayDates(year) {
+    try {
+        if (cachedHolidays.length > 0 && cachedHolidays[0].date.startsWith(year.toString())) {
+            return cachedHolidays;
+        }
+        const response = await fetchWithRetry(`https://dayoffapi.vercel.app/api?year=${year}`, {}, true);
+        const holidays = response.filter(h => h.is_cuti === false).map(h => ({ date: h.tanggal, name: h.keterangan }));
+        cachedHolidays = holidays;
+        return holidays;
+    } catch (error) {
+        console.error('Failed to fetch holidays:', error);
+        showToast('Error', 'Gagal memuat data hari libur. Pastikan koneksi internet stabil.', true);
+        return [];
+    }
+}
+
 async function fetchCustomers() {
     try {
-        const response = await fetch('/api/customers', {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        });
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        }
-        const customers = await response.json();
-        console.log('Fetched customers:', customers);
-        if (!Array.isArray(customers)) {
+        const response = await fetchWithRetry('/api/customers');
+        if (!Array.isArray(response)) {
             throw new Error('Response is not an array');
         }
-        displayCustomerSuggestions(customers);
+        displayCustomerSuggestions(response);
     } catch (error) {
         console.error('Failed to fetch customers:', error);
-        showErrorToast('Gagal memuat daftar pelanggan: ' + error.message);
+        showToast('Error', 'Gagal memuat daftar pelanggan: ' + error.message, true);
     }
 }
 
@@ -281,9 +302,8 @@ function displayCustomerSuggestions(customers) {
     const customerData = customers.map(customer => ({
         label: customer.nama,
         value: customer.id,
-        ongkir: customer.ongkir
+        ongkir: customer.ongkir >= 0 ? customer.ongkir : 5000 // Validasi ongkir
     }));
-    console.log('Customer data for Awesomplete:', customerData);
     const awesomplete = new Awesomplete(customerInput, {
         list: customerData,
         minChars: 2,
@@ -304,12 +324,10 @@ function displayCustomerSuggestions(customers) {
         }
     });
     customerInput.addEventListener('awesomplete-selectcomplete', (e) => {
-        console.log('Selected customer:', e.text);
         const selectedCustomer = customerData.find(customer => customer.value === e.text.value);
         customerId = e.text.value;
         customerInput.value = e.text.label;
         currentCustomerOngkir = selectedCustomer ? parseFloat(selectedCustomer.ongkir) || 5000 : 5000;
-        console.log('Selected customer (processed):', e.text.label, 'ID:', e.text.value, 'Ongkir:', currentCustomerOngkir);
         shippingCost.value = currentCustomerOngkir;
         shippingFastIcon.classList.toggle('d-none', parseFloat(shippingCost.value) !== currentCustomerOngkir);
         calculateTotalPayment();
@@ -318,21 +336,32 @@ function displayCustomerSuggestions(customers) {
 
 async function fetchPackages() {
     try {
-        const response = await fetch('/api/packages', {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        });
-        if (!response.ok) throw new Error('Gagal mengambil daftar paket');
-        packagesData = await response.json();
-        if (!Array.isArray(packagesData)) {
+        const cached = localStorage.getItem('packagesData');
+        if (cached) {
+            const { data, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < 3600000) { // 1 hour
+                packagesData = data;
+                updatePackageSelect();
+                return;
+            }
+        }
+        const response = await fetchWithRetry('/api/packages');
+        if (!Array.isArray(response)) {
             throw new Error('Package response is not an array');
         }
-        if (packageSelect.options.length <= 1) {
-            packageSelect.innerHTML = '<option value="" disabled selected>Pilih Paket Makanan</option>' +
-                packagesData.map(p => `<option value="${p.id}">${p.nama} (Rp ${p.harga_jual.toLocaleString('id-ID')})</option>`).join('');
-        }
+        packagesData = response;
+        localStorage.setItem('packagesData', JSON.stringify({ data: packagesData, timestamp: Date.now() }));
+        updatePackageSelect();
     } catch (error) {
         console.error('Failed to fetch packages:', error);
-        showErrorToast('Gagal memuat daftar paket makanan');
+        showToast('Error', 'Gagal memuat daftar paket makanan', true);
+    }
+}
+
+function updatePackageSelect() {
+    if (packageSelect.options.length <= 1) {
+        packageSelect.innerHTML = '<option value="" disabled selected>Pilih Paket Makanan</option>' +
+            packagesData.map(p => `<option value="${p.id}">${p.nama} (Rp ${p.harga_jual.toLocaleString('id-ID')})</option>`).join('');
     }
 }
 
@@ -370,6 +399,10 @@ function setupAddRemovePackageHandlers() {
     const quantityTemplate = document.querySelector('.input-jumlah');
 
     addPackageBtn.addEventListener('click', () => {
+        if (document.querySelectorAll('.package-list').length >= 5) {
+            showToast('Error', 'Maksimum 5 paket dapat ditambahkan.', true);
+            return;
+        }
         const newList = document.createElement('div');
         newList.classList.add('d-flex', 'package-list', 'mb-3', 'added-package');
         const newPackage = packageTemplate.cloneNode(true);
@@ -421,28 +454,32 @@ function resetForm() {
     calculateTotalPayment();
 }
 
-async function submitOrder(e) {
-    e.preventDefault();
-    errorNotification.classList.add('d-none');
+function validateFormData(formData) {
+    if (!formData.customer_id || formData.customer_id <= 0) {
+        throw new Error('Pelanggan tidak valid.');
+    }
+    if (!formData.order_data.total_harga || formData.order_data.total_harga < 0) {
+        throw new Error('Total harga tidak valid.');
+    }
+    formData.order_details.forEach((detail, index) => {
+        if (!detail.paket_id || detail.paket_id <= 0) {
+            throw new Error(`Paket tidak valid pada detail ${index + 1}.`);
+        }
+        if (!detail.jumlah || detail.jumlah <= 0) {
+            throw new Error(`Jumlah tidak valid pada detail ${index + 1}.`);
+        }
+    });
+    formData.delivery_dates.forEach((date, index) => {
+        if (!date.tanggal || !/^\d{4}-\d{2}-\d{2}$/.test(date.tanggal)) {
+            throw new Error(`Tanggal tidak valid pada pengiriman ${index + 1}.`);
+        }
+        if (date.ongkir < 0) {
+            throw new Error(`Ongkir tidak valid pada pengiriman ${index + 1}.`);
+        }
+    });
+}
 
-    if (selectedDates.size === 0) {
-        showErrorNotification('Pilih setidaknya satu tanggal.');
-        return;
-    }
-    if (!customerId) {
-        showErrorNotification('Pilih pelanggan terlebih dahulu.');
-        return;
-    }
-    const packageLists = document.querySelectorAll('.package-list');
-    const packages = Array.from(packageLists).map(list => ({
-        packageId: parseInt(list.querySelector('#package-select').value) || null,
-        quantity: parseInt(list.querySelector('#order-quantity').value) || 1,
-    }));
-    if (packages.length === 0 || packages.some(pkg => !pkg.packageId)) {
-        showErrorNotification('Pilih setidaknya satu paket makanan.');
-        return;
-    }
-
+function collectOrderData() {
     const totals = calculateTotalPayment();
     const sortedDates = Array.from(selectedDates).sort((a, b) => new Date(a) - new Date(b));
     const deliveryDates = sortedDates.map(date => ({
@@ -452,13 +489,17 @@ async function submitOrder(e) {
         status: 'pending',
         item_tambahan: document.getElementById('item-tambahan').value.trim(),
         harga_tambahan: parseFloat(document.querySelector('.harga-item-tambahan').value) || 0,
-        harga_modal_tambahan: parseFloat(document.querySelector('.harga-modal-item-tambahan').value) || null,
+        harga_modal_tambahan: parseFloat(document.querySelector('.harga-modal-item-tambahan').value) || 0,
         total_harga_perhari: totals.totalPerDay,
         total_modal_perhari: totals.totalModalPerDay
     }));
 
     const orderDetails = [];
     sortedDates.forEach((date, index) => {
+        const packages = Array.from(document.querySelectorAll('.package-list')).map(list => ({
+            packageId: parseInt(list.querySelector('#package-select').value) || null,
+            quantity: parseInt(list.querySelector('#order-quantity').value) || 1,
+        }));
         packages.forEach(pkg => {
             const packageData = packagesData.find(p => p.id === pkg.packageId);
             orderDetails.push({
@@ -472,7 +513,7 @@ async function submitOrder(e) {
         });
     });
 
-    const formData = {
+    return {
         customer_id: parseInt(customerId),
         order_data: {
             customer_id: parseInt(customerId),
@@ -485,26 +526,42 @@ async function submitOrder(e) {
         order_details: orderDetails,
         new_ongkir: parseFloat(shippingCost.value) !== currentCustomerOngkir ? parseFloat(shippingCost.value) : undefined
     };
+}
+
+async function submitOrder(e) {
+    e.preventDefault();
+    errorNotification.classList.add('d-none');
 
     try {
-        const response = await fetch('/api/order', {
+        if (selectedDates.size === 0) throw new Error('Pilih setidaknya satu tanggal.');
+        if (!customerId) throw new Error('Pilih pelanggan terlebih dahulu.');
+        const packages = Array.from(document.querySelectorAll('.package-list')).map(list => ({
+            packageId: parseInt(list.querySelector('#package-select').value) || null,
+            quantity: parseInt(list.querySelector('#order-quantity').value) || 1,
+        }));
+        if (packages.some(pkg => !pkg.packageId)) {
+            throw new Error('Pilih setidaknya satu paket makanan.');
+        }
+
+        const formData = collectOrderData();
+        validateFormData(formData);
+
+        const response = await fetchWithRetry('/api/order', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
             },
             body: JSON.stringify(formData),
         });
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.message);
+        if (!response.success) {
+            throw new Error(response.message);
         }
-        displaySummaryModal(formData, result.order_id);
+        displaySummaryModal(formData, response.order_id);
         resetForm();
-        showSuccessToast('Pesanan berhasil disimpan');
+        showToast('Sukses', 'Pesanan berhasil disimpan');
     } catch (error) {
         console.error('Submit order error:', error);
-        showErrorNotification('Gagal menyimpan pesanan: ' + error.message);
+        showToast('Error', 'Gagal menyimpan pesanan: ' + error.message, true);
     }
 }
 
@@ -512,7 +569,7 @@ function displaySummaryModal(order, orderId) {
     const modal = new bootstrap.Modal(document.getElementById('order-summary-modal'));
     const content = document.getElementById('order-summary-content');
     const customerName = customerInput.value;
-    const courierName = courierSelect.querySelector(`option[value="${order.order_data.kurir_id}"]`)?.textContent || 'Tidak ada kurir';
+    const courierName = courierSelect.querySelector(`option[value="${order.delivery_dates[0]?.kurir_id}"]`)?.textContent || 'Tidak ada kurir';
     const packages = order.order_details.reduce((acc, detail) => {
         const packageData = packagesData.find(p => p.id === detail.paket_id);
         const packageName = packageData ? packageData.nama : 'Unknown';
@@ -541,18 +598,21 @@ function displaySummaryModal(order, orderId) {
     modal.show();
 }
 
-function showSuccessToast(message) {
-    const toast = new bootstrap.Toast(document.getElementById('toast'));
-    document.getElementById('toast-title').textContent = 'Sukses';
-    document.getElementById('toast-message').textContent = message;
-    toast.show();
-}
-
-function showErrorToast(message) {
-    const toast = new bootstrap.Toast(document.getElementById('toast-error'));
-    document.getElementById('toast-error-title').textContent = 'Error';
-    document.getElementById('toast-error-message').textContent = message;
-    toast.show();
+async function fetchWithRetry(url, options = {}, isExternal = false, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const headers = isExternal ? { ...(options.headers || {}) } : {
+                ...(options.headers || {}),
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+            const response = await fetch(url, { ...options, headers });
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+    }
 }
 
 function showErrorNotification(message) {
@@ -562,57 +622,66 @@ function showErrorNotification(message) {
 }
 
 function setupEventListeners() {
-    prevMonthBtn.addEventListener('click', () => {
+    prevMonthBtn.addEventListener('click', async () => {
         displayedMonth--;
         if (displayedMonth < 0) {
             displayedMonth = 11;
             displayedYear--;
             cachedHolidays = [];
-            fetchHolidayDates(displayedYear).then(holidays => {
-                cachedHolidays = holidays;
-                renderCalendar(displayedYear, displayedMonth);
-            });
-        } else {
-            renderCalendar(displayedYear, displayedMonth);
+            try {
+                cachedHolidays = await fetchHolidayDates(displayedYear);
+            } catch (error) {
+                cachedHolidays = [];
+            }
         }
+        await renderCalendar(displayedYear, displayedMonth);
     });
 
-    nextMonthBtn.addEventListener('click', () => {
+    nextMonthBtn.addEventListener('click', async () => {
         displayedMonth++;
         if (displayedMonth > 11) {
             displayedMonth = 0;
             displayedYear++;
             cachedHolidays = [];
-            fetchHolidayDates(displayedYear).then(holidays => {
-                cachedHolidays = holidays;
-                renderCalendar(displayedYear, displayedMonth);
-            });
-        } else {
-            renderCalendar(displayedYear, displayedMonth);
+            try {
+                cachedHolidays = await fetchHolidayDates(displayedYear);
+            } catch (error) {
+                cachedHolidays = [];
+            }
         }
+        await renderCalendar(displayedYear, displayedMonth);
     });
 
-    todayBtn.addEventListener('click', () => {
+    todayBtn.addEventListener('click', async () => {
         const today = new Date();
         displayedYear = today.getFullYear();
         displayedMonth = today.getMonth();
-        renderCalendar(displayedYear, displayedMonth);
+        await renderCalendar(displayedYear, displayedMonth);
     });
 
-    nextMonthButton.addEventListener('click', () => {
+    nextMonthButton.addEventListener('click', async () => {
         const nextMonth = addMonths(new Date(displayedYear, displayedMonth, 1), 1);
         displayedYear = nextMonth.getFullYear();
         displayedMonth = nextMonth.getMonth();
-        renderCalendar(displayedYear, displayedMonth);
+        if (cachedHolidays.length === 0 || !cachedHolidays[0].date.startsWith(displayedYear.toString())) {
+            cachedHolidays = [];
+            try {
+                cachedHolidays = await fetchHolidayDates(displayedYear);
+            } catch (error) {
+                cachedHolidays = [];
+            }
+        }
+        await renderCalendar(displayedYear, displayedMonth);
     });
 
-    clearButton.addEventListener('click', () => {
+    clearButton.addEventListener('click', async () => {
         selectedDates.clear();
-        renderCalendar(displayedYear, displayedMonth);
+        await renderCalendar(displayedYear, displayedMonth);
         renderSelectedDates();
         calculateTotalPayment();
     });
 
+    // Ensure isDragging is reset on mouseup anywhere
     document.addEventListener('mouseup', () => {
         isDragging = false;
     });
@@ -648,9 +717,5 @@ function setupEventListeners() {
         icon.classList.toggle('rotate-90');
     });
 }
-
-let displayedYear = new Date().getFullYear();
-let displayedMonth = new Date().getMonth();
-let isDragging = false;
 
 initialize();

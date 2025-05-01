@@ -30,11 +30,13 @@
     <meta name="twitter:image" content="/images/og-image.png"> <!-- Ganti dengan path gambar PNG/JPG yang sesuai -->
     <meta name="twitter:image:alt" content="Catering Molagis - Menu Lezat untuk Acara Anda">
 
-    <!-- Favicon dengan PNG -->
-    <link rel="icon" href="/images/fruit.png" type="image/png">
-
-    <!-- CSS -->
-    <link rel="stylesheet" href="/css/tabler.min.css">
+    <link rel="icon" href="/images/fruit.png" type="image/png" />
+    
+    <link rel="stylesheet" href="/css/tabler.min.css" />
+    <link rel="stylesheet" href="/css/app/tabler.custom.css">
+    {% block stylesheets %}
+      {# CSS spesifik untuk halaman ini #}
+    {% endblock %}
 
     <!-- Tema dari localStorage -->
     <script>
