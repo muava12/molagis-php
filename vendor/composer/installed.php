@@ -3,7 +3,7 @@
         'name' => 'molagis/admin-dashboard',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'e49c4bb9e3d8196c4e4da16a2c81ca51e1727cbb',
+        'reference' => 'd34a147c575ee75692807868372d5c8b42b4427b',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -76,7 +76,7 @@
         'molagis/admin-dashboard' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'e49c4bb9e3d8196c4e4da16a2c81ca51e1727cbb',
+            'reference' => 'd34a147c575ee75692807868372d5c8b42b4427b',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

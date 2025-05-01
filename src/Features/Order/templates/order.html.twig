@@ -209,12 +209,12 @@
                                 <input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
                             </div>
                             <div class="tambah-paket ms-2">
-                                <button type="button" class="btn btn-danger w-100 add-package">
+                                <button type="button" class="btn btn-icon btn-primary w-100 add-package">
                                     {% include 'svg/plus.svg.twig' %}
                                 </button>
                             </div>
                         </div>
-                        <div class="toggle-container border rounded-3">
+                        <div class="toggle-container border rounded-3 mb-3">
                             <div class="toggle-header">
                                 {% include 'svg/chevron-right.svg.twig' %} Item Tambahan
                             </div>
@@ -281,14 +281,8 @@
                             </label>
                             <textarea placeholder="Courier Notes" class="form-control d-none" id="courier-notes"></textarea>
                         </div>
-                        <div class="mt-5 border" id="payment-summary">
-                            <div class="summary-item"><span>Item Tambahan:</span><span id="additional-items-summary">Rp 0</span></div>
-                            <div class="summary-item"><span>Total per-hari:</span><span id="total-per-day">Rp 0</span></div>
-                            <div class="summary-item"><span>Ongkir:</span><span id="shipping-cost-value">Rp 0</span></div>
-                            <div class="summary-item"><span>Total pembayaran:</span><span id="total-payment">Rp 0</span></div>
-                        </div>
                         <input type="hidden" id="selected-dates-hidden" name="selectedDates" />
-                        <div class="d-grid mt-5">
+                        <div class="d-grid mt-3">
                             <button type="submit" class="btn btn-primary">Simpan Pesanan</button>
                             <div class="alert alert-danger d-none" id="error-notification"></div>
                         </div>

@@ -38,10 +38,6 @@ const addPackageBtn = document.querySelector('.add-package');
 const shippingCost = document.getElementById('shipping-cost');
 const shippingFastIcon = document.getElementById('shipping-fast-icon');
 const paymentMethod = document.getElementById('payment-method');
-const additionalItemsSummary = document.getElementById('additional-items-summary');
-const totalPerDay = document.getElementById('total-per-day');
-const shippingCostValue = document.getElementById('shipping-cost-value');
-const totalPayment = document.getElementById('total-payment');
 const errorNotification = document.getElementById('error-notification');
 const courierSelect = document.getElementById('courier-select');
 
@@ -91,7 +87,7 @@ async function renderCalendar(year, month) {
         const day = prevMonthDaysCount - i;
         const date = new Date(year, month - 1, day);
         const fullDate = format(date, 'yyyy-MM-dd');
-        const dayElement = createDayElement(date, fullDate, 'non-current-month', dayCounter++);
+        const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
         calendarDays.appendChild(dayElement);
     }
 
@@ -112,7 +108,7 @@ async function renderCalendar(year, month) {
     for (let day = 1; day <= remainingDays; day++) {
         const date = new Date(year, month + 1, day);
         const fullDate = format(date, 'yyyy-MM-dd');
-        const dayElement = createDayElement(date, fullDate, 'non-current-month', dayCounter++);
+        const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
         calendarDays.appendChild(dayElement);
     }
 
@@ -144,7 +140,7 @@ function createDayElement(date, fullDate, textClass, index) {
     const isSunday = getDay(date) === 0;
     const holiday = cachedHolidays.find(h => h.date === fullDate);
     if (isSunday) {
-        dayElement.classList.add('disabled', 'non-current-month');
+        dayElement.classList.add('disabled', 'text-muted');
     } else if (holiday) {
         dayElement.classList.add('holiday');
         dayElement.setAttribute('data-tooltip', holiday.name);
@@ -152,8 +148,8 @@ function createDayElement(date, fullDate, textClass, index) {
 
     if (selectedDates.has(fullDate)) {
         dayElement.classList.add('selected');
-        if (textClass === 'text-body' || textClass === 'non-current-month') {
-            dayElement.classList.remove('text-body', 'non-current-month');
+        if (textClass === 'text-body') {
+            dayElement.classList.remove('text-body');
         }
     }
 
@@ -167,22 +163,23 @@ function addDayEventListeners(dayElement, date) {
         return;
     }
 
-    // Handle click to toggle date and switch month if needed
-    dayElement.addEventListener('click', (e) => {
-        e.preventDefault(); // Prevent default to avoid conflicts
-        if (isDragging) return; // Ignore clicks during drag
-        const dateStr = dayElement.dataset.date;
-        console.log(`Clicked date: ${dateStr}, Month: ${date.getMonth() + 1}/${date.getFullYear()}`);
-        toggleDate(dayElement); // Toggle selection first
-        if (!isSameMonth(date, new Date(displayedYear, displayedMonth, 1))) {
-            displayedYear = date.getFullYear();
-            displayedMonth = date.getMonth();
-            console.log(`Switching to month: ${displayedMonth + 1}/${displayedYear}`);
-            renderCalendar(displayedYear, displayedMonth);
-        }
-    });
+    if (dayElement.classList.contains('text-muted') && !dayElement.classList.contains('selected')) {
+        dayElement.addEventListener('click', () => {
+            if (!isSameMonth(date, new Date(displayedYear, displayedMonth, 1))) {
+                const dateStr = dayElement.dataset.date;
+                if (selectedDates.has(dateStr)) {
+                    selectedDates.delete(dateStr);
+                } else {
+                    selectedDates.add(dateStr);
+                }
+                displayedYear = date.getFullYear();
+                displayedMonth = date.getMonth();
+                renderCalendar(displayedYear, displayedMonth);
+            }
+        });
+        return;
+    }
 
-    // Handle drag-to-select
     dayElement.addEventListener('mousedown', () => {
         isDragging = true;
         toggleDate(dayElement);
@@ -209,14 +206,13 @@ function toggleDate(dayElement) {
         if (isSameMonth(parse(dateStr, 'yyyy-MM-dd', new Date()), new Date(displayedYear, displayedMonth, 1))) {
             dayElement.classList.add('text-body');
         } else {
-            dayElement.classList.add('non-current-month');
+            dayElement.classList.add('text-muted');
         }
     } else {
         selectedDates.add(dateStr);
         dayElement.classList.add('selected');
-        dayElement.classList.remove('text-body', 'non-current-month');
+        dayElement.classList.remove('text-body', 'text-muted');
     }
-    console.log(`Toggled date: ${dateStr}, Selected: ${selectedDates.has(dateStr)}`);
     renderSelectedDates();
     calculateTotalPayment();
 }
@@ -359,11 +355,6 @@ function calculateTotalPayment() {
     const totalPerDayValue = totalPackageCost + additionalItemsCost;
     const totalModalPerDayValue = totalModalCost + additionalModalCost;
     const totalPaymentValue = (totalPerDayValue + shipping) * selectedDates.size;
-
-    additionalItemsSummary.textContent = `Rp ${additionalItemsCost.toLocaleString('id-ID')}`;
-    totalPerDay.textContent = `Rp ${totalPerDayValue.toLocaleString('id-ID')}`;
-    shippingCostValue.textContent = `Rp ${shipping.toLocaleString('id-ID')}`;
-    totalPayment.textContent = `Rp ${totalPaymentValue.toLocaleString('id-ID')}`;
 
     return {
         totalPerDay: totalPerDayValue,
