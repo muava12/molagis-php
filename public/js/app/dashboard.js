@@ -1,12 +1,11 @@
 /*
  * File: dashboard.js
- * Description: Logika untuk halaman dashboard, termasuk pengambilan data pengantaran dan inisialisasi modal tambah customer.
+ * Description: Logika untuk halaman dashboard, termasuk pengambilan data pengantaran, inisialisasi modal tambah customer, dan modal tambah pesanan.
  */
 
 import { renderErrorAlert, showToast } from './utils.js';
-
-// Impor modul add-customer-modal
 import { initAddCustomerModal } from './add-customer-modal.js';
+import { initialize as initOrder } from './order.js';
 
 // Variabel global
 const bootstrap = window.tabler?.bootstrap;
@@ -125,8 +124,29 @@ export function initDashboard() {
     // Inisialisasi modal tambah customer
     initAddCustomerModal('dashboard-add-modal', {
         showToast,
-        showErrorToast: (title, message) => renderErrorAlert(message), // Sesuaikan dengan renderErrorAlert
+        showErrorToast: (title, message) => renderErrorAlert(message),
     });
+
+    // Inisialisasi modal tambah pesanan saat modal ditampilkan
+    const orderModal = document.getElementById('modal-report');
+    if (orderModal) {
+        orderModal.addEventListener('shown.bs.modal', () => {
+            console.log('Order modal shown, initializing order logic');
+            // initOrder();
+        });
+        // Reset form saat modal ditutup
+        orderModal.addEventListener('hidden.bs.modal', () => {
+            console.log('Order modal hidden, resetting form');
+            const form = document.getElementById('order-form');
+            if (form) form.reset();
+            const selectedDatesContainer = document.getElementById('selected-dates');
+            if (selectedDatesContainer) selectedDatesContainer.innerHTML = '';
+            const selectedDatesCount = document.getElementById('selected-dates-count');
+            if (selectedDatesCount) selectedDatesCount.textContent = '0 Hari dipilih';
+            const calendarDays = document.getElementById('calendar-days');
+            if (calendarDays) calendarDays.innerHTML = '';
+        });
+    }
 }
 
 // Inisialisasi standalone jika diperlukan

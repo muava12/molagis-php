@@ -1,6 +1,43 @@
 {% extends 'base.html.twig' %}
-{% block title %}
-	Dashboard Molagis
+{% block title %}Dashboard Molagis
+{% endblock %}
+{% block stylesheets %}
+	<link rel="stylesheet" href="/css/awesomplete.min.css">
+	<link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
+	<link rel="stylesheet" href="/css/app/custom.css?v={{ 'now'|date('U') }}">
+	<style>
+		/* Gaya untuk modal tambah pesanan */
+		@media(max-width: 767.98px) {
+			#modal-report .modal-body .row {
+				flex-direction: column;
+			}
+			#modal-report .date-picker-container {
+				margin-bottom: 20px;
+			}
+			#modal-report .col-md-6 {
+				width: 100%;
+			}
+		}
+
+		/* Pastikan tooltip responsif di dalam modal */
+		.tooltip {
+			pointer-events: none;
+			z-index: 2000; /* Lebih tinggi dari modal (z-index 1040) */
+		}
+
+		.tooltip-inner {
+			background: var(--tblr-dark, #343a40);
+			color: var(--tblr-white, #ffffff);
+			padding: 4px 8px;
+			border-radius: 4px;
+			font-size: 12px;
+			white-space: nowrap;
+		}
+
+		.tooltip .tooltip-arrow::before {
+			border-bottom-color: var(--tblr-dark, #343a40);
+		}
+	</style>
 {% endblock %}
 {% block content %}
 	<div
@@ -21,12 +58,10 @@
 								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M16 19h6"/><path d="M19 16v6"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4"/></svg>
 								Tambah Customer
 							</a>
-
 							<!-- Tombol New Customer - Mobile -->
 							<a href="#" class="btn btn-1 d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#dashboard-add-modal" aria-label="Add new customer">
 								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M16 19h6"/><path d="M19 16v6"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4"/></svg>
 							</a>
-
 							<!-- Tombol Create new order - Desktop -->
 							<a href="#" class="btn btn-primary btn-5 d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-report">
 								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-shopping-cart-plus">
@@ -39,7 +74,6 @@
 								</svg>
 								Input Pesanan
 							</a>
-
 							<!-- Tombol Create new order - Mobile -->
 							<a href="#" class="btn btn-primary btn-6 d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-report" aria-label="Create new report">
 								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-shopping-cart-plus">
@@ -128,8 +162,8 @@
 														</td>
 														<td>
 															{{ delivery.jumlah_pengantaran }}
-															titik Pengantaran<div class="text-muted small">{{
-                          delivery.jumlah_selesai }}
+															titik Pengantaran
+															<div class="text-muted small">{{ delivery.jumlah_selesai }}
 																sudah sampai</div>
 														</td>
 														<td class="text-center">
@@ -159,47 +193,200 @@
 						<div class="card">
 							<div class="card-body">
 								<h3 class="card-title">Statistik</h3>
-								<p>Selamat datang di dashboard Molagis. Pilih menu di navbar untuk mengelola pelanggan, pesanan, atau
-																											                pengiriman.</p>
+								<p>Selamat datang di dashboard Molagis. Pilih menu di navbar untuk mengelola pelanggan, pesanan, atau pengiriman.</p>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	</div>
 
-	<!-- Modal Add Customer -->
-	{% include 'partials/add-customer-modal.html.twig' with {
-'modal_id': 'dashboard-add-modal',
-'button_text': 'Tambah Customer'
-} %}
+		<!-- Modal Add Customer -->
+		{% include 'partials/add-customer-modal.html.twig' with {
+            'modal_id': 'dashboard-add-modal',
+            'button_text': 'Tambah Customer'
+        } %}
 
-	<!-- Modal Create New Order (modal-report, tetap dipertahankan) -->
-	<div class="modal modal-blur fade" id="modal-report" tabindex="-1" role="dialog" aria-hidden="true">
-		<div class="modal-dialog modal-lg" role="document">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title">Create New Order</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div
-					class="modal-body">
-					<!-- Konten modal untuk create new order -->
-					<p>Form untuk membuat pesanan baru (belum diimplementasikan).</p>
-				</div>
-				<div class="modal-footer">
-					<a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
-					<a href="#" class="btn btn-primary ms-auto">Simpan</a>
+		<!-- Modal Create New Order -->
+		<div class="modal modal-blur fade w-100" id="modal-report" tabindex="-1" role="dialog" aria-hidden="true">
+			<div class="modal-dialog modal-lg modal-fullscreen-lg-down" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Input Pesanan Baru</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<div class="row">
+							<div class="col-12 col-sm-6">
+								<div class="date-picker-container">
+									<div class="date-picker-buttons">
+										<button class="btn" id="today-btn">Hari Ini</button>
+										<button class="btn" id="next-month-btn">Bulan Depan</button>
+										<button class="btn" id="clear-btn">Clear</button>
+									</div>
+									<div class="date-picker-header">
+										<button class="btn btn-icon" id="prev-month">
+											{% include 'svg/chevron-left.svg.twig' %}
+										</button>
+										<div class="date-picker-month text-body" id="calendar-month-year"></div>
+										<button class="btn btn-icon" id="next-month">
+											{% include 'svg/chevron-right.svg.twig' %}
+										</button>
+									</div>
+									<div class="date-picker-weekdays text-secondary">
+										<div>Sen</div>
+										<div>Sel</div>
+										<div>Rab</div>
+										<div>Kam</div>
+										<div>Jum</div>
+										<div>Sab</div>
+										<div>Min</div>
+									</div>
+									<div class="date-picker-days" id="calendar-days"></div>
+									<div class="selected-date mt-2">
+										<h3 class="selected-dates-count h6" id="selected-dates-count">0 Hari dipilih</h3>
+										<div class="selected-dates" id="selected-dates"></div>
+									</div>
+								</div>
+							</div>
+							<div class="col-12 col-sm-6">
+								<form id="order-form">
+									<div class="mb-3">
+										<label for="customer-input" class="form-label text-opacity-25">Pelanggan</label>
+										<input class="form-control awesomplete w-100" type="text" id="customer-input" placeholder="Ketik Nama Pelanggan" autocomplete="off" required>
+									</div>
+									<div class="d-flex package-list mb-3">
+										<div class="input-paket me-2">
+											<label class="form-label">Paket Makanan</label>
+											<select title="Pilih Paket" class="form-select" id="package-select" required>
+												<option value="" disabled selected>Pilih Paket Makanan</option>
+												{% for package in packages %}
+													<option value="{{ package.id }}">{{ package.nama }}
+														(Rp
+														{{ package.harga_jual|number_format(0, ',', '.') }})</option>
+												{% endfor %}
+											</select>
+										</div>
+										<div class="input-jumlah">
+											<label class="form-label">Jumlah</label>
+											<input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
+										</div>
+										<div class="tambah-paket ms-2">
+											<button type="button" class="btn btn-icon btn-outline w-100 add-package">
+												{% include 'svg/plus.svg.twig' %}
+											</button>
+										</div>
+									</div>
+									<div class="toggle-container border rounded-3 mb-3">
+										<div class="toggle-header">
+											{% include 'svg/chevron-right.svg.twig' %}
+											Item Tambahan
+										</div>
+										<div class="toggle-content">
+											<div class="row g-2 mb-3 additional-item">
+												<div class="col-6">
+													<label class="form-label">Item Tambahan</label>
+													<input class="form-control item-tambahan" id="item-tambahan" type="text" placeholder="Item Tambahan">
+												</div>
+												<div class="col-3">
+													<label class="form-label">Harga</label>
+													<input class="form-control harga-item-tambahan" id="harga-item-tambahan" type="number" min="0" placeholder="Harga">
+												</div>
+												<div class="col-3">
+													<label class="form-label">Modal</label>
+													<input class="form-control harga-modal-item-tambahan" id="harga-modal-item-tambahan" type="number" min="0" placeholder="Harga Modal">
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="row g-2 mb-3">
+										<div class="col-6">
+											<label class="form-label">Kurir</label>
+											<select title="Pilih Kurir" class="form-select" id="courier-select">
+												<option value="" disabled selected>Pilih Kurir</option>
+												{% for courier in active_couriers %}
+													<option value="{{ courier.id }}">{{ courier.nama }}</option>
+												{% endfor %}
+											</select>
+										</div>
+										<div class="col-6">
+											<label class="form-label">Ongkos Kirim</label>
+											<div class="input-group">
+												<input title="Masukkan Ongkos Kirim" class="form-control" type="number" id="shipping-cost" value="5000" min="5000" step="1000" required>
+												<span class="input-group-text d-none" id="shipping-fast-icon">
+													{% include 'svg/truck-delivery.svg.twig' %}
+												</span>
+											</div>
+										</div>
+									</div>
+									<div class="mb-3">
+										<label class="form-label">Metode Pembayaran</label>
+										<select title="Pilih Metode Pembayaran" class="form-select" id="payment-method" required>
+											<option value="cod">COD</option>
+											<option value="transfer" selected>Transfer</option>
+											<option value="belum_bayar">Belum Bayar</option>
+										</select>
+									</div>
+									<div class="mb-3">
+										<label class="form-label" id="order-notes-label">
+											{% include 'svg/chevron-right.svg.twig' %}
+											Order Notes
+										</label>
+										<textarea placeholder="Order Notes" class="form-control d-none" id="order-notes"></textarea>
+									</div>
+									<div class="mb-3">
+										<label class="form-label" id="kitchen-notes-label">
+											{% include 'svg/chevron-right.svg.twig' %}
+											Kitchen Notes
+										</label>
+										<textarea placeholder="Kitchen Notes" class="form-control d-none" id="kitchen-notes"></textarea>
+									</div>
+									<div class="mb-3">
+										<label class="form-label" id="courier-notes-label">
+											{% include 'svg/chevron-right.svg.twig' %}
+											Courier Notes
+										</label>
+										<textarea placeholder="Courier Notes" class="form-control d-none" id="courier-notes"></textarea>
+									</div>
+									<input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
+									<div class="d-grid mt-3">
+										<button type="submit" class="btn btn-primary">
+											{% include 'svg/check.svg.twig' %}
+											Simpan Pesanan
+										</button>
+										<div class="alert alert-danger d-none" id="error-notification"></div>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</button>
+					</div>
 				</div>
 			</div>
 		</div>
+
+		<!-- Modal Order Summary -->
+		<div class="modal modal-blur fade" id="order-summary-modal" tabindex="-1" aria-labelledby="orderSummaryModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="orderSummaryModalLabel">Ringkasan Pesanan</h5>
+					</div>
+					<div class="modal-body" id="order-summary-content"></div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Toast -->
+		{% include 'toast.html.twig' %}
 	</div>
-
-	<!-- Toast -->
-	{% include 'toast.html.twig' %}
 {% endblock %}
-
-{% block javascripts %}
+{% block javascripts %} <script src="/js/awesomplete.min.js"></script>
+	<!--  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> -->
 	 <script type="module" src="/js/app/dashboard.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

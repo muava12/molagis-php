@@ -47,6 +47,7 @@ class DashboardController
             'today_date' => $todayDate,
             'error' => $couriersResult['error'] ?? $deliveriesResult['error'] ?? null,
             'user_id' => $user['id'] ?? 'default-seed',
+            'active_couriers' => $couriersResult['data'] ?? [], // Kirim kurir aktif ke template
         ]);
     }
 

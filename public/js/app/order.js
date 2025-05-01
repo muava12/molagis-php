@@ -719,3 +719,5 @@ function setupEventListeners() {
 }
 
 initialize();
+
+export { initialize };
