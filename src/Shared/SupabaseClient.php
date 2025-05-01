@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Molagis\Shared;
@@ -176,6 +177,57 @@ class SupabaseClient
             return [
                 'data' => null,
                 'error' => 'Gagal menghapus data: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Melakukan RPC (Remote Procedure Call) ke fungsi PostgreSQL di Supabase.
+     * @param string $functionName Nama fungsi PostgreSQL (misalnya, 'save_order_transaction')
+     * @param array $params Parameter untuk fungsi (akan dikirim sebagai JSON)
+     * @param array $options Opsi tambahan untuk Guzzle (misalnya, headers)
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
+     * @return array ['data' => array|null, 'error' => string|null]
+     */
+    public function rpc(string $functionName, array $params, array $options = [], ?string $accessToken = null): array
+    {
+        try {
+            // Tambahkan header Authorization jika accessToken tersedia
+            if ($accessToken) {
+                $options['headers'] = array_merge(
+                    $options['headers'] ?? [],
+                    ['Authorization' => "Bearer $accessToken"]
+                );
+            }
+            // Gunakan endpoint /rest/v1/rpc/ sesuai dokumentasi Supabase
+            $endpoint = "/rest/v1/rpc/{$functionName}";
+            error_log("Calling Supabase RPC: {$this->baseUrl}{$endpoint} with params: " . json_encode($params));
+            $response = $this->client->post($endpoint, array_merge([
+                'json' => $params,
+            ], $options));
+            $body = (string) $response->getBody();
+            error_log("Supabase RPC response: " . $body);
+            return [
+                'data' => $body ? json_decode($body, true) : null,
+                'error' => null,
+            ];
+        } catch (ConnectException $e) {
+            error_log('Supabase RPC connection error: ' . $e->getMessage());
+            return [
+                'data' => null,
+                'error' => 'Koneksi internet bermasalah, silakan cek koneksi Anda',
+            ];
+        } catch (RequestException $e) {
+            $errorMessage = 'Gagal memanggil fungsi: ' . $e->getMessage();
+            if ($e->hasResponse()) {
+                $responseBody = (string) $e->getResponse()->getBody();
+                $errorData = json_decode($responseBody, true);
+                $errorMessage = $errorData['message'] ?? $errorMessage;
+            }
+            error_log('Supabase RPC error: ' . $errorMessage);
+            return [
+                'data' => null,
+                'error' => $errorMessage,
             ];
         }
     }

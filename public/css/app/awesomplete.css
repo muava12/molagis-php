@@ -1,0 +1,93 @@
+/* Awesomeplete css */
+/* public/css/app/awesomplete.css */
+/* .awesomplete {
+    position: relative;
+  }
+  .awesomplete > input {
+    width: 100%;
+  }
+  .awesomplete > ul {
+    position: absolute;
+    z-index: 1000;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .awesomplete > ul > li {
+    padding: 8px;
+    cursor: pointer;
+  }
+  .awesomplete > ul > li:hover,
+  .awesomplete > ul > li[aria-selected="true"] {
+    background: #f0f0f0;
+  } */
+.awesomplete {
+  display: block;
+  /* Pastikan container Awesomplete mengambil lebar penuh */
+  width: 100%;
+  /* Lebar penuh */
+}
+
+.awesomplete > ul {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+[data-bs-theme="dark"] .awesomplete > ul {
+  background: #1a1a1a;
+  border: 1px solid #11172b;
+}
+
+[data-bs-theme="dark"] .awesomplete > ul > li {
+  color: #fff;
+}
+
+[data-bs-theme="dark"] .awesomplete > ul > li:hover {
+  background: #313646;
+  color: #fff;
+}
+.awesomplete > ul > li[aria-selected="true"] {
+  background: hsl(165, 40%, 83%);
+  color: #0c0c0c;
+}
+[data-bs-theme="dark"] .awesomplete > ul > li[aria-selected="true"] {
+  background: hsl(165, 14%, 16%);
+  color: #ffffff;
+}
+
+.awesomplete mark {
+  background-color: #f2ecb9;
+  padding: 1px 2px;
+}
+
+[data-bs-theme="dark"] .awesomplete mark {
+  background-color: #362b0b;
+  padding: 1px 2px;
+}
+
+[data-bs-theme="dark"] .awesomplete li:hover mark {
+  background: hsl(0, 0%, 18%);
+}
+.awesomplete li[aria-selected="true"] mark {
+  background: hsl(86, 100%, 21%);
+  color: inherit;
+}
+
+/* Warna highlight saat teks dipilih */
+::selection {
+  background-color: #3b82f6; /* Warna biru yang kontras */
+  color: #ffffff; /* Warna teks putih */
+}
+
+/* Untuk browser tertentu (opsional) */
+::-moz-selection {
+  background-color: #3b82f6; /* Warna biru yang kontras */
+  color: #ffffff; /* Warna teks putih */
+}

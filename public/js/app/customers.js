@@ -30,7 +30,7 @@ async function fetchCustomers() {
     }, 15000);
 
     try {
-        const response = await fetch('/api/customers', {
+        const response = await fetch('/api/customers/all', {
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
         });
         const result = await response.json();

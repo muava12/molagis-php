@@ -2,3 +2,92 @@
 .text-selected {
   background-color: color-mix(in srgb, var(--tblr-teal) 30%, transparent);
 }
+
+Gaya untuk halaman order */
+.btn-close {
+  width: 0.5em;
+  height: 0.5em;
+}
+  /*
+.calendar {
+  width: 100%;
+  max-width: 700px;
+  margin-right: 20px;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid var(--tblr-border-color);
+  user-select: none;
+}
+.calendar-table td,
+.calendar-table th {
+  padding: 10px;
+  cursor: pointer;
+  height: 50px;
+} */
+.package-list {
+  display: flex;
+  flex-wrap: nowrap;
+}
+.input-paket,
+.input-jumlah {
+  flex-basis: calc(50% - 10px);
+}
+.tambah-paket {
+  align-self: flex-end;
+  width: 3em;
+}
+/* .today {
+  background-color: var(--tblr-gray-200) !important;
+}
+.event {
+  background-color: var(--tblr-yellow-lt);
+}
+.holiday {
+  background-color: var(--tblr-red-lt);
+}
+.calendar-table th:nth-child(7),
+.calendar-table td:nth-child(7) {
+  display: none;
+}
+  */
+.toggle-container {
+  margin-bottom: 10px;
+  padding: 0px;
+}
+.toggle-header {
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.toggle-header svg {
+  margin-right: 10px;
+  transition: transform 0.3s;
+}
+.toggle-content {
+  display: none;
+  padding: 10px;
+}
+.toggle-container.active .toggle-content {
+  display: block;
+}
+.toggle-container.active .toggle-header svg {
+  transform: rotate(90deg);
+}
+#payment-summary {
+  border-radius: 5px;
+  padding: 15px;
+  margin-top: 20px;
+  font-family: 'Courier New', Courier, monospace;
+  border: 1px solid var(--tblr-border-color);
+}
+#payment-summary div {
+  margin-bottom: 10px;
+}
+#payment-summary .summary-item {
+  display: flex;
+  justify-content: space-between;
+}
+.rotate-90 {
+  transform: rotate(90deg);
+}

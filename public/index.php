@@ -12,6 +12,8 @@ use Molagis\Features\Dashboard\DashboardController;
 use Molagis\Features\Dashboard\DashboardService;
 use Molagis\Features\Customers\CustomersController;
 use Molagis\Features\Customers\CustomersService;
+use Molagis\Features\Order\OrderController; // Add this
+use Molagis\Features\Order\OrderService;   // Add this
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -37,6 +39,7 @@ $loader = new FilesystemLoader([
     "{$basePath}/src/Features/Auth/templates",
     "{$basePath}/src/Features/Dashboard/templates",
     "{$basePath}/src/Features/Customers/templates",
+    "{$basePath}/src/Features/Order/templates", // Add this
 ]);
 $twig = new Environment($loader, [
     'debug' => $_ENV['APP_ENV'] === 'development',
@@ -53,6 +56,8 @@ $dashboardService = new DashboardService($supabaseClient);
 $dashboardController = new DashboardController($dashboardService, $supabaseService, $twig);
 $customersService = new CustomersService($supabaseClient);
 $customersController = new CustomersController($customersService, $supabaseService, $twig);
+$orderService = new OrderService($supabaseClient); // Add this
+$orderController = new OrderController($orderService, $supabaseService, $twig); // Add this
 
 // Create PSR-7 request with explicit body parsing
 $request = ServerRequestFactory::fromGlobals();
@@ -81,10 +86,14 @@ $routes = [
     ['GET', '/api/deliveries', [$dashboardController, 'getDeliveries'], [$authMiddleware]],
     ['GET', '/logout', [$authController, 'logout'], [$authMiddleware]],
     ['GET', '/customers', [$customersController, 'showCustomers'], [$authMiddleware]],
-    ['GET', '/api/customers', [$customersController, 'getCustomers'], [$authMiddleware]],
+    ['GET', '/api/customers/all', [$customersController, 'getCustomers'], [$authMiddleware]],
+    ['GET', '/api/customers', [$orderController, 'getCustomers'], [$authMiddleware]],
     ['POST', '/api/customers/add', [$customersController, 'addCustomer'], [$authMiddleware]],
     ['POST', '/api/customers/update', [$customersController, 'updateCustomer'], [$authMiddleware]],
     ['POST', '/api/customers/delete', [$customersController, 'deleteCustomer'], [$authMiddleware]],
+    ['GET', '/input-order', [$orderController, 'showOrder'], [$authMiddleware]],
+    ['POST', '/api/order', [$orderController, 'handleOrder'], [$authMiddleware]], 
+    ['GET', '/api/packages', [$orderController, 'getPackages'], [$authMiddleware]], 
 ];
 
 // Create FastRoute dispatcher
@@ -173,6 +182,9 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'addCustomer' => [$request],
                     'updateCustomer' => [$request],
                     'deleteCustomer' => [$request],
+                    'handleOrder' => [$request], // Add this
+                    'getPackages' => [$request], // Add this
+                    'showOrder' => [$request],   // Add this
                     default => []
                 };
                 

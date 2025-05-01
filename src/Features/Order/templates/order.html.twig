@@ -1,0 +1,318 @@
+{% extends 'base.html.twig' %}
+{% block title %}Input Pesanan Catering Harian{% endblock %}
+{% block og_title %}Input Pesanan Catering Harian{% endblock %}
+{% block twitter_title %}Input Pesanan Catering Harian{% endblock %}
+{% block stylesheets %}
+    <link rel="stylesheet" href="/css/awesomplete.min.css">
+    <link rel="stylesheet" href="/css/app/awesomplete.css">
+    <link rel="stylesheet" href="/css/app/custom.css">
+    <style>
+        .date-picker-container {
+            max-width: 300px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: var(--tblr-bg-surface, #fff);
+            padding: 10px;
+            user-select: none;
+        }
+        .date-picker-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .date-picker-buttons .btn {
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+        .date-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .date-picker-month {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .date-picker-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 5px;
+            user-select: none;
+        }
+        .date-picker-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            user-select: none;
+        }
+        .date-picker-day {
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+            position: relative;
+        }
+        .date-picker-day:hover:not(.disabled) {
+            background: var(--tblr-primary-bg-subtle);
+            color: var(--tblr-primary-text-emphasis);
+        }
+        .date-picker-day.today {
+            border: 1px solid var(--tblr-primary);
+        }
+        .date-picker-day.disabled {
+            cursor: not-allowed;
+            background: transparent !important;
+            color: var(--tblr-muted) !important;
+        }
+        .date-picker-day.non-current-month {
+            color: var(--tblr-muted) !important;
+            opacity: 0.5 !important;
+        }
+        .date-picker-day.non-current-month.selected {
+            opacity: 1;
+            color: var(--tblr-white) !important;
+        }
+        .date-picker-day.selected {
+            background: var(--tblr-primary) !important;
+            color: var(--tblr-white) !important;
+        }
+        .date-picker-day.holiday {
+            color: var(--tblr-danger);
+            background: var(--tblr-danger-bg-subtle);
+        }
+        .date-picker-day.holiday:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--tblr-dark);
+            color: var(--tblr-white);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .date-picker-day.holiday:hover::after {
+            opacity: 1;
+        }
+        .selected-dates {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .selected-dates-count {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: var(--tblr-muted);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 4px;
+        }
+        .badge-close-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: var(--tblr-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .badge-close-btn:hover {
+            color: var(--tblr-danger);
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="page-header d-print-none">
+        <div class="container-md">
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <div class="page-pretitle">Input</div>
+                    <h2 class="page-title">New Order</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="page-body">
+        <div class="container-md">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="date-picker-container">
+                        <div class="date-picker-buttons">
+                            <button class="btn" id="today-btn">Hari Ini</button>
+                            <button class="btn" id="next-month-btn">Bulan Depan</button>
+                            <button class="btn" id="clear-btn">Clear</button>
+                        </div>
+                        <div class="date-picker-header">
+                            <button class="btn btn-icon" id="prev-month">
+                                {% include 'svg/chevron-left.svg.twig' %}
+                            </button>
+                            <div class="date-picker-month text-body" id="calendar-month-year"></div>
+                            <button class="btn btn-icon" id="next-month">
+                                {% include 'svg/chevron-right.svg.twig' %}
+                            </button>
+                        </div>
+                        <div class="date-picker-weekdays text-secondary">
+                            <div>Sen</div>
+                            <div>Sel</div>
+                            <div>Rab</div>
+                            <div>Kam</div>
+                            <div>Jum</div>
+                            <div>Sab</div>
+                            <div>Min</div>
+                        </div>
+                        <div class="date-picker-days" id="calendar-days"></div>
+                        <div class="selected-date mt-2">
+                            <h3 class="selected-dates-count h6" id="selected-dates-count">0 Hari dipilih</h3>
+                            <div class="selected-dates" id="selected-dates"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <form id="order-form">
+                        <div class="mb-3">
+                            <label for="customer-input" class="form-label text-opacity-25">Pelanggan</label>
+                            <input class="form-control awesomplete w-100" type="text" id="customer-input" placeholder="Ketik Nama Pelanggan" autocomplete="off" required>
+                        </div>
+                        <div class="d-flex package-list mb-3">
+                            <div class="input-paket me-2">
+                                <label class="form-label">Paket Makanan</label>
+                                <select title="Pilih Paket" class="form-select" id="package-select" required>
+                                    <option value="" disabled selected>Pilih Paket Makanan</option>
+                                    {% for package in packages %}
+                                        <option value="{{ package.id }}">{{ package.nama }} (Rp {{ package.harga_jual|number_format(0, ',', '.') }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="input-jumlah">
+                                <label class="form-label">Jumlah</label>
+                                <input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
+                            </div>
+                            <div class="tambah-paket ms-2">
+                                <button type="button" class="btn btn-danger w-100 add-package">
+                                    {% include 'svg/plus.svg.twig' %}
+                                </button>
+                            </div>
+                        </div>
+                        <div class="toggle-container border rounded-3">
+                            <div class="toggle-header">
+                                {% include 'svg/chevron-right.svg.twig' %} Item Tambahan
+                            </div>
+                            <div class="toggle-content">
+                                <div class="row g-2 mb-3 additional-item">
+                                    <div class="col-6">
+                                        <label class="form-label">Item Tambahan</label>
+                                        <input class="form-control item-tambahan" id="item-tambahan" type="text" placeholder="Item Tambahan">
+                                    </div>
+                                    <div class="col-3">
+                                        <label class="form-label">Harga</label>
+                                        <input class="form-control harga-item-tambahan" id="harga-item-tambahan" type="number" min="0" placeholder="Harga">
+                                    </div>
+                                    <div class="col-3">
+                                        <label class="form-label">Modal</label>
+                                        <input class="form-control harga-modal-item-tambahan" id="harga-modal-item-tambahan" type="number" min="0" placeholder="Harga Modal">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label">Kurir</label>
+                                <select title="Pilih Kurir" class="form-select" id="courier-select">
+                                    <option value="" disabled selected>Pilih Kurir</option>
+                                    {% for courier in active_couriers %}
+                                        <option value="{{ courier.id }}">{{ courier.nama }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Ongkos Kirim</label>
+                                <div class="input-group">
+                                    <input title="Masukkan Ongkos Kirim" class="form-control" type="number" id="shipping-cost" value="5000" min="5000" step="1000" required>
+                                    <span class="input-group-text d-none" id="shipping-fast-icon">
+                                        {% include 'svg/truck-delivery.svg.twig' %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Metode Pembayaran</label>
+                            <select title="Pilih Metode Pembayaran" class="form-select" id="payment-method" required>
+                                <option value="cod">COD</option>
+                                <option value="transfer" selected>Transfer</option>
+                                <option value="belum_bayar">Belum Bayar</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="order-notes-label">
+                                {% include 'svg/chevron-right.svg.twig' %} Order Notes
+                            </label>
+                            <textarea placeholder="Order Notes" class="form-control d-none" id="order-notes"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="kitchen-notes-label">
+                                {% include 'svg/chevron-right.svg.twig' %} Kitchen Notes
+                            </label>
+                            <textarea placeholder="Kitchen Notes" class="form-control d-none" id="kitchen-notes"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="courier-notes-label">
+                                {% include 'svg/chevron-right.svg.twig' %} Courier Notes
+                            </label>
+                            <textarea placeholder="Courier Notes" class="form-control d-none" id="courier-notes"></textarea>
+                        </div>
+                        <div class="mt-5 border" id="payment-summary">
+                            <div class="summary-item"><span>Item Tambahan:</span><span id="additional-items-summary">Rp 0</span></div>
+                            <div class="summary-item"><span>Total per-hari:</span><span id="total-per-day">Rp 0</span></div>
+                            <div class="summary-item"><span>Ongkir:</span><span id="shipping-cost-value">Rp 0</span></div>
+                            <div class="summary-item"><span>Total pembayaran:</span><span id="total-payment">Rp 0</span></div>
+                        </div>
+                        <input type="hidden" id="selected-dates-hidden" name="selectedDates" />
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-primary">Simpan Pesanan</button>
+                            <div class="alert alert-danger d-none" id="error-notification"></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal modal-blur fade" id="order-summary-modal" tabindex="-1" aria-labelledby="orderSummaryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderSummaryModalLabel">Ringkasan Pesanan</h5>
+                </div>
+                <div class="modal-body" id="order-summary-content"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include 'toast.html.twig' %}
+{% endblock %}
+{% block javascripts %}
+    <script src="/js/awesomplete.min.js"></script>
+    <script type="module" src="/js/app/order.js?v={{ 'now'|date('U') }}"></script>
+{% endblock %}
