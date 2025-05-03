@@ -1,0 +1,50 @@
+/* Animasi untuk modal konfirmasi */
+#order-summary-modal .modal-content {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    transform: scale(0.95);
+    opacity: 0;
+}
+#order-summary-modal.show .modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+/* Styling untuk ringkasan pesanan */
+.confirmation-card {
+    background: var(--tblr-card-bg, #ffffff);
+    border: 1px solid var(--tblr-border-color, #e6e7e9);
+    border-radius: var(--tblr-border-radius, 4px);
+    box-shadow: var(--tblr-box-shadow, 0 1px 3px rgba(0,0,0,0.1));
+}
+.confirmation-card .card-header {
+    background: var(--tblr-primary-light, #f0f5ff);
+    border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
+}
+.confirmation-table th,
+.confirmation-table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+.confirmation-table th {
+    color: var(--tblr-muted, #6c7a91);
+    font-weight: var(--tblr-font-weight-medium, 500);
+}
+.confirmation-table td {
+    color: var(--tblr-body-color, #1a1c21);
+}
+.total-highlight {
+    background: var(--tblr-success-light, #e6f7e9);
+    font-weight: var(--tblr-font-weight-bold, 700);
+    border-radius: var(--tblr-border-radius, 4px);
+    padding: 0.5rem;
+}
+/* Responsivitas */
+@media (max-width: 576px) {
+    .confirmation-table th,
+    .confirmation-table td {
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+}

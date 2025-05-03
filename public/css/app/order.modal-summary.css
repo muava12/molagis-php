@@ -1,0 +1,106 @@
+/* Gaya untuk modal konfirmasi pesanan */
+#order-confirmation-modal .modal-content {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+#order-confirmation-modal .modal-header {
+    padding: 1.5rem 2rem;
+    background: linear-gradient(180deg, var(--tblr-primary-bg-subtle, #e6f0ff), transparent);
+}
+
+#order-confirmation-modal .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--tblr-dark, #212529);
+}
+
+#order-confirmation-modal .modal-body {
+    padding: 1.5rem 2rem;
+}
+
+#order-confirmation-modal .card {
+    border: none;
+    background: var(--tblr-bg-surface, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+#order-confirmation-modal .card-body {
+    padding: 1.5rem;
+}
+
+#order-confirmation-modal .d-flex {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--tblr-border-color, #e9ecef);
+}
+
+#order-confirmation-modal .d-flex:last-child {
+    border-bottom: none;
+}
+
+#order-confirmation-modal .text-muted {
+    font-size: 0.875rem;
+    color: var(--tblr-muted, #6c757d);
+}
+
+#order-confirmation-modal .fw-bold {
+    font-size: 0.875rem;
+    color: var(--tblr-dark, #212529);
+}
+
+#order-confirmation-modal .text-primary {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+#order-confirmation-modal .modal-footer {
+    padding: 1rem 2rem;
+    background: var(--tblr-bg-surface, #ffffff);
+}
+
+#order-confirmation-modal .btn-primary {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: background 0.2s, transform 0.2s;
+}
+
+#order-confirmation-modal .btn-primary:hover {
+    transform: translateY(-2px);
+}
+
+#order-confirmation-modal .btn-link {
+    font-size: 0.875rem;
+    color: var(--tblr-muted, #6c757d);
+}
+
+#order-confirmation-modal.show .modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+#order-confirmation-modal .modal-content {
+    transform: scale(0.95);
+    opacity: 0;
+}
+
+/* Responsivitas untuk layar kecil */
+@media (max-width: 576px) {
+    #order-confirmation-modal .modal-dialog {
+        margin: 0.5rem;
+    }
+    #order-confirmation-modal .modal-content {
+        border-radius: 8px;
+    }
+    #order-confirmation-modal .modal-header,
+    #order-confirmation-modal .modal-body,
+    #order-confirmation-modal .modal-footer {
+        padding: 1rem 1.5rem;
+    }
+    #order-confirmation-modal .d-flex {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}

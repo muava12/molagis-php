@@ -21,7 +21,7 @@ class OrderService
     public function getCustomers(?string $accessToken = null): array
     {
         // Ambil juga ongkir default untuk potensi penggunaan di frontend
-        $response = $this->supabaseClient->get('/rest/v1/customers?select=id,nama,ongkir', [], $accessToken);
+        $response = $this->supabaseClient->get('/rest/v1/customers?select=id,nama,ongkir,alamat', [], $accessToken);
         return $response['data'] ?? [];
     }
 

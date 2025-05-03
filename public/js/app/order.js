@@ -12,7 +12,7 @@ import {
     isSameMonth,
 } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 import { id } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale/+esm';
-import { showToast } from './utils.js'; // Impor showToast dari utils.js
+import { showToast } from './utils.js';
 
 const selectedDates = new Set();
 let customerId = null;
@@ -101,7 +101,7 @@ async function renderCalendar(year, month) {
             const fullDate = format(date, 'yyyy-MM-dd');
             const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
             calendarDays.appendChild(dayElement);
-            console.debug(`Rendered prev month day: ${fullDate}`);
+            // console.debug(`Rendered prev month day: ${fullDate}`);
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
@@ -110,7 +110,7 @@ async function renderCalendar(year, month) {
             const extraClass = isSameDay(date, new Date()) ? 'today' : '';
             const dayElement = createDayElement(date, fullDate, 'text-body', dayCounter++, extraClass);
             calendarDays.appendChild(dayElement);
-            console.debug(`Rendered current month day: ${fullDate}`);
+            // console.debug(`Rendered current month day: ${fullDate}`);
         }
 
         const totalDaysRendered = prevMonthDays + daysInMonth;
@@ -120,19 +120,18 @@ async function renderCalendar(year, month) {
             const fullDate = format(date, 'yyyy-MM-dd');
             const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
             calendarDays.appendChild(dayElement);
-            console.debug(`Rendered next month day: ${fullDate}`);
+            // console.debug(`Rendered next month day: ${fullDate}`);
         }
 
         console.debug(`Total days rendered: ${dayCounter}`);
         renderSelectedDates();
 
-        // Inisialisasi Bootstrap Tooltips
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function (tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl, {
-                container: 'body', // Hindari masalah rendering
-                trigger: 'hover', // Hanya aktif saat hover
-                delay: { show: 100, hide: 200 } // Tambahkan sedikit delay untuk UX
+                container: 'body',
+                trigger: 'hover',
+                delay: { show: 100, hide: 200 }
             });
         });
     } catch (error) {
@@ -155,7 +154,6 @@ function createDayElement(date, fullDate, textClass, index, extraClass = '') {
         dayElement.classList.add('disabled', 'text-muted');
     } else if (holiday) {
         dayElement.classList.add('holiday');
-        // Gunakan Bootstrap Tooltip
         dayElement.setAttribute('data-bs-toggle', 'tooltip');
         dayElement.setAttribute('data-bs-placement', 'bottom');
         dayElement.setAttribute('title', holiday.name);
@@ -194,7 +192,7 @@ function addDayEventListeners(dayElement, date) {
     }
 
     dayElement.addEventListener('mousedown', (e) => {
-        e.preventDefault(); // Prevent text selection
+        e.preventDefault();
         isDragging = true;
         toggleDate(dayElement);
     });
@@ -257,7 +255,7 @@ function renderSelectedDates() {
         closeButton.addEventListener('click', (e) => {
             e.stopPropagation();
             selectedDates.delete(dateStr);
-            renderCalendar(displayedYear, displayedMonth); // Re-render calendar to update UI
+            renderCalendar(displayedYear, displayedMonth);
             renderSelectedDates();
             calculateTotalPayment();
         });
@@ -302,8 +300,10 @@ function displayCustomerSuggestions(customers) {
     const customerData = customers.map(customer => ({
         label: customer.nama,
         value: customer.id,
-        ongkir: customer.ongkir >= 0 ? customer.ongkir : 5000 // Validasi ongkir
+        ongkir: customer.ongkir >= 0 ? customer.ongkir : 5000,
+        address: customer.alamat || 'Alamat tidak tersedia'
     }));
+    console.debug('Customer data:', customerData);
     const awesomplete = new Awesomplete(customerInput, {
         list: customerData,
         minChars: 2,
@@ -320,6 +320,7 @@ function displayCustomerSuggestions(customers) {
             li.textContent = text.label;
             li.setAttribute('data-value', text.value);
             li.setAttribute('data-ongkir', text.ongkir);
+            li.setAttribute('data-address', text.address);
             return li;
         }
     });
@@ -328,6 +329,7 @@ function displayCustomerSuggestions(customers) {
         customerId = e.text.value;
         customerInput.value = e.text.label;
         currentCustomerOngkir = selectedCustomer ? parseFloat(selectedCustomer.ongkir) || 5000 : 5000;
+        customerInput.dataset.address = selectedCustomer ? selectedCustomer.address : '';
         shippingCost.value = currentCustomerOngkir;
         shippingFastIcon.classList.toggle('d-none', parseFloat(shippingCost.value) !== currentCustomerOngkir);
         calculateTotalPayment();
@@ -339,7 +341,7 @@ async function fetchPackages() {
         const cached = localStorage.getItem('packagesData');
         if (cached) {
             const { data, timestamp } = JSON.parse(cached);
-            if (Date.now() - timestamp < 3600000) { // 1 hour
+            if (Date.now() - timestamp < 3600000) {
                 packagesData = data;
                 updatePackageSelect();
                 return;
@@ -375,15 +377,16 @@ function calculateTotalPayment() {
         const packagePrice = packageData ? packageData.harga_jual : 0;
         const packageModal = packageData ? packageData.harga_modal : 0;
         const orderQty = parseInt(list.querySelector('#order-quantity').value) || 0;
-        totalPackageCost += packagePrice * orderQty;
+        console.debug(`Package ID: ${packageId}, Price: ${packagePrice}, Modal: ${packageModal}, Quantity: ${orderQty}`);
+        totalPackageCost += packagePrice * orderQty; // Subtotal per hari
         totalModalCost += packageModal * orderQty;
     });
     const additionalItemsCost = parseFloat(document.querySelector('.harga-item-tambahan').value) || 0;
     const additionalModalCost = parseFloat(document.querySelector('.harga-modal-item-tambahan').value) || 0;
     const shipping = parseFloat(shippingCost.value) || currentCustomerOngkir;
-    const totalPerDayValue = totalPackageCost + additionalItemsCost;
+    const totalPerDayValue = totalPackageCost + additionalItemsCost + shipping; // Total per hari
     const totalModalPerDayValue = totalModalCost + additionalModalCost;
-    const totalPaymentValue = (totalPerDayValue + shipping) * selectedDates.size;
+    const totalPaymentValue = totalPerDayValue * selectedDates.size; // Total untuk semua hari
 
     return {
         totalPerDay: totalPerDayValue,
@@ -490,23 +493,23 @@ function collectOrderData() {
         item_tambahan: document.getElementById('item-tambahan').value.trim(),
         harga_tambahan: parseFloat(document.querySelector('.harga-item-tambahan').value) || 0,
         harga_modal_tambahan: parseFloat(document.querySelector('.harga-modal-item-tambahan').value) || 0,
-        total_harga_perhari: totals.totalPerDay,
+        total_harga_perhari: totals.totalPerDay, // Total per hari (termasuk ongkir)
         total_modal_perhari: totals.totalModalPerDay
     }));
 
     const orderDetails = [];
+    const packages = Array.from(document.querySelectorAll('.package-list')).map(list => ({
+        packageId: parseInt(list.querySelector('#package-select').value) || null,
+        quantity: parseInt(list.querySelector('#order-quantity').value) || 1,
+    }));
     sortedDates.forEach((date, index) => {
-        const packages = Array.from(document.querySelectorAll('.package-list')).map(list => ({
-            packageId: parseInt(list.querySelector('#package-select').value) || null,
-            quantity: parseInt(list.querySelector('#order-quantity').value) || 1,
-        }));
         packages.forEach(pkg => {
             const packageData = packagesData.find(p => p.id === pkg.packageId);
             orderDetails.push({
                 delivery_index: index,
                 paket_id: pkg.packageId,
                 jumlah: pkg.quantity,
-                subtotal_harga: packageData ? packageData.harga_jual * pkg.quantity : 0,
+                subtotal_harga: packageData ? packageData.harga_jual * pkg.quantity : 0, // Subtotal per hari
                 catatan_dapur: document.getElementById('kitchen-notes').value.trim(),
                 catatan_kurir: document.getElementById('courier-notes').value.trim()
             });
@@ -518,7 +521,7 @@ function collectOrderData() {
         order_data: {
             customer_id: parseInt(customerId),
             tanggal_pesan: format(new Date(), 'yyyy-MM-dd'),
-            total_harga: totals.totalPayment,
+            total_harga: totals.totalPayment, // Total untuk semua hari
             notes: document.getElementById('order-notes').value.trim(),
             metode_pembayaran: paymentMethod.value
         },
@@ -546,55 +549,183 @@ async function submitOrder(e) {
         const formData = collectOrderData();
         validateFormData(formData);
 
-        const response = await fetchWithRetry('/api/order', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData),
-        });
-        if (!response.success) {
-            throw new Error(response.message);
-        }
-        displaySummaryModal(formData, response.order_id);
-        resetForm();
-        showToast('Sukses', 'Pesanan berhasil disimpan');
+        displayConfirmationModal(formData);
     } catch (error) {
         console.error('Submit order error:', error);
-        showToast('Error', 'Gagal menyimpan pesanan: ' + error.message, true);
+        showErrorNotification(error.message);
     }
 }
 
-function displaySummaryModal(order, orderId) {
-    const modal = new bootstrap.Modal(document.getElementById('order-summary-modal'));
-    const content = document.getElementById('order-summary-content');
+function displayConfirmationModal(order) {
+    const modal = new bootstrap.Modal(document.getElementById('orderConfirmationModal'), { backdrop: 'static' });
     const customerName = customerInput.value;
+    const customerAddress = customerInput.dataset.address || 'Alamat tidak tersedia';
     const courierName = courierSelect.querySelector(`option[value="${order.delivery_dates[0]?.kurir_id}"]`)?.textContent || 'Tidak ada kurir';
-    const packages = order.order_details.reduce((acc, detail) => {
-        const packageData = packagesData.find(p => p.id === detail.paket_id);
-        const packageName = packageData ? packageData.nama : 'Unknown';
-        acc[packageName] = (acc[packageName] || 0) + detail.jumlah;
-        return acc;
-    }, {});
+    const paymentMethodText = paymentMethod.querySelector(`option[value="${order.order_data.metode_pembayaran}"]`)?.textContent || order.order_data.metode_pembayaran;
 
-    content.innerHTML = `
-        <p><strong>ID Pesanan:</strong> ${orderId}</p>
-        <p><strong>Nama Pelanggan:</strong> ${customerName}</p>
-        <p><strong>Tanggal Pesanan:</strong> ${order.order_data.tanggal_pesan}</p>
-        <p><strong>Tanggal Pengiriman:</strong> ${order.delivery_dates.map(d => format(parse(d.tanggal, 'yyyy-MM-dd', new Date()), 'EEE, d MMM', { locale: id })).join(', ')}</p>
-        <p><strong>Kurir:</strong> ${courierName}</p>
-        <p><strong>Metode Pembayaran:</strong> ${order.order_data.metode_pembayaran}</p>
-        <p><strong>Notes:</strong> ${order.order_data.notes || 'Tidak ada'}</p>
-        <p><strong>Catatan Dapur:</strong> ${order.order_details[0]?.catatan_dapur || 'Tidak ada'}</p>
-        <p><strong>Catatan Kurir:</strong> ${order.order_details[0]?.catatan_kurir || 'Tidak ada'}</p>
-        <p><strong>Item Tambahan:</strong> ${order.delivery_dates[0]?.item_tambahan || 'Tidak ada'}</p>
-        <p><strong>Harga Item Tambahan:</strong> Rp ${(order.delivery_dates[0]?.harga_tambahan || 0).toLocaleString('id-ID')}</p>
-        <p><strong>Harga Modal Item Tambahan:</strong> Rp ${(order.delivery_dates[0]?.harga_modal_tambahan || 0).toLocaleString('id-ID')}</p>
-        <p><strong>Ongkos Kirim:</strong> Rp ${(order.delivery_dates[0]?.ongkir || 0).toLocaleString('id-ID')}</p>
-        <p><strong>Total Harga:</strong> Rp ${order.order_data.total_harga.toLocaleString('id-ID')}</p>
-        <h4>Paket yang Dipesan:</h4>
-        ${Object.entries(packages).map(([name, qty]) => `<p>${name}: ${qty}</p>`).join('')}
+    // Isi data pelanggan
+    document.getElementById('confirmation-customer-name').textContent = customerName;
+    document.getElementById('confirmation-customer-address').textContent = customerAddress;
+
+    // Isi tanggal pesanan
+    document.getElementById('confirmation-order-date').textContent = order.order_data.tanggal_pesan;
+
+    // Isi tanggal pengiriman
+    const deliveryDates = order.delivery_dates.map(d => format(parse(d.tanggal, 'yyyy-MM-dd', new Date()), 'EEE, d MMM', { locale: id }));
+    const deliveryDatesContainer = document.getElementById('confirmation-delivery-dates');
+    const moreDatesContainer = document.getElementById('confirmation-more-dates');
+    deliveryDatesContainer.innerHTML = '';
+    moreDatesContainer.innerHTML = '';
+    deliveryDates.forEach((date, index) => {
+        const badge = document.createElement('span');
+        badge.classList.add('badge', 'badge-primary', 'badge-sm', 'text-body','me-1');
+        badge.textContent = date;
+        if (index < 4) {
+            deliveryDatesContainer.appendChild(badge);
+        } else {
+            moreDatesContainer.appendChild(badge);
+        }
+    });
+    if (deliveryDates.length > 4) {
+        const moreButton = document.createElement('button');
+        moreButton.type = 'button';
+        moreButton.classList.add('badge', 'badge-secondary', 'border-muted', 'badge-sm');
+        moreButton.setAttribute('data-bs-toggle', 'collapse');
+        moreButton.setAttribute('data-bs-target', '#moreDates');
+        moreButton.setAttribute('aria-expanded', 'false');
+        moreButton.setAttribute('aria-controls', 'moreDates');
+        moreButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chevron-down" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <polyline points="6 9 12 15 18 9" />
+            </svg>
+        `;
+        deliveryDatesContainer.appendChild(moreButton);
+    }
+
+    // Isi detail pesanan
+    const packageLists = document.querySelectorAll('.package-list');
+    const packages = {};
+    packageLists.forEach(list => {
+        const packageId = list.querySelector('#package-select').value;
+        const packageData = packagesData.find(p => p.id == packageId);
+        const packageName = packageData ? packageData.nama : 'Unknown';
+        const quantity = parseInt(list.querySelector('#order-quantity').value) || 0;
+        const unitPrice = packageData ? packageData.harga_jual : 0;
+        const subtotal = quantity * unitPrice; // Subtotal per hari
+        if (quantity > 0) {
+            packages[packageName] = { quantity, subtotal, unitPrice };
+        }
+    });
+
+    const orderDetailsContainer = document.getElementById('confirmation-order-details');
+    orderDetailsContainer.innerHTML = '';
+    Object.entries(packages).forEach(([name, data]) => {
+        const row = document.createElement('div');
+        row.classList.add('row', 'mb-2');
+        row.innerHTML = `
+            <div class="col-5">${name}</div>
+            <div class="col-4">${data.quantity} x Rp ${data.unitPrice.toLocaleString('id-ID')}</div>
+            <div class="col-3 text-end">Rp ${data.subtotal.toLocaleString('id-ID')}</div>
+        `;
+        orderDetailsContainer.appendChild(row);
+    });
+    if (order.delivery_dates[0]?.item_tambahan) {
+        const additionalItemRow = document.createElement('div');
+        additionalItemRow.classList.add('row', 'mb-2');
+        additionalItemRow.innerHTML = `
+            <div class="col-5">${order.delivery_dates[0].item_tambahan} (Item Tambahan)</div>
+            <div class="col-4">1 x Rp ${order.delivery_dates[0].harga_tambahan.toLocaleString('id-ID')}</div>
+            <div class="col-3 text-end">Rp ${order.delivery_dates[0].harga_tambahan.toLocaleString('id-ID')}</div>
+        `;
+        orderDetailsContainer.appendChild(additionalItemRow);
+    }
+    const shippingRow = document.createElement('div');
+    shippingRow.classList.add('row', 'mb-2');
+    shippingRow.innerHTML = `
+        <div class="col-6">Ongkos Kirim</div>
+        <div class="col-6 text-end">Rp ${order.delivery_dates[0]?.ongkir.toLocaleString('id-ID')}</div>
     `;
+    orderDetailsContainer.appendChild(shippingRow);
+    const totalPerDayRow = document.createElement('div');
+    totalPerDayRow.classList.add('row', 'fw-bold', 'mb-2', 'pb-2', 'pt-2', 'border-top');
+    totalPerDayRow.innerHTML = `
+        <div class="col-6">Total (per hari)</div>
+        <div class="col-6 text-end text-primary">Rp ${order.delivery_dates[0]?.total_harga_perhari.toLocaleString('id-ID')}</div>
+    `;
+    orderDetailsContainer.appendChild(totalPerDayRow);
+    const totalRow = document.createElement('div');
+    totalRow.classList.add('row', 'fw-bold', 'border-top', 'pt-2');
+    totalRow.innerHTML = `
+        <div class="col-6">Total (${order.delivery_dates.length} hari)</div>
+        <div class="col-6 text-end text-primary">Rp ${order.order_data.total_harga.toLocaleString('id-ID')}</div>
+    `;
+    orderDetailsContainer.appendChild(totalRow);
+
+    // Isi kurir dan metode pembayaran
+    document.getElementById('confirmation-courier').textContent = courierName;
+    document.getElementById('confirmation-payment-method').textContent = paymentMethodText;
+
+    // Isi catatan (dinamis)
+    const notesContainer = document.getElementById('confirmation-notes');
+    notesContainer.innerHTML = '';
+    const notes = [
+        { title: 'Catatan Pelanggan', content: order.order_data.notes },
+        { title: 'Catatan Dapur', content: order.order_details[0]?.catatan_dapur },
+        { title: 'Catatan Kurir', content: order.order_details[0]?.catatan_kurir }
+    ];
+    notes.forEach(note => {
+        if (note.content && note.content.trim() !== '') {
+            const noteCard = document.createElement('div');
+            noteCard.classList.add('col-md-4');
+            noteCard.innerHTML = `
+                <div class="card">
+                    <div class="card-body p-2">
+                        <h6 class="text-muted fw-bold mb-1">${note.title}</h6>
+                        <p class="mb-0">${note.content}</p>
+                    </div>
+                </div>
+            `;
+            notesContainer.appendChild(noteCard);
+        }
+    });
+
+    modal.show();
+
+    // Event listener untuk tombol konfirmasi
+    const confirmBtn = document.getElementById('confirmOrder');
+    const handler = async () => {
+        try {
+            confirmBtn.classList.add('btn-loading');
+            const response = await fetchWithRetry('/api/order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(order),
+            });
+            if (!response.success) {
+                throw new Error(response.message);
+            }
+            modal.hide();
+            // displaySummaryModal(order, response.order_id);
+            resetForm();
+            showToast('Sukses', 'Pesanan berhasil disimpan');
+        } catch (error) {
+            console.error('Confirm order error:', error);
+            showToast('Error', 'Gagal menyimpan pesanan: ' + error.message, true);
+            modal.hide();
+        } finally {
+            confirmBtn.classList.remove('btn-loading');
+        }
+    };
+    confirmBtn.removeEventListener('click', handler);
+    confirmBtn.addEventListener('click', handler);
+}
+
+function displaySummaryModal(order, orderId) {
+    const modal = new bootstrap.Modal(document.getElementById('successModal'), { backdrop: 'static' });
+    document.getElementById('success-total').textContent = `Rp ${order.order_data.total_harga.toLocaleString('id-ID')}`;
     modal.show();
 }
 
@@ -681,7 +812,6 @@ function setupEventListeners() {
         calculateTotalPayment();
     });
 
-    // Ensure isDragging is reset on mouseup anywhere
     document.addEventListener('mouseup', () => {
         isDragging = false;
     });

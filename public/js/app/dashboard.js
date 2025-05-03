@@ -137,14 +137,14 @@ export function initDashboard() {
         // Reset form saat modal ditutup
         orderModal.addEventListener('hidden.bs.modal', () => {
             console.log('Order modal hidden, resetting form');
-            const form = document.getElementById('order-form');
-            if (form) form.reset();
-            const selectedDatesContainer = document.getElementById('selected-dates');
-            if (selectedDatesContainer) selectedDatesContainer.innerHTML = '';
-            const selectedDatesCount = document.getElementById('selected-dates-count');
-            if (selectedDatesCount) selectedDatesCount.textContent = '0 Hari dipilih';
-            const calendarDays = document.getElementById('calendar-days');
-            if (calendarDays) calendarDays.innerHTML = '';
+            // const form = document.getElementById('order-form');
+            // if (form) form.reset();
+            // const selectedDatesContainer = document.getElementById('selected-dates');
+            // if (selectedDatesContainer) selectedDatesContainer.innerHTML = '';
+            // const selectedDatesCount = document.getElementById('selected-dates-count');
+            // if (selectedDatesCount) selectedDatesCount.textContent = '0 Hari dipilih';
+            // const calendarDays = document.getElementById('calendar-days');
+            // if (calendarDays) calendarDays.innerHTML = '';
         });
     }
 }

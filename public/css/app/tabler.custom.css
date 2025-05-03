@@ -1,5 +1,5 @@
 :root {
-  --tblr-primary: hwb(157 17% 19% / 0.748);
+  --tblr-primary: #5F8D4E;
 }
 
 ::selection,
@@ -7,3 +7,7 @@
   background-color: color-mix(in srgb, var(--tblr-teal) 30%, transparent);
 }
 
+.toast {
+  /* --tblr-toast-spacing: calc(var(--tblr-page-padding) * 2); */
+  --tblr-toast-spacing: 0px;
+}

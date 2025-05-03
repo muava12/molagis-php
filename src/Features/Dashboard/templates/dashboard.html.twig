@@ -217,7 +217,7 @@
 					</div>
 					<div class="modal-body">
 						<div class="row">
-							<div class="col-12 col-sm-6">
+							<div class="col-12 col-md-6">
 								<div class="date-picker-container">
 									<div class="date-picker-buttons">
 										<button class="btn" id="today-btn">Hari Ini</button>
@@ -249,34 +249,42 @@
 									</div>
 								</div>
 							</div>
-							<div class="col-12 col-sm-6">
+							<div class="col-12 col-md-6">
 								<form id="order-form">
 									<div class="mb-3">
 										<label for="customer-input" class="form-label text-opacity-25">Pelanggan</label>
 										<input class="form-control awesomplete w-100" type="text" id="customer-input" placeholder="Ketik Nama Pelanggan" autocomplete="off" required>
 									</div>
-									<div class="d-flex package-list mb-3">
-										<div class="input-paket me-2">
-											<label class="form-label">Paket Makanan</label>
-											<select title="Pilih Paket" class="form-select" id="package-select" required>
-												<option value="" disabled selected>Pilih Paket Makanan</option>
-												{% for package in packages %}
-													<option value="{{ package.id }}">{{ package.nama }}
-														(Rp
-														{{ package.harga_jual|number_format(0, ',', '.') }})</option>
-												{% endfor %}
-											</select>
+									<!-- <div class="d-flex package-list mb-3"> -->
+									<div class="row align-items-end package-list mb-3 justify-content-between flex-nowrap">
+										<div class="col-8">
+											<div class="input-paket">
+												<label class="form-label">Paket Makanan</label>
+												<select title="Pilih Paket" class="form-select" id="package-select" required>
+													<option value="" disabled selected>Pilih Paket Makanan</option>
+													{% for package in packages %}
+														<option value="{{ package.id }}">{{ package.nama }}
+															(Rp
+															{{ package.harga_jual|number_format(0, ',', '.') }})</option>
+													{% endfor %}
+												</select>
+											</div>
 										</div>
-										<div class="input-jumlah">
-											<label class="form-label">Jumlah</label>
-											<input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
+										<div class="col-3">
+											<div class="input-jumlah">
+												<label class="form-label">Jumlah</label>
+												<input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
+											</div>
 										</div>
-										<div class="tambah-paket ms-2">
-											<button type="button" class="btn btn-icon btn-outline w-100 add-package">
-												{% include 'svg/plus.svg.twig' %}
-											</button>
+										<div class="col-1">
+											<div class="tambah-paket">
+												<button type="button" class="btn btn-icon btn-outline w-100 add-package">
+													{% include 'svg/plus.svg.twig' %}
+												</button>
+											</div>
 										</div>
 									</div>
+									<!-- </div> -->
 									<div class="toggle-container border rounded-3 mb-3">
 										<div class="toggle-header">
 											{% include 'svg/chevron-right.svg.twig' %}
@@ -368,25 +376,23 @@
 		</div>
 
 		<!-- Modal Order Summary -->
-		<div class="modal modal-blur fade" id="order-summary-modal" tabindex="-1" aria-labelledby="orderSummaryModalLabel" aria-hidden="true">
-			<div class="modal-dialog">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title" id="orderSummaryModalLabel">Ringkasan Pesanan</h5>
-					</div>
-					<div class="modal-body" id="order-summary-content"></div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Toast -->
+		<!-- <div class="modal modal-blur fade" id="order-summary-modal" tabindex="-1" aria-labelledby="orderSummaryModalLabel" aria-hidden="true">
+									<div class="modal-dialog">
+										<div class="modal-content">
+											<div class="modal-header">
+												<h5 class="modal-title" id="orderSummaryModalLabel">Ringkasan Pesanan</h5>
+											</div>
+											<div class="modal-body" id="order-summary-content"></div>
+											<div class="modal-footer">
+												<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
+											</div>
+										</div>
+									</div>
+								</div> -->
+		{% include 'order-confirmation.html.twig' %}
 		{% include 'toast.html.twig' %}
 	</div>
 {% endblock %}
 {% block javascripts %} <script src="/js/awesomplete.min.js"></script>
-	<!--  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> -->
 	 <script type="module" src="/js/app/dashboard.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

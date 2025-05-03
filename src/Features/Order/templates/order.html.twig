@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/awesomplete.min.css">
     <link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
     <link rel="stylesheet" href="/css/app/custom.css?v={{ 'now'|date('U') }}">
+    <link rel="stylesheet" href="/css/app/order.modal-summary.css?v={{ 'now'|date('U') }}">
 {% endblock %}
 {% block content %}
     <div class="page-header d-print-none">
@@ -21,7 +22,7 @@
     <div class="page-body">
         <div class="container-md">
             <div class="row">
-                <div class="col-12 col-sm-6 col-md-4">
+                <div class="col-12 col-md-6">
                     <div class="date-picker-container">
                         <div class="date-picker-buttons">
                             <button class="btn" id="today-btn">Hari Ini</button>
@@ -53,7 +54,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-md-4">
+                <div class="col-12 col-md-6">
                     <form id="order-form">
                         <div class="mb-3">
                             <label for="customer-input" class="form-label text-opacity-25">Pelanggan</label>
@@ -150,7 +151,8 @@
                         <div class="d-grid mt-3">
                             <button type="submit" class="btn btn-primary">
                                 {% include 'svg/check.svg.twig' %}
-                                Simpan Pesanan</button>
+                                Simpan Pesanan
+                            </button>
                             <div class="alert alert-danger d-none" id="error-notification"></div>
                         </div>
                     </form>
@@ -158,23 +160,10 @@
             </div>
         </div>
     </div>
-    <div class="modal modal-blur fade" id="order-summary-modal" tabindex="-1" aria-labelledby="orderSummaryModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="orderSummaryModalLabel">Ringkasan Pesanan</h5>
-                </div>
-                <div class="modal-body" id="order-summary-content"></div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    {% include 'order-confirmation.html.twig' %}
     {% include 'toast.html.twig' %}
 {% endblock %}
 {% block javascripts %}
     <script src="/js/awesomplete.min.js"></script>
-    <!-- <script type="module" src="https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale/id/cdn.min.js"></script> -->
     <script type="module" src="/js/app/order.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}
