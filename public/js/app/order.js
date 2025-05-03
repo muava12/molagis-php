@@ -381,8 +381,8 @@ function calculateTotalPayment() {
         totalPackageCost += packagePrice * orderQty; // Subtotal per hari
         totalModalCost += packageModal * orderQty;
     });
-    const additionalItemsCost = parseFloat(document.querySelector('.harga-item-tambahan').value) || 0;
-    const additionalModalCost = parseFloat(document.querySelector('.harga-modal-item-tambahan').value) || 0;
+    const additionalItemsCost = parseFloat(document.querySelector('#harga-item-tambahan').value) || 0;
+    const additionalModalCost = parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0;
     const shipping = parseFloat(shippingCost.value) || currentCustomerOngkir;
     const totalPerDayValue = totalPackageCost + additionalItemsCost + shipping; // Total per hari
     const totalModalPerDayValue = totalModalCost + additionalModalCost;
@@ -398,8 +398,13 @@ function calculateTotalPayment() {
 
 function setupAddRemovePackageHandlers() {
     const packageList = document.querySelector('.package-list');
-    const packageTemplate = document.querySelector('.input-paket');
-    const quantityTemplate = document.querySelector('.input-jumlah');
+    const packageTemplate = document.querySelector('.package-list .col-7'); // Dropdown container
+    const quantityTemplate = document.querySelector('.package-list .col-3'); // Quantity input container
+
+    if (!packageList || !packageTemplate || !quantityTemplate) {
+        console.warn('Package list or templates not found:', { packageList, packageTemplate, quantityTemplate });
+        return;
+    }
 
     addPackageBtn.addEventListener('click', () => {
         if (document.querySelectorAll('.package-list').length >= 5) {
@@ -407,12 +412,14 @@ function setupAddRemovePackageHandlers() {
             return;
         }
         const newList = document.createElement('div');
-        newList.classList.add('d-flex', 'package-list', 'mb-3', 'added-package');
+        newList.classList.add('row', 'g-2', 'mb-3', 'package-list', 'added-package');
         const newPackage = packageTemplate.cloneNode(true);
         const newQuantity = quantityTemplate.cloneNode(true);
         const newButton = document.createElement('div');
-        newButton.classList.add('tambah-paket', 'ms-2');
-        newButton.innerHTML = '<button type="button" class="btn btn-danger w-100 remove-package mt-4">-</button>';
+        newButton.classList.add('col-2', 'align-self-end');
+        newButton.innerHTML = `<button type="button" class="btn btn-icon remove-package w-100" aria-label="Hapus paket">
+        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="1.5"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-minus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l14 0" /></svg>
+        </button>`;
         newPackage.querySelector('#package-select').selectedIndex = 0;
         newQuantity.querySelector('#order-quantity').value = 1;
         newList.append(newPackage, newQuantity, newButton);
@@ -445,8 +452,8 @@ function resetForm() {
     currentCustomerOngkir = 5000;
     paymentMethod.value = 'belum_bayar';
     document.querySelector('#item-tambahan').value = '';
-    document.querySelector('.harga-item-tambahan').value = '';
-    document.querySelector('.harga-modal-item-tambahan').value = '';
+    document.querySelector('#harga-item-tambahan').value = '';
+    document.querySelector('#harga-modal-item-tambahan').value = '';
     document.querySelector('#order-notes').value = '';
     document.querySelector('#kitchen-notes').value = '';
     document.querySelector('#courier-notes').value = '';
@@ -491,8 +498,8 @@ function collectOrderData() {
         ongkir: totals.shipping,
         status: 'pending',
         item_tambahan: document.getElementById('item-tambahan').value.trim(),
-        harga_tambahan: parseFloat(document.querySelector('.harga-item-tambahan').value) || 0,
-        harga_modal_tambahan: parseFloat(document.querySelector('.harga-modal-item-tambahan').value) || 0,
+        harga_tambahan: parseFloat(document.querySelector('#harga-item-tambahan').value) || 0,
+        harga_modal_tambahan: parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0,
         total_harga_perhari: totals.totalPerDay, // Total per hari (termasuk ongkir)
         total_modal_perhari: totals.totalModalPerDay
     }));
@@ -578,7 +585,7 @@ function displayConfirmationModal(order) {
     moreDatesContainer.innerHTML = '';
     deliveryDates.forEach((date, index) => {
         const badge = document.createElement('span');
-        badge.classList.add('badge', 'badge-primary', 'badge-sm', 'text-body','me-1');
+        badge.classList.add('badge', 'badge-primary', 'badge-sm', 'text-body', 'me-1');
         badge.textContent = date;
         if (index < 4) {
             deliveryDatesContainer.appendChild(badge);
@@ -816,36 +823,15 @@ function setupEventListeners() {
         isDragging = false;
     });
 
-    document.querySelector('.toggle-header').addEventListener('click', (e) => {
-        e.currentTarget.parentElement.classList.toggle('active');
-    });
     packageSelect.addEventListener('change', calculateTotalPayment);
     orderQuantity.addEventListener('input', calculateTotalPayment);
     shippingCost.addEventListener('input', () => {
         calculateTotalPayment();
         shippingFastIcon.classList.toggle('d-none', parseFloat(shippingCost.value) !== currentCustomerOngkir);
     });
-    document.querySelector('.harga-item-tambahan').addEventListener('input', calculateTotalPayment);
-    document.querySelector('.harga-modal-item-tambahan').addEventListener('input', calculateTotalPayment);
+    document.querySelector('#harga-item-tambahan').addEventListener('input', calculateTotalPayment);
+    document.querySelector('#harga-modal-item-tambahan').addEventListener('input', calculateTotalPayment);
     orderForm.addEventListener('submit', submitOrder);
-    document.getElementById('order-notes-label').addEventListener('click', () => {
-        const textarea = document.getElementById('order-notes');
-        textarea.classList.toggle('d-none');
-        const icon = document.getElementById('order-notes-label').querySelector('svg');
-        icon.classList.toggle('rotate-90');
-    });
-    document.getElementById('kitchen-notes-label').addEventListener('click', () => {
-        const textarea = document.getElementById('kitchen-notes');
-        textarea.classList.toggle('d-none');
-        const icon = document.getElementById('kitchen-notes-label').querySelector('svg');
-        icon.classList.toggle('rotate-90');
-    });
-    document.getElementById('courier-notes-label').addEventListener('click', () => {
-        const textarea = document.getElementById('courier-notes');
-        textarea.classList.toggle('d-none');
-        const icon = document.getElementById('courier-notes-label').querySelector('svg');
-        icon.classList.toggle('rotate-90');
-    });
 }
 
 initialize();

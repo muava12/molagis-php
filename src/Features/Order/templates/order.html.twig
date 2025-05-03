@@ -1,169 +1,181 @@
 {% extends 'base.html.twig' %}
-{% block title %}Input Pesanan Catering Harian{% endblock %}
-{% block og_title %}Input Pesanan Catering Harian{% endblock %}
-{% block twitter_title %}Input Pesanan Catering Harian{% endblock %}
+{% block title %}Input Pesanan Catering Harian
+{% endblock %}
+{% block og_title %}Input Pesanan Catering Harian
+{% endblock %}
+{% block twitter_title %}Input Pesanan Catering Harian
+{% endblock %}
 {% block stylesheets %}
-    <link rel="stylesheet" href="/css/awesomplete.min.css">
-    <link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
-    <link rel="stylesheet" href="/css/app/custom.css?v={{ 'now'|date('U') }}">
-    <link rel="stylesheet" href="/css/app/order.modal-summary.css?v={{ 'now'|date('U') }}">
+	<link rel="stylesheet" href="/css/awesomplete.min.css">
+	<link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
+	<link rel="stylesheet" href="/css/app/input-order-page.css?v={{ 'now'|date('U') }}">
+	<link rel="stylesheet" href="/css/app/order.modal-summary.css?v={{ 'now'|date('U') }}">
 {% endblock %}
 {% block content %}
-    <div class="page-header d-print-none">
-        <div class="container-md">
-            <div class="row g-2 align-items-center">
-                <div class="col">
-                    <div class="page-pretitle">Input</div>
-                    <h2 class="page-title">New Order</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="page-body">
-        <div class="container-md">
-            <div class="row">
-                <div class="col-12 col-md-6">
-                    <div class="date-picker-container">
-                        <div class="date-picker-buttons">
-                            <button class="btn" id="today-btn">Hari Ini</button>
-                            <button class="btn" id="next-month-btn">Bulan Depan</button>
-                            <button class="btn" id="clear-btn">Clear</button>
-                        </div>
-                        <div class="date-picker-header">
-                            <button class="btn btn-icon" id="prev-month">
-                                {% include 'svg/chevron-left.svg.twig' %}
-                            </button>
-                            <div class="date-picker-month text-body" id="calendar-month-year"></div>
-                            <button class="btn btn-icon" id="next-month">
-                                {% include 'svg/chevron-right.svg.twig' %}
-                            </button>
-                        </div>
-                        <div class="date-picker-weekdays text-secondary">
-                            <div>Sen</div>
-                            <div>Sel</div>
-                            <div>Rab</div>
-                            <div>Kam</div>
-                            <div>Jum</div>
-                            <div>Sab</div>
-                            <div>Min</div>
-                        </div>
-                        <div class="date-picker-days" id="calendar-days"></div>
-                        <div class="selected-date mt-2">
-                            <h3 class="selected-dates-count h6" id="selected-dates-count">0 Hari dipilih</h3>
-                            <div class="selected-dates" id="selected-dates"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-6">
-                    <form id="order-form">
-                        <div class="mb-3">
-                            <label for="customer-input" class="form-label text-opacity-25">Pelanggan</label>
-                            <input class="form-control awesomplete w-100" type="text" id="customer-input" placeholder="Ketik Nama Pelanggan" autocomplete="off" required>
-                        </div>
-                        <div class="d-flex package-list mb-3">
-                            <div class="input-paket me-2">
-                                <label class="form-label">Paket Makanan</label>
-                                <select title="Pilih Paket" class="form-select" id="package-select" required>
-                                    <option value="" disabled selected>Pilih Paket Makanan</option>
-                                    {% for package in packages %}
-                                        <option value="{{ package.id }}">{{ package.nama }} (Rp {{ package.harga_jual|number_format(0, ',', '.') }})</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="input-jumlah">
-                                <label class="form-label">Jumlah</label>
-                                <input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
-                            </div>
-                            <div class="tambah-paket ms-2">
-                                <button type="button" class="btn btn-icon btn-outline w-100 add-package">
-                                    {% include 'svg/plus.svg.twig' %}
-                                </button>
-                            </div>
-                        </div>
-                        <div class="toggle-container border rounded-3 mb-3">
-                            <div class="toggle-header">
-                                {% include 'svg/chevron-right.svg.twig' %} Item Tambahan
-                            </div>
-                            <div class="toggle-content">
-                                <div class="row g-2 mb-3 additional-item">
-                                    <div class="col-6">
-                                        <label class="form-label">Item Tambahan</label>
-                                        <input class="form-control item-tambahan" id="item-tambahan" type="text" placeholder="Item Tambahan">
-                                    </div>
-                                    <div class="col-3">
-                                        <label class="form-label">Harga</label>
-                                        <input class="form-control harga-item-tambahan" id="harga-item-tambahan" type="number" min="0" placeholder="Harga">
-                                    </div>
-                                    <div class="col-3">
-                                        <label class="form-label">Modal</label>
-                                        <input class="form-control harga-modal-item-tambahan" id="harga-modal-item-tambahan" type="number" min="0" placeholder="Harga Modal">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <label class="form-label">Kurir</label>
-                                <select title="Pilih Kurir" class="form-select" id="courier-select">
-                                    <option value="" disabled selected>Pilih Kurir</option>
-                                    {% for courier in active_couriers %}
-                                        <option value="{{ courier.id }}">{{ courier.nama }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">Ongkos Kirim</label>
-                                <div class="input-group">
-                                    <input title="Masukkan Ongkos Kirim" class="form-control" type="number" id="shipping-cost" value="5000" min="5000" step="1000" required>
-                                    <span class="input-group-text d-none" id="shipping-fast-icon">
-                                        {% include 'svg/truck-delivery.svg.twig' %}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Metode Pembayaran</label>
-                            <select title="Pilih Metode Pembayaran" class="form-select" id="payment-method" required>
-                                <option value="cod">COD</option>
-                                <option value="transfer" selected>Transfer</option>
-                                <option value="belum_bayar">Belum Bayar</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" id="order-notes-label">
-                                {% include 'svg/chevron-right.svg.twig' %} Order Notes
-                            </label>
-                            <textarea placeholder="Order Notes" class="form-control d-none" id="order-notes"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" id="kitchen-notes-label">
-                                {% include 'svg/chevron-right.svg.twig' %} Kitchen Notes
-                            </label>
-                            <textarea placeholder="Kitchen Notes" class="form-control d-none" id="kitchen-notes"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" id="courier-notes-label">
-                                {% include 'svg/chevron-right.svg.twig' %} Courier Notes
-                            </label>
-                            <textarea placeholder="Courier Notes" class="form-control d-none" id="courier-notes"></textarea>
-                        </div>
-                        <input type="hidden" id="selected-dates-hidden" name="selectedDates" />
-                        <div class="d-grid mt-3">
-                            <button type="submit" class="btn btn-primary">
-                                {% include 'svg/check.svg.twig' %}
-                                Simpan Pesanan
-                            </button>
-                            <div class="alert alert-danger d-none" id="error-notification"></div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% include 'order-confirmation.html.twig' %}
-    {% include 'toast.html.twig' %}
+	<div class="page-header d-print-none">
+		<div class="container-md">
+			<div class="row g-2 align-items-center">
+				<div class="col">
+					<div class="page-pretitle">Input</div>
+					<h2 class="page-title">New Order</h2>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="page-body">
+		<div class="container-md">
+			<div class="row">
+				<div class="col-12 col-md-6">
+					<div class="date-picker-container">
+						<div class="date-picker-buttons">
+							<button class="btn" id="today-btn">Hari Ini</button>
+							<button class="btn" id="next-month-btn">Bulan Depan</button>
+							<button class="btn" id="clear-btn">Clear</button>
+						</div>
+						<div class="date-picker-header">
+							<button class="btn btn-icon" id="prev-month">
+								{% include 'svg/chevron-left.svg.twig' %}
+							</button>
+							<div class="date-picker-month text-body" id="calendar-month-year"></div>
+							<button class="btn btn-icon" id="next-month">
+								{% include 'svg/chevron-right.svg.twig' %}
+							</button>
+						</div>
+						<div class="date-picker-weekdays text-secondary">
+							<div>Sen</div>
+							<div>Sel</div>
+							<div>Rab</div>
+							<div>Kam</div>
+							<div>Jum</div>
+							<div>Sab</div>
+							<div>Min</div>
+						</div>
+						<div class="date-picker-days" id="calendar-days"></div>
+						<div class="selected-date mt-2">
+							<h3 class="selected-dates-count h6" id="selected-dates-count">0 Hari dipilih</h3>
+							<div class="selected-dates" id="selected-dates"></div>
+						</div>
+					</div>
+				</div>
+				<div class="col-12 col-md-6">
+					<form id="order-form">
+						<div class="mb-3">
+							<label for="customer-input" class="form-label text-muted">Pelanggan</label>
+							<input class="form-control w-100" type="text" id="customer-input" placeholder="Ketik Nama Pelanggan" autocomplete="off" required>
+						</div>
+						<div class="row g-2 mb-3 package-list">
+							<div class="col-7">
+								<label class="form-label">Paket Makanan</label>
+								<select title="Pilih Paket" class="form-select" id="package-select" required>
+									<option value="" disabled selected>Pilih Paket Makanan</option>
+									<!-- Options populated by JS -->
+								</select>
+							</div>
+							<div class="col-3">
+								<label class="form-label">Jumlah</label>
+								<input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
+							</div>
+							<div class="col-2 align-self-end">
+								<button type="button" class="btn btn-icon btn-outline-primary add-package w-100" aria-label="Tambah paket">
+									{% include 'svg/plus.svg.twig' %}
+								</button>
+							</div>
+						</div>
+						<div class="border rounded-3 mb-3">
+							<div class="p-2 cursor-pointer d-flex align-items-center toggle-header" data-bs-toggle="collapse" data-bs-target="#additional-items-collapse" aria-expanded="false" aria-controls="additional-items-collapse">
+								{% include 'svg/chevron-right.svg.twig' %}
+								<span class="ms-2">Item Tambahan</span>
+							</div>
+							<div class="collapse" id="additional-items-collapse">
+								<div class="p-2">
+									<div class="row g-2 mb-3">
+										<div class="col-6">
+											<label class="form-label">Item Tambahan</label>
+											<input class="form-control" id="item-tambahan" type="text" placeholder="Item Tambahan">
+										</div>
+										<div class="col-3">
+											<label class="form-label">Harga</label>
+											<input class="form-control" id="harga-item-tambahan" type="number" min="0" placeholder="Harga">
+										</div>
+										<div class="col-3">
+											<label class="form-label">Modal</label>
+											<input class="form-control" id="harga-modal-item-tambahan" type="number" min="0" placeholder="Harga Modal">
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row g-2 mb-3">
+							<div class="col-6">
+								<label class="form-label">Kurir</label>
+								<select title="Pilih Kurir" class="form-select" id="courier-select">
+									<option value="" disabled selected>Pilih Kurir</option>
+									{% for courier in active_couriers %}
+										<option value="{{ courier.id }}">{{ courier.nama }}</option>
+									{% endfor %}
+								</select>
+							</div>
+							<div class="col-6">
+								<label class="form-label">Ongkos Kirim</label>
+								<div class="input-group">
+									<input title="Masukkan Ongkos Kirim" class="form-control" type="number" id="shipping-cost" value="5000" min="5000" step="1000" required>
+									<span class="input-group-text d-none" id="shipping-fast-icon">
+										{% include 'svg/truck-delivery.svg.twig' %}
+									</span>
+								</div>
+							</div>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Metode Pembayaran</label>
+							<select title="Pilih Metode Pembayaran" class="form-select" id="payment-method" required>
+								<option value="cod">COD</option>
+								<option value="transfer" selected>Transfer</option>
+								<option value="belum_bayar">Belum Bayar</option>
+							</select>
+						</div>
+						<div class="mb-3">
+							<div class="p-2 cursor-pointer d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#order-notes-collapse" aria-expanded="false" aria-controls="order-notes-collapse" id="order-notes-label">
+								{% include 'svg/chevron-right.svg.twig' %}
+								<span class="ms-2">Order Notes</span>
+							</div>
+							<div class="collapse" id="order-notes-collapse">
+								<textarea placeholder="Order Notes" class="form-control mt-2" id="order-notes"></textarea>
+							</div>
+						</div>
+						<div class="mb-3">
+							<div class="p-2 cursor-pointer d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#kitchen-notes-collapse" aria-expanded="false" aria-controls="kitchen-notes-collapse" id="kitchen-notes-label">
+								{% include 'svg/chevron-right.svg.twig' %}
+								<span class="ms-2">Kitchen Notes</span>
+							</div>
+							<div class="collapse" id="kitchen-notes-collapse">
+								<textarea placeholder="Kitchen Notes" class="form-control mt-2" id="kitchen-notes"></textarea>
+							</div>
+						</div>
+						<div class="mb-3">
+							<div class="p-2 cursor-pointer d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#courier-notes-collapse" aria-expanded="false" aria-controls="courier-notes-collapse" id="courier-notes-label">
+								{% include 'svg/chevron-right.svg.twig' %}
+								<span class="ms-2">Courier Notes</span>
+							</div>
+							<div class="collapse" id="courier-notes-collapse">
+								<textarea placeholder="Courier Notes" class="form-control mt-2" id="courier-notes"></textarea>
+							</div>
+						</div>
+						<input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
+						<div class="d-grid mt-3">
+							<button type="submit" class="btn btn-primary">
+								{% include 'svg/check.svg.twig' %}
+								Simpan Pesanan
+							</button>
+							<div class="alert alert-danger d-none mt-2" id="error-notification"></div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% include 'order-confirmation.html.twig' %}
+	{% include 'toast.html.twig' %}
 {% endblock %}
-{% block javascripts %}
-    <script src="/js/awesomplete.min.js"></script>
-    <script type="module" src="/js/app/order.js?v={{ 'now'|date('U') }}"></script>
+{% block javascripts %} <script src="/js/awesomplete.min.js"></script>
+	 <script type="module" src="/js/app/order.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}
