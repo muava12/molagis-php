@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Molagis\Shared;
@@ -48,6 +49,57 @@ class SupabaseService
     public function getActiveCouriers(?string $accessToken = null): array
     {
         return $this->supabaseClient->get('/rest/v1/couriers?select=id,nama&aktif=eq.true', [], $accessToken);
+    }
+
+    /**
+     * Mengambil data berdasarkan ID dari tabel tertentu.
+     * @param string $table Nama tabel di Supabase
+     * @param string $id ID data yang akan diambil
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
+     * @return array ['data' => array|null, 'error' => string|null]
+     */
+    public function fetchById(string $table, string $id, ?string $accessToken = null): array
+    {
+        try {
+            // Validasi input
+            if (empty($table) || empty($id)) {
+                throw new \InvalidArgumentException('Table name and ID are required');
+            }
+
+            // Buat query untuk mengambil data berdasarkan ID
+            $response = $this->supabaseClient->get(
+                "/rest/v1/{$table}?id=eq.{$id}&select=*",
+                [],
+                $accessToken
+            );
+
+            if ($response['error']) {
+                return [
+                    'data' => null,
+                    'error' => $response['error'],
+                ];
+            }
+
+            // Ambil data pertama (karena query berdasarkan ID seharusnya unik)
+            $data = $response['data'][0] ?? null;
+
+            return [
+                'data' => $data,
+                'error' => null,
+            ];
+        } catch (\InvalidArgumentException $e) {
+            error_log('Invalid argument in fetchById: ' . $e->getMessage());
+            return [
+                'data' => null,
+                'error' => $e->getMessage(),
+            ];
+        } catch (\Exception $e) {
+            error_log('Error fetching data by ID: ' . $e->getMessage());
+            return [
+                'data' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 
     public function signOut(string $accessToken): void

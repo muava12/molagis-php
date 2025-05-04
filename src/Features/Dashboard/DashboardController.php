@@ -47,7 +47,7 @@ class DashboardController
             'today_date' => $todayDate,
             'error' => $couriersResult['error'] ?? $deliveriesResult['error'] ?? null,
             'user_id' => $user['id'] ?? 'default-seed',
-            'active_couriers' => $couriersResult['data'] ?? [], // Kirim kurir aktif ke template
+            'active_couriers' => $couriersResult['data'] ?? [],
         ]);
     }
 
@@ -76,5 +76,59 @@ class DashboardController
             'current_date' => $date,
             'error' => $result['error'] ?? null,
         ]);
+    }
+
+    public function getDeliveryDetails(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $queryParams = $request->getQueryParams();
+        $courierId = $queryParams['courier_id'] ?? null;
+        $date = $queryParams['date'] ?? date('Y-m-d');
+
+        if (!$courierId) {
+            return new JsonResponse(['error' => 'Courier ID is required'], 400);
+        }
+
+        $deliveryDetails = $this->dashboardService->getDeliveryDetails($courierId, $date, $accessToken);
+        $courierResult = $this->supabaseService->fetchById('couriers', $courierId, $accessToken);
+
+        // Format tanggal
+        $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
+        $formatter = new IntlDateFormatter(
+            'id_ID',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::NONE,
+            'Asia/Makassar',
+            IntlDateFormatter::GREGORIAN,
+            'EEEE, dd MMMM yyyy'
+        );
+        $formattedDate = $formatter->format($dateObj);
+
+        return new JsonResponse([
+            'grouped_orders' => $deliveryDetails['data'] ?? [],
+            'courier_name' => $courierResult['data']['nama'] ?? 'Unknown',
+            'date' => $formattedDate,
+            'error' => $deliveryDetails['error'] ?? $courierResult['error'] ?? null,
+        ], $deliveryDetails['error'] ? 500 : 200);
+    }
+
+    public function updateDeliveryStatus(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+        $deliveryIds = $data['delivery_ids'] ?? [];
+        $status = $data['status'] ?? null;
+
+        if (empty($deliveryIds) || !$status) {
+            return new JsonResponse(['error' => 'Delivery IDs and status are required'], 400);
+        }
+
+        $result = $this->dashboardService->updateDeliveryStatus($deliveryIds, $status, $accessToken);
+
+        if ($result['error']) {
+            return new JsonResponse(['error' => $result['error']], 500);
+        }
+
+        return new JsonResponse(['success' => true]);
     }
 }

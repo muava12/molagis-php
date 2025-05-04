@@ -1,0 +1,29 @@
+{#
+    File: delivery-list-modal.html.twig
+    Description: Modal untuk menampilkan daftar antaran berdasarkan kurir pada dashboard.
+#}
+
+<div class="modal modal-blur fade" id="delivery-list-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-fullscreen-md-down" role="document">
+        <div class="modal-content bg-yellow-lt">
+            <div class="modal-header text-body">
+                <h5 class="modal-title">Daftar Antaran Kurir: <span id="courier-name"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-body">
+                <div class="mb-3">
+                    <p>Tanggal: <span id="delivery-date"></span></p>
+                    <p>Jumlah Antaran: <span id="total-deliveries"></span> <span id="pending-deliveries"></span></p>
+                </div>
+                <div class="mb-3">
+                    <button class="btn btn-primary me-2" id="refresh-delivery-list">Refresh</button>
+                    <button class="btn btn-warning" id="set-all-delivered">Delivered</button>
+                </div>
+                <div id="delivery-list" class="row row-cards"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
