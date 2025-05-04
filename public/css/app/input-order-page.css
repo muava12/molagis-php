@@ -30,10 +30,20 @@
   [data-bs-toggle="collapse"][aria-expanded="true"] svg {
     transform: rotate(90deg);
   }
-  
+/* Chevron animation for form-selectgroup collapse toggles */
+.form-selectgroup-input[data-bs-toggle="collapse"] + .form-selectgroup-label svg {
+  margin-right: 8px;
+  transition: transform 0.3s;
+}
+
+.form-selectgroup-input[data-bs-toggle="collapse"]:checked + .form-selectgroup-label svg,
+.form-selectgroup-input[data-bs-toggle="collapse"][aria-expanded="true"] + .form-selectgroup-label svg {
+  transform: rotate(90deg);
+}
+
   /* Style untuk datepicker (tidak berubah karena kalender tidak disentuh) */
   .date-picker-container {
-    max-width: 300px;
+    max-width: 400px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     background: var(--tblr-bg-surface, #fff);
@@ -93,8 +103,13 @@
   }
   
   .date-picker-day {
+    width: 100%; /* Mengisi lebar kolom grid */
+    aspect-ratio: 1/1; /* Memastikan tinggi sama dengan lebar */
+    max-width: 32px; /* Batasi ukuran maksimum */
+    display: flex;
+    justify-content: center;
+    align-items: center;
     text-align: center;
-    padding: 8px;
     font-size: 14px;
     cursor: pointer;
     border-radius: 50%;
@@ -103,8 +118,8 @@
     visibility: visible !important;
     opacity: 1 !important;
     color: var(--tblr-dark, #212529);
-  }
-  
+}
+
   .date-picker-day:hover:not(.disabled) {
     background: var(--tblr-primary-bg-subtle, #e9ecef);
     color: var(--tblr-primary-text-emphasis, #0054a6);

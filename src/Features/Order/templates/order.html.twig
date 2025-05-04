@@ -25,7 +25,7 @@
 	<div class="page-body">
 		<div class="container-md">
 			<div class="row">
-				<div class="col-12 col-md-6">
+				<div class="col-12 col-sm-6">
 					<div class="date-picker-container">
 						<div class="date-picker-buttons">
 							<button class="btn" id="today-btn">Hari Ini</button>
@@ -57,7 +57,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="col-12 col-md-6">
+				<div class="col-12 col-sm-6">
 					<form id="order-form">
 						<div class="mb-3">
 							<label for="customer-input" class="form-label text-muted">Pelanggan</label>
@@ -134,27 +134,34 @@
 							</select>
 						</div>
 						<div class="mb-3">
-							<div class="p-2 cursor-pointer d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#order-notes-collapse" aria-expanded="false" aria-controls="order-notes-collapse" id="order-notes-label">
-								{% include 'svg/chevron-right.svg.twig' %}
-								<span class="ms-2">Order Notes</span>
+							<div class="form-selectgroup">
+								<label class="form-selectgroup-item">
+									<input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#order-notes-collapse" aria-expanded="false" aria-controls="order-notes-collapse" id="order-notes-toggle">
+									<span class="form-selectgroup-label">
+										{% include 'svg/pencil.svg.twig' %}
+										Order Notes
+									</span>
+								</label>
+								<label class="form-selectgroup-item">
+									<input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#kitchen-notes-collapse" aria-expanded="false" aria-controls="kitchen-notes-collapse" id="kitchen-notes-toggle">
+									<span class="form-selectgroup-label">
+										{% include 'svg/pencil.svg.twig' %}
+										Kitchen Notes
+									</span>
+								</label>
+								<label class="form-selectgroup-item">
+									<input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#courier-notes-collapse" aria-expanded="false" aria-controls="courier-notes-collapse" id="courier-notes-toggle">
+									<span class="form-selectgroup-label">
+										{% include 'svg/pencil.svg.twig' %}
+										Courier Notes
+									</span>
+								</label>
 							</div>
 							<div class="collapse" id="order-notes-collapse">
 								<textarea placeholder="Order Notes" class="form-control mt-2" id="order-notes"></textarea>
 							</div>
-						</div>
-						<div class="mb-3">
-							<div class="p-2 cursor-pointer d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#kitchen-notes-collapse" aria-expanded="false" aria-controls="kitchen-notes-collapse" id="kitchen-notes-label">
-								{% include 'svg/chevron-right.svg.twig' %}
-								<span class="ms-2">Kitchen Notes</span>
-							</div>
 							<div class="collapse" id="kitchen-notes-collapse">
 								<textarea placeholder="Kitchen Notes" class="form-control mt-2" id="kitchen-notes"></textarea>
-							</div>
-						</div>
-						<div class="mb-3">
-							<div class="p-2 cursor-pointer d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#courier-notes-collapse" aria-expanded="false" aria-controls="courier-notes-collapse" id="courier-notes-label">
-								{% include 'svg/chevron-right.svg.twig' %}
-								<span class="ms-2">Courier Notes</span>
 							</div>
 							<div class="collapse" id="courier-notes-collapse">
 								<textarea placeholder="Courier Notes" class="form-control mt-2" id="courier-notes"></textarea>
@@ -166,7 +173,7 @@
 								{% include 'svg/check.svg.twig' %}
 								Simpan Pesanan
 							</button>
-							<div class="alert alert-danger d-none mt-2" id="error-notification"></div>
+							<!-- <div class="alert alert-danger d-none mt-2" id="error-notification"></div> -->
 						</div>
 					</form>
 				</div>

@@ -398,8 +398,8 @@ function calculateTotalPayment() {
 
 function setupAddRemovePackageHandlers() {
     const packageList = document.querySelector('.package-list');
-    const packageTemplate = document.querySelector('.package-list .col-7'); // Dropdown container
-    const quantityTemplate = document.querySelector('.package-list .col-3'); // Quantity input container
+    const packageTemplate = document.querySelector('.package-list .col-7');
+    const quantityTemplate = document.querySelector('.package-list .col-3');
 
     if (!packageList || !packageTemplate || !quantityTemplate) {
         console.warn('Package list or templates not found:', { packageList, packageTemplate, quantityTemplate });
@@ -418,7 +418,7 @@ function setupAddRemovePackageHandlers() {
         const newButton = document.createElement('div');
         newButton.classList.add('col-2', 'align-self-end');
         newButton.innerHTML = `<button type="button" class="btn btn-icon remove-package w-100" aria-label="Hapus paket">
-        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="1.5"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-minus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l14 0" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-minus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l14 0" /></svg>
         </button>`;
         newPackage.querySelector('#package-select').selectedIndex = 0;
         newQuantity.querySelector('#order-quantity').value = 1;
@@ -429,8 +429,9 @@ function setupAddRemovePackageHandlers() {
     });
 
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('remove-package')) {
-            e.target.closest('.added-package').remove();
+        const removeButton = e.target.closest('.remove-package');
+        if (removeButton) {
+            removeButton.closest('.added-package').remove();
             calculateTotalPayment();
         }
     });
@@ -540,7 +541,7 @@ function collectOrderData() {
 
 async function submitOrder(e) {
     e.preventDefault();
-    errorNotification.classList.add('d-none');
+    // errorNotification.classList.add('d-none'); // Remove this line
 
     try {
         if (selectedDates.size === 0) throw new Error('Pilih setidaknya satu tanggal.');
@@ -559,7 +560,7 @@ async function submitOrder(e) {
         displayConfirmationModal(formData);
     } catch (error) {
         console.error('Submit order error:', error);
-        showErrorNotification(error.message);
+        showToast('Error', error.message, true); // Replace showErrorNotification
     }
 }
 
@@ -718,6 +719,13 @@ function displayConfirmationModal(order) {
             // displaySummaryModal(order, response.order_id);
             resetForm();
             showToast('Sukses', 'Pesanan berhasil disimpan');
+            // untu halaman Dashboard - BELUM BERFUNGSI
+            const modalElement = document.querySelector('#modal-add-order');
+            console.debug('Modal element:', modalElement);
+            if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modalAddOrder = new bootstrap.Modal(modalElement);
+                modalAddOrder.hide();
+            }
         } catch (error) {
             console.error('Confirm order error:', error);
             showToast('Error', 'Gagal menyimpan pesanan: ' + error.message, true);
@@ -832,6 +840,45 @@ function setupEventListeners() {
     document.querySelector('#harga-item-tambahan').addEventListener('input', calculateTotalPayment);
     document.querySelector('#harga-modal-item-tambahan').addEventListener('input', calculateTotalPayment);
     orderForm.addEventListener('submit', submitOrder);
+
+    // Notes toggle listeners
+    const notesToggles = document.querySelectorAll('.form-selectgroup-input[data-bs-toggle="collapse"]');
+    notesToggles.forEach(toggle => {
+        toggle.addEventListener('change', () => {
+            notesToggles.forEach(otherToggle => {
+                if (otherToggle !== toggle) {
+                    const otherCollapseId = otherToggle.getAttribute('data-bs-target');
+                    const otherCollapse = document.querySelector(otherCollapseId);
+                    if (otherCollapse.classList.contains('show')) {
+                        new bootstrap.Collapse(otherCollapse, { toggle: false }).hide();
+                        otherToggle.checked = false;
+                        otherToggle.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            });
+            const collapseId = toggle.getAttribute('data-bs-target');
+            const collapse = document.querySelector(collapseId);
+            toggle.setAttribute('aria-expanded', collapse.classList.contains('show') ? 'true' : 'false');
+        });
+    });
+
+    const noteCollapses = document.querySelectorAll('#order-notes-collapse, #kitchen-notes-collapse, #courier-notes-collapse');
+    noteCollapses.forEach(collapse => {
+        collapse.addEventListener('show.bs.collapse', () => {
+            const toggle = document.querySelector(`.form-selectgroup-input[data-bs-target="#${collapse.id}"]`);
+            if (toggle) {
+                toggle.checked = true;
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+        });
+        collapse.addEventListener('hide.bs.collapse', () => {
+            const toggle = document.querySelector(`.form-selectgroup-input[data-bs-target="#${collapse.id}"]`);
+            if (toggle) {
+                toggle.checked = false;
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+    });
 }
 
 initialize();
