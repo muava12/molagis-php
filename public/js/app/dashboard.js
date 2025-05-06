@@ -1,6 +1,7 @@
 /*
  * File: dashboard.js
- * Description: Logika untuk halaman dashboard, termasuk pengambilan data pengantaran, inisialisasi modal tambah customer, modal tambah pesanan, dan modal daftar antaran.
+ * Description: Logika untuk halaman dashboard, termasuk pengambilan data pengantaran,
+ *              inisialisasi modal tambah customer, modal tambah pesanan, dan modal daftar antaran.
  */
 
 import { renderErrorAlert, showToast } from './utils.js';
@@ -9,6 +10,7 @@ import { initialize as initOrder } from './order.js';
 
 // Variabel global
 const bootstrap = window.tabler?.bootstrap;
+let isFetchingDeliveries = false; // Mencegah fetch berulang pada fetchDeliveries
 
 // Fungsi untuk format Rupiah
 function formatRupiah(angka) {
@@ -24,22 +26,33 @@ function formatPhoneNumber(phone) {
     return phone;
 }
 
-// Fungsi untuk mengambil data pengantaran berdasarkan tanggal
-async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, showSpinner = true) {
-    console.log('Fetching deliveries for date:', date);
-    prevButton.disabled = true;
-    nextButton.disabled = true;
+/**
+ * Mengambil data pengantaran berdasarkan tanggal, sekaligus memperbarui status jika diperlukan.
+ * @param {string} date Tanggal dalam format YYYY-MM-DD
+ * @param {HTMLElement} prevButton Tombol navigasi sebelumnya
+ * @param {HTMLElement} nextButton Tombol navigasi berikutnya
+ * @param {HTMLElement} tableBody Elemen tbody tabel
+ * @param {HTMLElement} totalBadge Elemen untuk menampilkan total pengantaran
+ * @param {HTMLElement} dateSubtitle Elemen untuk menampilkan subtitle tanggal
+ * @param {boolean} [showSpinner=true] Apakah menampilkan spinner
+ * @param {number[]|null} [deliveryIds=null] Daftar ID pengiriman untuk diperbarui
+ * @param {string|null} [status=null] Status baru (pending/completed)
+ * @param {HTMLElement|null} [clickedButton=null] Tombol yang diklik untuk menampilkan spinner
+ * @returns {Promise<void>}
+ */
+async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, showSpinner = true, deliveryIds = null, status = null, clickedButton = null) {
+    if (isFetchingDeliveries) return; // Cegah fetch berulang
+    isFetchingDeliveries = true;
 
-    // Hanya tampilkan spinner pada tombol jika showSpinner true
-    let spinner, svg;
-    if (showSpinner) {
-        spinner = prevButton.querySelector('.spinner-border') || nextButton.querySelector('.spinner-border');
-        svg = prevButton.querySelector('svg') || nextButton.querySelector('svg');
-        spinner.classList.remove('d-none');
-        svg.classList.add('d-none');
+    console.log('Fetching deliveries for date:', date);
+    // Nonaktifkan tombol navigasi dengan Tabler utilitas
+    prevButton.classList.add('disabled');
+    nextButton.classList.add('disabled');
+
+    if (showSpinner && clickedButton) {
+        clickedButton.classList.add('disabled', 'btn-loading');
     }
 
-    // Tampilkan indikator loading di tabel untuk pemuatan awal
     if (!showSpinner) {
         tableBody.innerHTML = `
             <tr>
@@ -54,12 +67,26 @@ async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBad
     }
 
     try {
-        const response = await fetch(`/api/deliveries?date=${date}`);
-        const data = await response.json();
+        const payload = {};
+        if (deliveryIds && status) {
+            if (!deliveryIds?.length) throw new Error('Invalid delivery IDs');
+            payload.delivery_ids = deliveryIds;
+            payload.status = status;
+        }
 
-        if (response.ok && !data.error) {
+        const url = deliveryIds && status ? '/api/deliveries/update-status' : `/api/deliveries?date=${encodeURIComponent(date)}`;
+        const response = await fetch(url, {
+            method: deliveryIds && status ? 'POST' : 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            body: deliveryIds && status ? JSON.stringify(payload) : null,
+        });
+
+        const data = await response.json();
+        console.debug('API response:', data);
+
+        if (response.ok && data.error === null) {
             tableBody.innerHTML = '';
-            if (data.deliveries.length > 0) {
+            if (data.deliveries?.length > 0) {
                 data.deliveries.forEach((delivery) => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -85,44 +112,47 @@ async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBad
                     `;
                     tableBody.appendChild(row);
                 });
-
-                // Inisialisasi event listener untuk tombol "Lihat Antaran"
                 initializeDeliveryDetailsListeners(date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle);
             } else {
-                tableBody.innerHTML = '<tr><td colspan="3" class="text-center">Tidak ada pengantaran hari ini</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="3" class="text-center">Tidak ada pengantaran untuk tanggal ini</td></tr>';
             }
 
-            totalBadge.textContent = data.total_deliveries;
-            dateSubtitle.textContent = data.today_date;
-            prevButton.dataset.date = data.current_date;
-            nextButton.dataset.date = data.current_date;
+            totalBadge.textContent = data.total_deliveries || 0;
+            dateSubtitle.textContent = data.today_date || date;
+            prevButton.dataset.date = data.current_date || date;
+            nextButton.dataset.date = data.current_date || date;
 
             const errorContainer = document.querySelector('#error-container');
             if (errorContainer) errorContainer.innerHTML = '';
         } else {
+            console.error('API error:', data.error);
             const errorContainer = document.querySelector('#error-container');
             if (errorContainer && !errorContainer.querySelector('.alert')) {
-                renderErrorAlert(data.error || 'Gagal mengambil data');
+                renderErrorAlert(data.error || 'Gagal mengambil data pengantaran');
             }
         }
     } catch (error) {
         console.error('Fetch error:', error);
-        renderErrorAlert('Gagal mengambil data: ' + error.message);
-    } finally {
-        if (showSpinner) {
-            spinner.classList.add('d-none');
-            svg.classList.remove('d-none');
+        const errorContainer = document.querySelector('#error-container');
+        if (errorContainer && !errorContainer.querySelector('.alert')) {
+            renderErrorAlert('Gagal mengambil data: ' + error.message);
         }
-        prevButton.disabled = false;
-        nextButton.disabled = false;
+    } finally {
+        if (showSpinner && clickedButton) {
+            clickedButton.classList.remove('disabled', 'btn-loading');
+        }
+        prevButton.classList.remove('disabled');
+        nextButton.classList.remove('disabled');
+        isFetchingDeliveries = false;
     }
 }
 
-// Fungsi utama untuk inisialisasi dashboard
+/**
+ * Menginisialisasi event listener untuk dashboard.
+ */
 export function initDashboard() {
     console.log('Initializing dashboard event listeners');
 
-    // Inisialisasi event listener untuk navigasi hari
     const prevButton = document.getElementById('prev-day');
     const nextButton = document.getElementById('next-day');
     const tableBody = document.querySelector('#deliveries-table tbody');
@@ -145,14 +175,15 @@ export function initDashboard() {
         const currentDate = new Date(prevButton.dataset.date);
         currentDate.setDate(currentDate.getDate() - 1);
         const newDate = currentDate.toISOString().split('T')[0];
-        fetchDeliveries(newDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, true);
+        fetchDeliveries(newDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, true, null, null, prevButton);
     };
+
     const nextHandler = () => {
         console.log('Next button clicked');
         const currentDate = new Date(nextButton.dataset.date);
         currentDate.setDate(currentDate.getDate() + 1);
         const newDate = currentDate.toISOString().split('T')[0];
-        fetchDeliveries(newDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, true);
+        fetchDeliveries(newDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, true, null, null, nextButton);
     };
 
     prevButton.removeEventListener('click', prevHandler);
@@ -160,39 +191,35 @@ export function initDashboard() {
     prevButton.addEventListener('click', prevHandler);
     nextButton.addEventListener('click', nextHandler);
 
-    // Inisialisasi modal tambah customer
     initAddCustomerModal('dashboard-add-modal', {
         showToast,
         showErrorToast: (title, message) => renderErrorAlert(message),
     });
 
-    // Inisialisasi modal tambah pesanan saat modal ditampilkan
     const orderModal = document.getElementById('modal-report');
     if (orderModal) {
         orderModal.addEventListener('shown.bs.modal', () => {
             console.log('Order modal shown, initializing order logic');
             // initOrder();
         });
-        // Reset form saat modal ditutup
         orderModal.addEventListener('hidden.bs.modal', () => {
             console.log('Order modal hidden, resetting form');
-            // const form = document.getElementById('order-form');
-            // if (form) form.reset();
-            // const selectedDatesContainer = document.getElementById('selected-dates');
-            // if (selectedDatesContainer) selectedDatesContainer.innerHTML = '';
-            // const selectedDatesCount = document.getElementById('selected-dates-count');
-            // if (selectedDatesCount) selectedDatesCount.textContent = '0 Hari dipilih';
-            // const calendarDays = document.getElementById('calendar-days');
-            // if (calendarDays) calendarDays.innerHTML = '';
+            // Reset form logic if needed
         });
     }
 
-    // Inisialisasi modal daftar antaran saat halaman dimuat
-    // Tidak menampilkan spinner pada tombol saat pemuatan awal
     fetchDeliveries(prevButton.dataset.date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, false);
 }
 
-// Fungsi untuk inisialisasi event listener tombol "Lihat Antaran"
+/**
+ * Menginisialisasi event listener untuk tombol "Lihat Antaran".
+ * @param {string} currentDate Tanggal saat ini dalam format YYYY-MM-DD
+ * @param {HTMLElement} prevButton Tombol navigasi sebelumnya
+ * @param {HTMLElement} nextButton Tombol navigasi berikutnya
+ * @param {HTMLElement} tableBody Elemen tbody tabel
+ * @param {HTMLElement} totalBadge Elemen untuk menampilkan total pengantaran
+ * @param {HTMLElement} dateSubtitle Elemen untuk menampilkan subtitle tanggal
+ */
 function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle) {
     const viewButtons = document.querySelectorAll('.view-delivery-details');
     const deliveryModal = document.getElementById('delivery-list-modal');
@@ -206,68 +233,239 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
 
     let groupedOrders = [];
     let totalPending = 0;
+    let isFetchingDetails = false; // Mencegah multiple fetch pada refresh
 
+    /**
+     * Mengambil detail pengantaran untuk kurir tertentu.
+     * @param {string} courierId ID kurir
+     * @param {string} date Tanggal dalam format YYYY-MM-DD
+     */
     const fetchDeliveryDetails = async (courierId, date) => {
+        if (isFetchingDetails) return; // Cegah fetch berulang
+        isFetchingDetails = true;
+        // Nonaktifkan tombol saat load awal tanpa btn-loading
+        refreshButton.classList.add('disabled');
+        setAllDeliveredButton.classList.add('disabled');
+
         console.log(`Fetching delivery details for courier ${courierId} on date ${date}`);
+        deliveryList.innerHTML = '<p class="text-center transition-opacity duration-300">Memuat data...</p>';
+
         try {
-            const response = await fetch(`/api/delivery-details?courier_id=${courierId}&date=${date}`);
+            const response = await fetch(`/api/delivery-details?courier_id=${courierId}&date=${encodeURIComponent(date)}`);
             const data = await response.json();
 
-            if (response.ok && !data.error) {
-                groupedOrders = data.grouped_orders;
+            if (response.ok && data.error === null) {
+                groupedOrders = data.grouped_orders || [];
                 renderDeliveryList(groupedOrders, date);
-                courierNameSpan.textContent = data.courier_name;
-                deliveryDateSpan.textContent = data.date;
+                courierNameSpan.textContent = data.courier_name || 'Unknown';
+                deliveryDateSpan.textContent = data.date || date;
                 totalDeliveriesSpan.textContent = groupedOrders.length;
-                totalPending = groupedOrders.filter(group => 
-                    group.orders.some(order => order.status_pengiriman !== 'completed')
-                ).length;
+                totalPending = groupedOrders.filter(group =>
+                    group.orders?.some(order => order.status_pengiriman !== 'completed')
+                ).length || 0;
                 pendingDeliveriesSpan.textContent = `(Belum diantar: ${totalPending})`;
+                console.debug('totalPending:', totalPending);
+                if (totalPending > 0) {
+                    setAllDeliveredButton.classList.remove('disabled');
+                }
             } else {
-                renderErrorAlert(data.error || 'Gagal mengambil data antaran');
-                deliveryList.innerHTML = '<p class="text-center">Tidak ada data antaran.</p>';
+                console.error('API error in fetchDeliveryDetails:', data.error);
+                deliveryList.innerHTML = '<p class="text-center transition-opacity duration-300 text-danger">Gagal memuat data: ' + (data.error || 'Unknown error') + '</p>';
             }
         } catch (error) {
             console.error('Fetch delivery details error:', error);
-            renderErrorAlert('Gagal mengambil data antaran: ' + error.message);
-            deliveryList.innerHTML = '<p class="text-center">Tidak ada data antaran.</p>';
+            deliveryList.innerHTML = '<p class="text-center transition-opacity duration-300 text-danger">Gagal memuat data: ' + error.message + '</p>';
+        } finally {
+            isFetchingDetails = false;
+            refreshButton.classList.remove('disabled');
+            // setAllDeliveredButton tetap disabled jika totalPending === 0, ditangani di renderDeliveryList
         }
     };
 
+    /**
+     * Handler untuk tombol refresh, menjalankan fetch data sekali.
+     * @param {string} courierId ID kurir
+     * @param {string} date Tanggal dalam format YYYY-MM-DD
+     */
+    const handleRefreshDeliveries = async (courierId, date) => {
+        if (isFetchingDetails) return; // Cegah fetch berulang
+
+        // Nonaktifkan tombol refresh dengan btn-loading saat proses
+        refreshButton.classList.add('disabled');
+        setAllDeliveredButton.classList.add('disabled');
+
+        try {
+            await fetchDeliveryDetails(courierId, date);
+        } finally {
+            refreshButton.classList.remove('disabled', 'btn-loading');
+            // setAllDeliveredButton tetap disabled jika totalPending === 0, ditangani di renderDeliveryList
+        }
+    };
+
+    /**
+     * Handler untuk mengatur status pengantaran (checkbox individual).
+     * @param {Object} params Parameter untuk mengatur status
+     * @param {number[]} params.deliveryIds Daftar ID pengiriman
+     * @param {string} params.status Status baru (pending/completed)
+     * @param {HTMLElement} params.checkbox Elemen checkbox
+     * @param {HTMLElement} params.card Elemen kartu
+     * @param {Object} params.group Grup pesanan
+     * @returns {Promise<void>}
+     */
+    const handleSetDeliveryStatus = async ({ deliveryIds, status, checkbox, card, group }) => {
+        if (!deliveryIds?.length) {
+            console.error('No valid delivery IDs provided');
+            showToast('Error', 'Tidak ada ID pengantaran yang valid', true);
+            return;
+        }
+
+        // Update UI optimistis untuk checkbox
+        let originalCheckboxHTML = checkbox.innerHTML;
+        let originalOpacity = card.classList.contains('opacity-50');
+        checkbox.innerHTML = status === 'completed' ?
+            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon text-success"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>' :
+            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9"/></circle></svg>';
+        card.classList.toggle('opacity-50', status === 'completed');
+        group.orders.forEach(order => order.status_pengiriman = status);
+        totalPending = status === 'completed' ? totalPending - 1 : totalPending + 1;
+        pendingDeliveriesSpan.textContent = `(Belum diantar: ${totalPending})`;
+        checkbox.classList.add('disabled', 'opacity-50');
+
+        // Aktifkan setAllDeliveredButton jika totalPending > 0
+        if (totalPending > 0) {
+            setAllDeliveredButton.classList.remove('disabled');
+        } else {
+            setAllDeliveredButton.classList.add('disabled');
+        }
+
+        try {
+            await fetchDeliveries(
+                currentDate,
+                prevButton,
+                nextButton,
+                tableBody,
+                totalBadge,
+                dateSubtitle,
+                false,
+                deliveryIds,
+                status
+            );
+        } catch (error) {
+            console.error('Error updating delivery status:', error);
+            showToast('Error', 'Gagal memperbarui status: ' + error.message, true);
+
+            // Rollback UI untuk checkbox
+            checkbox.innerHTML = originalCheckboxHTML;
+            card.classList.toggle('opacity-50', originalOpacity);
+            group.orders.forEach(order => order.status_pengiriman = status === 'completed' ? 'pending' : 'completed');
+            totalPending = status === 'completed' ? totalPending + 1 : totalPending - 1;
+            pendingDeliveriesSpan.textContent = `(Belum diantar: ${totalPending})`;
+
+            // Perbarui state setAllDeliveredButton setelah rollback
+            if (totalPending > 0) {
+                setAllDeliveredButton.classList.remove('disabled');
+            } else {
+                setAllDeliveredButton.classList.add('disabled');
+            }
+        } finally {
+            checkbox.classList.remove('disabled', 'opacity-50');
+        }
+    };
+
+    /**
+     * Handler untuk tombol set all delivered.
+     * @param {string} date Tanggal dalam format YYYY-MM-DD
+     * @returns {Promise<void>}
+     */
+    const handleSetAllDelivered = async (date) => {
+        const pendingOrders = groupedOrders.filter(group =>
+            group.orders?.some(order => order.status_pengiriman !== 'completed')
+        );
+        if (pendingOrders.length === 0) return;
+
+        const deliveryIds = pendingOrders.flatMap(group => group.orders.map(order => order.delivery_date_id));
+
+        // Nonaktifkan tombol dengan btn-loading saat proses
+        setAllDeliveredButton.classList.add('disabled', 'btn-loading');
+        refreshButton.classList.add('disabled');
+
+        try {
+            await fetchDeliveries(
+                date,
+                prevButton,
+                nextButton,
+                tableBody,
+                totalBadge,
+                dateSubtitle,
+                false,
+                deliveryIds,
+                'completed'
+            );
+
+            // Update groupedOrders
+            groupedOrders.forEach(group => {
+                if (group.orders?.some(order => deliveryIds.includes(order.delivery_date_id))) {
+                    group.orders.forEach(order => order.status_pengiriman = 'completed');
+                }
+            });
+            totalPending = 0;
+            pendingDeliveriesSpan.textContent = `(Belum diantar: ${totalPending})`;
+            renderDeliveryList(groupedOrders, date);
+        } catch (error) {
+            console.error('Error setting all deliveries to completed:', error);
+            showToast('Error', 'Gagal memperbarui semua status: ' + error.message, true);
+        } finally {
+            setAllDeliveredButton.classList.add('disabled'); // Selalu disabled setelah set all
+            setAllDeliveredButton.classList.remove('btn-loading');
+            refreshButton.classList.remove('disabled');
+        }
+    };
+
+    /**
+     * Merender daftar antaran di modal.
+     * @param {Array} groupedOrders Data antaran yang dikelompokkan
+     * @param {string} date Tanggal dalam format YYYY-MM-DD
+     */
     const renderDeliveryList = (groupedOrders, date) => {
         deliveryList.innerHTML = '';
+        deliveryList.classList.add('transition-opacity', 'duration-300');
 
-        // Filter dan urutkan berdasarkan status (pending dulu, lalu completed)
-        const pendingOrders = groupedOrders.filter(group => 
-            group.orders.some(order => order.status_pengiriman !== 'completed')
+        // Urutkan antaran: belum selesai di atas, selesai di bawah
+        const pendingOrders = groupedOrders.filter(group =>
+            group.orders?.some(order => order.status_pengiriman !== 'completed')
         );
-        const deliveredOrders = groupedOrders.filter(group => 
-            group.orders.every(order => order.status_pengiriman === 'completed')
+        const deliveredOrders = groupedOrders.filter(group =>
+            group.orders?.every(order => order.status_pengiriman === 'completed')
         );
-        pendingOrders.sort((a, b) => a.customer_name.localeCompare(b.customer_name));
-        deliveredOrders.sort((a, b) => a.customer_name.localeCompare(b.customer_name));
+        pendingOrders.sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || ''));
+        deliveredOrders.sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || ''));
         const sortedOrders = [...pendingOrders, ...deliveredOrders];
 
         if (sortedOrders.length === 0) {
             deliveryList.innerHTML = '<p class="text-center">Tidak ada antaran untuk kurir ini.</p>';
             setAllDeliveredButton.textContent = 'Delivered';
+            // setAllDeliveredButton.classList.add('disabled', 'btn-loading');
             return;
         }
 
+        // setAllDeliveredButton.classList.remove('disabled', 'btn-loading');
+        // Atur state tombol berdasarkan totalPending
+        setAllDeliveredButton.classList.toggle('disabled', totalPending === 0);
+
         sortedOrders.forEach(group => {
             const card = document.createElement('div');
-            card.className = `card mb-1 border-2 border-primary-subtle ${group.orders.every(order => order.status_pengiriman === 'completed') ? 'opacity-50' : ''} transition-all duration-300 ease-in-out`;
-            card.style.height = 'auto'; // Default height
+            card.className = `card mb-1 border-2 border-primary-subtle transition-opacity duration-300 ${group.orders.every(order => order.status_pengiriman === 'completed') ? 'opacity-50' : ''}`;
+            card.style.height = 'auto';
             card.innerHTML = `
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">
-                        <span class="me-2 cursor-pointer checkbox-delivered" data-customer-id="${group.customer_id}">
-                            ${group.orders.every(order => order.status_pengiriman === 'completed') ? 
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon text-success"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>' : 
+                        <span class="me-2 cursor-pointer checkbox-delivered" data-customer-id="${group.customer_id || ''}">
+                            ${group.orders.every(order => order.status_pengiriman === 'completed') ?
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon text-success"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>' :
                                 '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9"/></circle></svg>'
                             }
                         </span>
-                        ${group.customer_name}
+                        ${group.customer_name || 'Unknown'}
                         ${group.orders.some(order => order.metode_pembayaran === 'cod') ? '<span class="badge bg-danger text-white ms-2">COD</span>' : ''}
                     </h3>
                     <a href="#" class="toggle-details">
@@ -278,26 +476,26 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
                     </a>
                 </div>
                 <div class="card-body" style="display: none; overflow: hidden;" data-expanded-height="0px">
-                    ${group.orders.map(order => `
-                        <p><strong>${order.nama_paket}</strong> (${order.jumlah})</p>
+                    ${(group.orders || []).map(order => `
+                        <p><strong>${order.nama_paket || 'Unknown'}</strong> (${order.jumlah || 0})</p>
                     `).join('')}
-                    <p>Tambahan: ${group.item_tambahan || '-'} ${group.item_tambahan ? '- ' + formatRupiah(group.harga_tambahan) : ''}</p>
-                    <p>${group.customer_address}</p>
-                    ${group.orders[0].metode_pembayaran === 'cod' ? `<p>Total Harga: ${formatRupiah(group.orders.reduce((total, order) => total + order.subtotal_harga, 0) + (parseInt(group.harga_tambahan) || 0) + (parseInt(group.ongkir) || 0))}</p>` : ''}
-                    ${group.orders[0].notes ? `<div class="alert alert-warning">${group.orders[0].notes}</div>` : ''}
+                    <p>Tambahan: ${group.item_tambahan || '-'} ${group.item_tambahan ? '- ' + formatRupiah(group.harga_tambahan || 0) : ''}</p>
+                    <p>${group.customer_address || ''}</p>
+                    ${group.orders[0]?.metode_pembayaran === 'cod' ? `<p>Total Harga: ${formatRupiah((group.orders.reduce((total, order) => total + (order.subtotal_harga || 0), 0) + (parseInt(group.harga_tambahan) || 0) + (parseInt(group.ongkir) || 0)))}</p>` : ''}
+                    ${group.orders[0]?.notes ? `<div class="alert alert-warning">${group.orders[0].notes}</div>` : ''}
                     <div class="btn-list">
-                        <a class="btn btn-success" href="https://wa.me/${formatPhoneNumber(group.customer_phone)}" target="_blank">
+                        <a class="btn btn-success" href="https://wa.me/${formatPhoneNumber(group.customer_phone || '')}" target="_blank">
                             Chat WhatsApp
                         </a>
                         ${group.customer_telepon_alt ? `
-                        <a class="btn btn-success" href="https://wa.me/${formatPhoneNumber(group.customer_telepon_alt)}" target="_blank">
+                        <a class="btn btn-success" href="https://wa.me/${formatPhoneNumber(group.customer_telepon_alt || '')}" target="_blank">
                             Chat WhatsApp (Alternatif)
                         </a>` : ''}
                         ${group.customer_maps ? `
                         <a class="btn btn-primary" href="${group.customer_maps}" target="_blank">
                             Open Maps
                         </a>` : ''}
-                        <a class="btn btn-info open-chat-history" href="#" data-customer-phone="${formatPhoneNumber(group.customer_phone)}">
+                        <a class="btn btn-info open-chat-history" href="#" data-customer-phone="${formatPhoneNumber(group.customer_phone || '')}">
                             Chat
                         </a>
                     </div>
@@ -305,12 +503,11 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
             `;
             deliveryList.appendChild(card);
 
-            // Set initial height for animation
             const cardBody = card.querySelector('.card-body');
             cardBody.dataset.expandedHeight = cardBody.scrollHeight + 'px';
         });
 
-        // Tambah event listener untuk toggle details
+        // Event listener untuk tombol toggle detail antaran
         document.querySelectorAll('.toggle-details').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -337,64 +534,30 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
             });
         });
 
-        // Tambah event listener untuk checkbox status pengiriman
+        // Event listener untuk checkbox delivered
         document.querySelectorAll('.checkbox-delivered').forEach(checkbox => {
             checkbox.addEventListener('click', async (e) => {
-                e.stopPropagation(); // Prevent toggle-details from triggering
+                e.stopPropagation();
+                if (checkbox.classList.contains('disabled')) return;
+
                 const customerId = checkbox.dataset.customerId;
                 const group = groupedOrders.find(g => g.customer_id == customerId);
+                if (!group) return;
+
                 const newStatus = group.orders.every(order => order.status_pengiriman === 'completed') ? 'pending' : 'completed';
                 const card = checkbox.closest('.card');
 
-                // Update icon immediately
-                checkbox.innerHTML = newStatus === 'completed' ?
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon text-success"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>' :
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9"/></circle></svg>';
-
-                try {
-                    const response = await fetch('/api/update-delivery-status', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            delivery_ids: group.orders.map(order => order.delivery_date_id),
-                            status: newStatus,
-                        }),
-                    });
-
-                    if (response.ok) {
-                        group.orders.forEach(order => order.status_pengiriman = newStatus);
-                        totalPending = newStatus === 'completed' ? totalPending - 1 : totalPending + 1;
-                        pendingDeliveriesSpan.textContent = `(Belum diantar: ${totalPending})`;
-
-                        // Delay the re-render and animation
-                        setTimeout(() => {
-                            card.classList.add('fade-out');
-                            setTimeout(() => {
-                                renderDeliveryList(groupedOrders, date);
-                                fetchDeliveries(date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, false);
-                            }, 300); // Match fade-out duration
-                        }, 300); // Small delay to allow multiple clicks
-                    } else {
-                        showToast('Error', 'Gagal memperbarui status pengiriman', true);
-                        // Revert icon if failed
-                        checkbox.innerHTML = newStatus === 'completed' ?
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9"/></circle></svg>' :
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon text-success"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>';
-                    }
-                } catch (error) {
-                    console.error('Error updating delivery status:', error);
-                    showToast('Error', 'Gagal memperbarui status: ' + error.message, true);
-                    // Revert icon if failed
-                    checkbox.innerHTML = newStatus === 'completed' ?
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9"/></circle></svg>' :
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon text-success"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>';
-                }
+                await handleSetDeliveryStatus({
+                    deliveryIds: group.orders.map(order => order.delivery_date_id),
+                    status: newStatus,
+                    checkbox,
+                    card,
+                    group,
+                });
             });
         });
 
-        // Tambah event listener untuk tombol "Chat"
+        // Event listener untuk tombol chat history
         document.querySelectorAll('.open-chat-history').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -404,52 +567,18 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
         });
     };
 
-    // Event listener untuk tombol "Set All Delivered"
+    // Event listener untuk tombol set all delivered
     setAllDeliveredButton.addEventListener('click', async () => {
-        const pendingOrders = groupedOrders.filter(group => 
-            group.orders.some(order => order.status_pengiriman !== 'completed')
-        );
-        if (pendingOrders.length === 0) return;
-
-        const deliveryIds = pendingOrders.flatMap(group => group.orders.map(order => order.delivery_date_id));
-        try {
-            const response = await fetch('/api/update-delivery-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    delivery_ids: deliveryIds,
-                    status: 'completed',
-                }),
-            });
-
-            if (response.ok) {
-                pendingOrders.forEach(group => {
-                    group.orders.forEach(order => order.status_pengiriman = 'completed');
-                });
-                totalPending = 0;
-                pendingDeliveriesSpan.textContent = `(Belum diantar: ${totalPending})`;
-                renderDeliveryList(groupedOrders, currentDate);
-                // Refresh tabel utama dengan tanggal aktif
-                fetchDeliveries(currentDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, false);
-                showToast('Success', 'Semua antaran ditandai sebagai selesai', false);
-            } else {
-                showToast('Error', 'Gagal memperbarui status pengiriman', true);
-            }
-        } catch (error) {
-            console.error('Error setting all delivered:', error);
-            showToast('Error', 'Gagal memperbarui status: ' + error.message, true);
-        }
+        await handleSetAllDelivered(currentDate);
     });
 
-    // Event listener untuk tombol "Refresh"
+    // Event listener untuk tombol refresh
     refreshButton.addEventListener('click', () => {
         const courierId = deliveryModal.dataset.courierId;
-        fetchDeliveryDetails(courierId, currentDate); // Selalu gunakan tanggal aktif
+        handleRefreshDeliveries(courierId, currentDate);
     });
 
-    // Event listener untuk tombol "Lihat Antaran"
+    // Event listener untuk tombol view delivery details
     viewButtons.forEach(button => {
         button.addEventListener('click', (e) => {
             e.preventDefault();
@@ -457,7 +586,7 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
             const courierName = button.dataset.courierName;
             deliveryModal.dataset.courierId = courierId;
             courierNameSpan.textContent = courierName;
-            fetchDeliveryDetails(courierId, currentDate); // Gunakan tanggal aktif
+            handleRefreshDeliveries(courierId, currentDate);
 
             const bsModal = new bootstrap.Modal(deliveryModal);
             bsModal.show();
@@ -465,7 +594,6 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
     });
 }
 
-// Inisialisasi standalone jika diperlukan
 function initialize() {
     initDashboard();
 }

@@ -84,6 +84,7 @@ $routes = [
     // Protected routes
     ['GET', '/dashboard', [$dashboardController, 'showDashboard'], [$authMiddleware]],
     ['GET', '/api/deliveries', [$dashboardController, 'getDeliveries'], [$authMiddleware]],
+    ['POST', '/api/deliveries/update-status', [$dashboardController, 'updateDeliveryStatus'], [$authMiddleware]],
     ['GET', '/api/delivery-details', [$dashboardController, 'getDeliveryDetails'], [$authMiddleware]],
     ['POST', '/api/update-delivery-status', [$dashboardController, 'updateDeliveryStatus'], [$authMiddleware]],
     ['GET', '/logout', [$authController, 'logout'], [$authMiddleware]],
@@ -160,7 +161,7 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
         case Dispatcher::METHOD_NOT_ALLOWED:
             $response = new Response();
             $response->getBody()->write(
-                $twig->render('405.html.twig', [
+                $twig->render('404.html.twig', [
                     'title' => 'Metode Tidak Diizinkan',
                     'active_couriers' => []
                 ])

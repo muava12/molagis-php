@@ -10,6 +10,9 @@ use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Molagis\Shared\SupabaseService;
 
+/**
+ * Controller untuk mengelola halaman dan endpoint dashboard.
+ */
 class DashboardController
 {
     public function __construct(
@@ -18,6 +21,12 @@ class DashboardController
         private Environment $twig
     ) {}
 
+    /**
+     * Menampilkan halaman dashboard.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return string Template Twig yang dirender
+     */
     public function showDashboard(ServerRequestInterface $request): string
     {
         $user = $request->getAttribute('user');
@@ -25,9 +34,8 @@ class DashboardController
         $date = new \DateTime('now', new \DateTimeZone('Asia/Makassar'));
         $currentDate = $date->format('Y-m-d');
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
-        $deliveriesResult = $this->dashboardService->getDeliveriesByDate($currentDate, $accessToken);
+        $deliveriesResult = $this->dashboardService->getDeliveriesAndUpdateStatus($currentDate, null, null, $accessToken);
 
-        // Format tanggal dalam bahasa Indonesia dengan WITA
         $formatter = new IntlDateFormatter(
             'id_ID',
             IntlDateFormatter::FULL,
@@ -51,13 +59,21 @@ class DashboardController
         ]);
     }
 
+    /**
+     * Mengambil data pengantaran melalui API.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return ResponseInterface Respon JSON
+     */
     public function getDeliveries(ServerRequestInterface $request): ResponseInterface
     {
         $accessToken = $_SESSION['user_token'] ?? null;
-        $date = $request->getQueryParams()['date'] ?? date('Y-m-d');
-        $result = $this->dashboardService->getDeliveriesByDate($date, $accessToken);
+        $queryParams = $request->getQueryParams();
 
-        // Format tanggal untuk subtitle
+        $date = $queryParams['date'] ?? date('Y-m-d');
+
+        $result = $this->dashboardService->getDeliveriesAndUpdateStatus($date, null, null, $accessToken);
+
         $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
         $formatter = new IntlDateFormatter(
             'id_ID',
@@ -75,9 +91,57 @@ class DashboardController
             'today_date' => $formattedDate,
             'current_date' => $date,
             'error' => $result['error'] ?? null,
-        ]);
+        ], $result['error'] ? 500 : 200);
     }
 
+    /**
+     * Memperbarui status pengantaran melalui API.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return ResponseInterface Respon JSON
+     */
+    public function updateDeliveryStatus(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+        $queryParams = $request->getQueryParams();
+
+        $date = $queryParams['date'] ?? date('Y-m-d');
+        $deliveryIds = $data['delivery_ids'] ?? null;
+        $status = $data['status'] ?? null;
+
+        if (!$deliveryIds || !$status) {
+            return new JsonResponse(['error' => 'Delivery IDs and status are required'], 400);
+        }
+
+        $result = $this->dashboardService->getDeliveriesAndUpdateStatus($date, $deliveryIds, $status, $accessToken);
+
+        $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
+        $formatter = new IntlDateFormatter(
+            'id_ID',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::NONE,
+            'Asia/Makassar',
+            IntlDateFormatter::GREGORIAN,
+            'EEEE, dd MMMM yyyy'
+        );
+        $formattedDate = $formatter->format($dateObj);
+
+        return new JsonResponse([
+            'deliveries' => $result['data'] ?? [],
+            'total_deliveries' => $result['total'] ?? 0,
+            'today_date' => $formattedDate,
+            'current_date' => $date,
+            'error' => $result['error'] ?? null,
+        ], $result['error'] ? 500 : 200);
+    }
+
+    /**
+     * Mengambil detail pengantaran untuk kurir tertentu.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return ResponseInterface Respon JSON
+     */
     public function getDeliveryDetails(ServerRequestInterface $request): ResponseInterface
     {
         $accessToken = $_SESSION['user_token'] ?? null;
@@ -92,7 +156,6 @@ class DashboardController
         $deliveryDetails = $this->dashboardService->getDeliveryDetails($courierId, $date, $accessToken);
         $courierResult = $this->supabaseService->fetchById('couriers', $courierId, $accessToken);
 
-        // Format tanggal
         $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
         $formatter = new IntlDateFormatter(
             'id_ID',
@@ -109,26 +172,6 @@ class DashboardController
             'courier_name' => $courierResult['data']['nama'] ?? 'Unknown',
             'date' => $formattedDate,
             'error' => $deliveryDetails['error'] ?? $courierResult['error'] ?? null,
-        ], $deliveryDetails['error'] ? 500 : 200);
-    }
-
-    public function updateDeliveryStatus(ServerRequestInterface $request): ResponseInterface
-    {
-        $accessToken = $_SESSION['user_token'] ?? null;
-        $data = $request->getParsedBody();
-        $deliveryIds = $data['delivery_ids'] ?? [];
-        $status = $data['status'] ?? null;
-
-        if (empty($deliveryIds) || !$status) {
-            return new JsonResponse(['error' => 'Delivery IDs and status are required'], 400);
-        }
-
-        $result = $this->dashboardService->updateDeliveryStatus($deliveryIds, $status, $accessToken);
-
-        if ($result['error']) {
-            return new JsonResponse(['error' => $result['error']], 500);
-        }
-
-        return new JsonResponse(['success' => true]);
+        ], $deliveryDetails['error'] || $courierResult['error'] ? 500 : 200);
     }
 }
