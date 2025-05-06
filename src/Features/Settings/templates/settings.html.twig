@@ -1,0 +1,130 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block content %}
+	<!-- BEGIN PAGE HEADER -->
+	<div class="page-header d-print-none">
+		<div class="container-xl">
+			<div class="row g-2 align-items-center">
+				<div class="col">
+					<h2 class="page-title">Pengaturan</h2>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- END PAGE HEADER -->
+	<!-- BEGIN PAGE BODY -->
+	<div class="page-body">
+		<div class="container-xl">
+			<div class="card">
+				<div class="row g-0">
+					<div class="col-12 col-md-3 border-end">
+						<div class="card-body">
+							<h4 class="subheader">Pengaturan Bisnis</h4>
+							<div class="list-group list-group-transparent">
+								<a href="/settings" class="list-group-item list-group-item-action d-flex align-items-center active">Akun Saya</a>
+								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Notifikasi Saya</a>
+								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Aplikasi Terhubung</a>
+								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Paket</a>
+								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Tagihan & Faktur</a>
+							</div>
+							<h4 class="subheader mt-4">Pengalaman</h4>
+							<div class="list-group list-group-transparent">
+								<a href="#" class="list-group-item list-group-item-action">Beri Umpan Balik</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-9 d-flex flex-column">
+						<div class="card-body">
+							<h2 class="mb-4">Akun Saya</h2>
+							{% if error %}
+								<div class="alert alert-danger" role="alert">
+									{{ error }}
+								</div>
+							{% endif %}
+							<form id="settings-form" action="/api/settings/update" method="post">
+								<h3 class="card-title">Profil Bisnis</h3>
+								<div class="row g-3">
+									<div class="col-md">
+										<div class="form-label">Nama Bisnis</div>
+										<input type="text" name="business_name" class="form-control" value="{{ business_name }}">
+									</div>
+									<div class="col-md">
+										<div class="form-label">Kurir Default</div>
+										<select name="default_courier" class="form-select">
+											<option value="">Pilih Kurir</option>
+											{% for courier in active_couriers %}
+												<option value="{{ courier.id }}" {{ courier.id == default_courier ? 'selected' : '' }}>{{ courier.nama }}</option>
+											{% endfor %}
+										</select>
+									</div>
+									<div class="col-md">
+										<div class="form-label">Ongkir Default (Rp)</div>
+										<input type="number" name="default_shipping_cost" class="form-control" value="{{ default_shipping_cost }}">
+									</div>
+								</div>
+								<h3 class="card-title mt-4">Email Notifikasi</h3>
+								<p class="card-subtitle">Email ini akan digunakan untuk menerima notifikasi sistem.</p>
+								<div>
+									<div class="row g-2">
+										<div class="col-auto">
+											<input type="email" name="notification_email" class="form-control w-auto" value="{{ notification_email }}">
+										</div>
+										<div class="col-auto">
+											<button type="button" class="btn btn-1">Ubah</button>
+										</div>
+									</div>
+								</div>
+								<h3 class="card-title mt-4">Visibilitas Profil Publik</h3>
+								<p class="card-subtitle">Mengaktifkan profil publik memungkinkan orang lain di jaringan melihat bisnis Anda.</p>
+								<div>
+									<label class="form-check form-switch form-switch-lg">
+										<input class="form-check-input" type="checkbox" name="public_profile_visible" {{ public_profile_visible ? 'checked' : '' }}>
+										<span class="form-check-label form-check-label-on">Anda saat ini terlihat</span>
+										<span class="form-check-label form-check-label-off">Anda saat ini tidak terlihat</span>
+									</label>
+								</div>
+							</form>
+						</div>
+						<div class="card-footer bg-transparent mt-auto">
+							<div class="btn-list justify-content-end">
+								<a href="/dashboard" class="btn btn-1">Batal</a>
+								<button type="submit" form="settings-form" class="btn btn-primary btn-2">Simpan</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- END PAGE BODY -->
+
+	 <script>
+	document.getElementById('settings-form').addEventListener('submit', async (e) => {
+	    e.preventDefault();
+	    const form = e.target;
+	    const formData = new FormData(form);
+	    const data = Object.fromEntries(formData);
+	
+	    try {
+	        const response = await fetch(form.action, {
+	            method: 'POST',
+	            headers: {
+	                'Content-Type': 'application/json',
+	                'X-Requested-With': 'XMLHttpRequest'
+	            },
+	            body: JSON.stringify(data)
+	        });
+	        const result = await response.json();
+	
+	        if (result.success) {
+	            alert('Pengaturan berhasil disimpan');
+	        } else {
+	            alert('Gagal menyimpan pengaturan: ' + result.message);
+	        }
+	    } catch (error) {
+	        console.error('Error submitting settings:', error);
+	        alert('Terjadi kesalahan saat menyimpan pengaturan');
+	    }
+	});
+	</script>
+{% endblock %}

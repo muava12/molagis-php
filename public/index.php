@@ -14,6 +14,8 @@ use Molagis\Features\Customers\CustomersController;
 use Molagis\Features\Customers\CustomersService;
 use Molagis\Features\Order\OrderController;
 use Molagis\Features\Order\OrderService;
+use Molagis\Features\Settings\SettingsController;
+use Molagis\Features\Settings\SettingsService;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -40,6 +42,7 @@ $loader = new FilesystemLoader([
     "{$basePath}/src/Features/Dashboard/templates",
     "{$basePath}/src/Features/Customers/templates",
     "{$basePath}/src/Features/Order/templates",
+    "{$basePath}/src/Features/Settings/templates",
 ]);
 $twig = new Environment($loader, [
     'debug' => $_ENV['APP_ENV'] === 'development',
@@ -51,13 +54,15 @@ $twig->addExtension(new \Twig\Extension\DebugExtension());
 $supabaseClient = new SupabaseClient($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']);
 $supabaseService = new SupabaseService($supabaseClient);
 $authMiddleware = new AuthMiddleware($supabaseService);
+$settingService = new SettingsService($supabaseClient);
+$settingController = new SettingsController($settingService, $supabaseService, $twig);
 $authController = new AuthController($supabaseService, $twig);
 $dashboardService = new DashboardService($supabaseClient);
 $dashboardController = new DashboardController($dashboardService, $supabaseService, $twig);
 $customersService = new CustomersService($supabaseClient);
 $customersController = new CustomersController($customersService, $supabaseService, $twig);
 $orderService = new OrderService($supabaseClient);
-$orderController = new OrderController($orderService, $supabaseService, $twig);
+$orderController = new OrderController($orderService, $supabaseService, $settingService, $twig);
 
 // Create PSR-7 request with explicit body parsing
 $request = ServerRequestFactory::fromGlobals();
@@ -97,6 +102,8 @@ $routes = [
     ['GET', '/input-order', [$orderController, 'showOrder'], [$authMiddleware]],
     ['POST', '/api/order', [$orderController, 'handleOrder'], [$authMiddleware]], 
     ['GET', '/api/packages', [$orderController, 'getPackages'], [$authMiddleware]], 
+    ['GET', '/settings', [$settingController, 'showSettings'], [$authMiddleware]],
+    ['POST', '/api/settings/update', [$settingController, 'updateSettings'], [$authMiddleware]],
 ];
 
 // Create FastRoute dispatcher
@@ -190,6 +197,8 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleOrder' => [$request],
                     'getPackages' => [$request],
                     'showOrder' => [$request],
+                    'showSettings' => [$request], // Tambahkan ini
+                    'updateSettings' => [$request], // Tambahkan ini
                     default => []
                 };
                 
