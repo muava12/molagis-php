@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Molagis\Features\Order;
 
 use Molagis\Shared\SupabaseService;
+use Molagis\Features\Settings\SettingsService;
 use Psr\Http\Message\ServerRequestInterface;
 use Laminas\Diactoros\Response; // Pastikan Response diimpor
 use Twig\Environment;
@@ -30,6 +32,10 @@ class OrderController
             header('Location: /login');
             exit;
         }
+        // Ambil pengaturan default_courier
+        $settingService = new SettingsService($this->supabaseClient); // Pastikan supabaseClient tersedia
+        $defaultCourierResponse = $settingService->getSettingByKey('default_courier', $accessToken);
+        $defaultCourier = $defaultCourierResponse['data'] ?? null;
 
         // Ambil data yang diperlukan untuk form (kurir aktif, paket)
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
@@ -57,11 +63,11 @@ class OrderController
 
         // Periksa apakah data berhasil diparsing
         if ($data === null || !is_array($data)) {
-             $response->getBody()->write(json_encode([
-                 'success' => false,
-                 'message' => 'Format data request tidak valid (JSON diharapkan).',
-             ]));
-             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'message' => 'Format data request tidak valid (JSON diharapkan).',
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
         try {
@@ -105,13 +111,13 @@ class OrderController
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500); // Status 500 Internal Server Error
 
         } catch (\Throwable $e) {
-             // Tangkap error tak terduga lainnya
-             error_log('Unexpected error in handleOrder: ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
-             $response->getBody()->write(json_encode([
-                 'success' => false,
-                 'message' => 'Terjadi kesalahan sistem yang tidak terduga.',
-             ]));
-             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+            // Tangkap error tak terduga lainnya
+            error_log('Unexpected error in handleOrder: ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem yang tidak terduga.',
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
 
@@ -132,9 +138,9 @@ class OrderController
             $response->getBody()->write(json_encode($packages));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {
-             error_log('Error getting packages: ' . $e->getMessage());
-             $response->getBody()->write(json_encode(['error' => 'Gagal mengambil data paket.']));
-             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+            error_log('Error getting packages: ' . $e->getMessage());
+            $response->getBody()->write(json_encode(['error' => 'Gagal mengambil data paket.']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
 
@@ -148,19 +154,19 @@ class OrderController
         $response = new Response();
         $accessToken = $_SESSION['user_token'] ?? null;
         // Perlu autentikasi? Jika ya:
-         if (!$accessToken) {
-              $response->getBody()->write(json_encode(['error' => 'Autentikasi diperlukan.']));
-              return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-         }
+        if (!$accessToken) {
+            $response->getBody()->write(json_encode(['error' => 'Autentikasi diperlukan.']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+        }
 
         try {
             $customers = $this->orderService->getCustomers($accessToken);
             $response->getBody()->write(json_encode($customers)); // Kirim data customer (termasuk ID dan nama)
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {
-             error_log('Error getting customers: ' . $e->getMessage());
-             $response->getBody()->write(json_encode(['error' => 'Gagal mengambil data pelanggan.']));
-             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+            error_log('Error getting customers: ' . $e->getMessage());
+            $response->getBody()->write(json_encode(['error' => 'Gagal mengambil data pelanggan.']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
 }

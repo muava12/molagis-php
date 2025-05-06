@@ -1,16 +1,12 @@
 /*
- * File: dashboard.js
- * Description: Logika untuk halaman dashboard, termasuk pengambilan data pengantaran,
- *              inisialisasi modal tambah customer, modal tambah pesanan, dan modal daftar antaran.
+ * File: delivery-details-modal.js
+ * Description: Logika untuk mengelola modal view-delivery-details, dapat digunakan di berbagai halaman.
  */
 
 import { renderErrorAlert, showToast } from './utils.js';
-import { initAddCustomerModal } from './add-customer-modal.js';
-import { initialize as initOrder } from './order.js';
 
 // Variabel global
 const bootstrap = window.tabler?.bootstrap;
-let isFetchingDeliveries = false; // Mencegah fetch berulang pada fetchDeliveries
 
 // Fungsi untuk format Rupiah
 function formatRupiah(angka) {
@@ -27,204 +23,7 @@ function formatPhoneNumber(phone) {
 }
 
 /**
- * Mengambil data pengantaran berdasarkan tanggal, sekaligus memperbarui status jika diperlukan.
- * @param {string} date Tanggal dalam format YYYY-MM-DD
- * @param {HTMLElement} prevButton Tombol navigasi sebelumnya
- * @param {HTMLElement} nextButton Tombol navigasi berikutnya
- * @param {HTMLElement} tableBody Elemen tbody tabel
- * @param {HTMLElement} totalBadge Elemen untuk menampilkan total pengantaran
- * @param {HTMLElement} dateSubtitle Elemen untuk menampilkan subtitle tanggal
- * @param {boolean} [showSpinner=true] Apakah menampilkan spinner
- * @param {number[]|null} [deliveryIds=null] Daftar ID pengiriman untuk diperbarui
- * @param {string|null} [status=null] Status baru (pending/completed)
- * @param {HTMLElement|null} [clickedButton=null] Tombol yang diklik untuk menampilkan spinner
- * @returns {Promise<void>}
- */
-async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, showSpinner = true, deliveryIds = null, status = null, clickedButton = null) {
-    if (isFetchingDeliveries) return; // Cegah fetch berulang
-    isFetchingDeliveries = true;
-
-    console.log('Fetching deliveries for date:', date);
-    // Nonaktifkan tombol navigasi dengan Tabler utilitas
-    prevButton.classList.add('disabled');
-    nextButton.classList.add('disabled');
-
-    if (showSpinner && clickedButton) {
-        clickedButton.classList.add('disabled', 'btn-loading');
-    }
-
-    if (!showSpinner) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="3" class="text-center">
-                    <div class="spinner-border spinner-border-sm" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <span class="ms-2">Memuat data...</span>
-                </td>
-            </tr>
-        `;
-    }
-
-    try {
-        const payload = {};
-        if (deliveryIds && status) {
-            if (!deliveryIds?.length) throw new Error('Invalid delivery IDs');
-            payload.delivery_ids = deliveryIds;
-            payload.status = status;
-        }
-
-        const url = deliveryIds && status ? '/api/deliveries/update-status' : `/api/deliveries?date=${encodeURIComponent(date)}`;
-        const response = await fetch(url, {
-            method: deliveryIds && status ? 'POST' : 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            body: deliveryIds && status ? JSON.stringify(payload) : null,
-        });
-
-        const data = await response.json();
-        console.debug('fetchDeliveries API response:', data);
-
-        if (response.ok && data.error === null) {
-            tableBody.innerHTML = '';
-            if (data.deliveries?.length > 0) {
-                data.deliveries.forEach((delivery) => {
-                    const row = document.createElement('tr');
-                    const avatarStyle =
-                    delivery.kurir_id === null || delivery.kurir_id === 0
-                        ? `<span class="avatar bg-pink">
-                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="white"  stroke-width="1.5"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                        </span>`
-                        : `<span class="avatar" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id});"></span>`;
-                    row.innerHTML = `
-                        <td>
-                            <div class="d-flex align-items-center">
-                                ${avatarStyle}
-                                <div class="ms-2">${delivery.courier_name}</div>
-                            </div>
-                        </td>
-                        <td>
-                            ${delivery.jumlah_pengantaran} titik Pengantaran
-                            <div class="text-muted small">${delivery.jumlah_selesai} sudah sampai</div>
-                        </td>
-                        <td class="text-center">
-                            <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="${delivery.kurir_id ?? 'null'}" data-courier-name="${delivery.courier_name}" aria-label="Lihat Antaran">
-                                <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
-                                    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
-                                </svg>
-                            </a>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-
-
-                });
-                initializeDeliveryDetailsListeners(date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle);
-            } else {
-                tableBody.innerHTML = '<tr><td colspan="3" class="text-center">Tidak ada pengantaran untuk tanggal ini</td></tr>';
-            }
-
-            totalBadge.textContent = data.total_deliveries || 0;
-            dateSubtitle.textContent = data.today_date || date;
-            prevButton.dataset.date = data.current_date || date;
-            nextButton.dataset.date = data.current_date || date;
-
-            const errorContainer = document.querySelector('#error-container');
-            if (errorContainer) errorContainer.innerHTML = '';
-        } else {
-            console.error('fetchDeliveries API error:', data.error);
-            const errorContainer = document.querySelector('#error-container');
-            if (errorContainer && !errorContainer.querySelector('.alert')) {
-                renderErrorAlert(data.error || 'Gagal mengambil data pengantaran');
-            }
-        }
-    } catch (error) {
-        console.error('fetchDeliveries error:', error);
-        const errorContainer = document.querySelector('#error-container');
-        if (errorContainer && !errorContainer.querySelector('.alert')) {
-            renderErrorAlert('Gagal mengambil data: ' + error.message);
-        }
-    } finally {
-        if (showSpinner && clickedButton) {
-            clickedButton.classList.remove('disabled', 'btn-loading');
-        }
-        prevButton.classList.remove('disabled');
-        nextButton.classList.remove('disabled');
-        isFetchingDeliveries = false;
-    }
-}
-
-/**
- * Menginisialisasi event listener untuk dashboard.
- */
-export function initDashboard() {
-    console.log('Initializing dashboard event listeners');
-
-    const prevButton = document.getElementById('prev-day');
-    const nextButton = document.getElementById('next-day');
-    const tableBody = document.querySelector('#deliveries-table tbody');
-    const totalBadge = document.getElementById('total-badge');
-    const dateSubtitle = document.getElementById('date-subtitle');
-
-    if (!prevButton || !nextButton || !tableBody || !totalBadge || !dateSubtitle) {
-        console.error('One or more DOM elements not found:', {
-            prevButton: !!prevButton,
-            nextButton: !!nextButton,
-            tableBody: !!tableBody,
-            totalBadge: !!totalBadge,
-            dateSubtitle: !!dateSubtitle,
-        });
-        return;
-    }
-
-    const prevHandler = () => {
-        console.log('Previous button clicked');
-        const currentDate = new Date(prevButton.dataset.date);
-        currentDate.setDate(currentDate.getDate() - 1);
-        const newDate = currentDate.toISOString().split('T')[0];
-        fetchDeliveries(newDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, true, null, null, prevButton);
-    };
-
-    const nextHandler = () => {
-        console.log('Next button clicked');
-        const currentDate = new Date(nextButton.dataset.date);
-        currentDate.setDate(currentDate.getDate() + 1);
-        const newDate = currentDate.toISOString().split('T')[0];
-        fetchDeliveries(newDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, true, null, null, nextButton);
-    };
-
-    prevButton.removeEventListener('click', prevHandler);
-    nextButton.removeEventListener('click', nextHandler);
-    prevButton.addEventListener('click', prevHandler);
-    nextButton.addEventListener('click', nextHandler);
-
-    initAddCustomerModal('dashboard-add-modal', {
-        showToast,
-        showErrorToast: (title, message) => renderErrorAlert(message),
-    });
-
-    const orderModal = document.getElementById('modal-add-order');
-    if (orderModal) {
-        orderModal.addEventListener('shown.bs.modal', () => {
-            console.log('Order modal shown, initializing order logic');
-            initOrder();
-        });
-        orderModal.addEventListener('hidden.bs.modal', () => {
-            console.log('Order modal hidden, resetting form');
-            // Reset form logic if needed
-            const form = orderModal.querySelector('form');
-            if (form) {
-                form.reset();
-            }
-        });
-    }
-
-    fetchDeliveries(prevButton.dataset.date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle, false);
-}
-
-/**
- * Menginisialisasi event listener untuk tombol "Lihat Antaran".
+ * Menginisialisasi modal view-delivery-details.
  * @param {string} currentDate Tanggal saat ini dalam format YYYY-MM-DD
  * @param {HTMLElement} prevButton Tombol navigasi sebelumnya
  * @param {HTMLElement} nextButton Tombol navigasi berikutnya
@@ -232,7 +31,7 @@ export function initDashboard() {
  * @param {HTMLElement} totalBadge Elemen untuk menampilkan total pengantaran
  * @param {HTMLElement} dateSubtitle Elemen untuk menampilkan subtitle tanggal
  */
-function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle) {
+export function initDeliveryDetailsModal(currentDate, prevButton, nextButton, tableBody, totalBadge, dateSubtitle) {
     const viewButtons = document.querySelectorAll('.view-delivery-details');
     const deliveryModal = document.getElementById('delivery-list-modal');
     const deliveryList = document.getElementById('delivery-list');
@@ -263,7 +62,6 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
         deliveryList.innerHTML = '<p class="text-center transition-opacity duration-300">Memuat data...</p>';
 
         try {
-            // courierId = courierId === '0' ? 'null' : courierId;
             const response = await fetch(`/api/delivery-details?courier_id=${encodeURIComponent(courierId)}&date=${encodeURIComponent(date)}`);
             const data = await response.json();
             console.debug('fetchDeliveryDetails API response:', data);
@@ -353,6 +151,23 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
         }
 
         try {
+            // Panggil fetchDeliveries untuk memperbarui status
+            const payload = {
+                delivery_ids: deliveryIds,
+                status: status,
+            };
+            const response = await fetch('/api/deliveries/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.error) {
+                throw new Error(data.error || 'Gagal memperbarui status');
+            }
+
+            // Perbarui tabel utama
             await fetchDeliveries(
                 currentDate,
                 prevButton,
@@ -360,9 +175,7 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
                 tableBody,
                 totalBadge,
                 dateSubtitle,
-                false,
-                deliveryIds,
-                status
+                false
             );
         } catch (error) {
             console.error('Error updating delivery status:', error);
@@ -404,17 +217,21 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
         refreshButton.classList.add('disabled');
 
         try {
-            await fetchDeliveries(
-                date,
-                prevButton,
-                nextButton,
-                tableBody,
-                totalBadge,
-                dateSubtitle,
-                false,
-                deliveryIds,
-                'completed'
-            );
+            // Panggil fetchDeliveries untuk memperbarui status
+            const payload = {
+                delivery_ids: deliveryIds,
+                status: 'completed',
+            };
+            const response = await fetch('/api/deliveries/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.error) {
+                throw new Error(data.error || 'Gagal memperbarui semua status');
+            }
 
             // Update groupedOrders
             groupedOrders.forEach(group => {
@@ -424,7 +241,7 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
             });
             totalPending = 0;
             pendingDeliveriesSpan.textContent = `(Belum diantar: ${totalPending})`;
-            renderDeliveryList(groupedOrders, date);
+            renderDeliveryList(groupedOrders, date, deliveryModal.dataset.courierId);
         } catch (error) {
             console.error('Error setting all deliveries to completed:', error);
             showToast('Error', 'Gagal memperbarui semua status: ' + error.message, true);
@@ -610,10 +427,3 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
         });
     });
 }
-
-function initialize() {
-    initDashboard();
-    // initOrder();
-}
-
-initialize();

@@ -17,6 +17,7 @@ const itemsPerPageInput = document.getElementById('itemsPerPageInput');
 
 // Impor modul add-customer-modal
 import { initAddCustomerModal } from './add-customer-modal.js';
+import autosize from '../autosize.esm.js';
 
 // Fungsi utilitas
 async function fetchCustomers() {
@@ -422,6 +423,7 @@ function addEventListenersToButtons() {
 async function initialize() {
     fetchCustomers();
     setupEventListeners();
+    autosize(document.querySelectorAll('textarea'));
 }
 
 initialize();

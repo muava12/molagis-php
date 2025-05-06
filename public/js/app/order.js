@@ -13,6 +13,7 @@ import {
 } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 import { id } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale/+esm';
 import { showToast } from './utils.js';
+import autosize from '../autosize.esm.js';
 
 const selectedDates = new Set();
 let customerId = null;
@@ -57,6 +58,7 @@ async function initialize() {
         setupEventListeners();
         setupAddRemovePackageHandlers();
         addPackageListeners(document.querySelector('.package-list'));
+        autosize(document.querySelectorAll('textarea'));
     } catch (error) {
         console.error('Initialization error:', error);
         showToast('Error', 'Gagal memuat data awal: ' + error.message, true);
@@ -269,12 +271,34 @@ function renderSelectedDates() {
 
 async function fetchHolidayDates(year) {
     try {
+        // Periksa cache untuk tahun yang sama
         if (cachedHolidays.length > 0 && cachedHolidays[0].date.startsWith(year.toString())) {
             return cachedHolidays;
         }
-        const response = await fetchWithRetry(`https://dayoffapi.vercel.app/api?year=${year}`, {}, true);
-        const holidays = response.filter(h => h.is_cuti === false).map(h => ({ date: h.tanggal, name: h.keterangan }));
+        const response = await fetchWithRetry(`https://api-harilibur.pages.dev/api?year=${year}`, {}, true);
+        console.debug('Fetched holidays:', response);
+
+        // Normalisasi tanggal dan filter hanya hari libur nasional
+        const holidays = response
+            .filter(h => h.is_national_holiday === true)
+            .map(h => {
+                try {
+                    // Parse holiday_date dan format ulang ke yyyy-MM-dd
+                    const parsedDate = parse(h.holiday_date, 'yyyy-M-d', new Date());
+                    const normalizedDate = format(parsedDate, 'yyyy-MM-dd');
+                    return {
+                        date: normalizedDate,
+                        name: h.holiday_name
+                    };
+                } catch (error) {
+                    console.warn(`Failed to parse holiday date: ${h.holiday_date}`, error);
+                    return null; // Abaikan entri dengan tanggal tidak valid
+                }
+            })
+            .filter(h => h !== null); // Hapus entri yang gagal diparse
+
         cachedHolidays = holidays;
+        console.debug('Filtered and normalized holidays:', holidays);
         return holidays;
     } catch (error) {
         console.error('Failed to fetch holidays:', error);
@@ -541,8 +565,6 @@ function collectOrderData() {
 
 async function submitOrder(e) {
     e.preventDefault();
-    // errorNotification.classList.add('d-none'); // Remove this line
-
     try {
         if (selectedDates.size === 0) throw new Error('Pilih setidaknya satu tanggal.');
         if (!customerId) throw new Error('Pilih pelanggan terlebih dahulu.');
@@ -719,7 +741,7 @@ function displayConfirmationModal(order) {
             // displaySummaryModal(order, response.order_id);
             resetForm();
             showToast('Sukses', 'Pesanan berhasil disimpan');
-            // untu halaman Dashboard - BELUM BERFUNGSI
+            // Untuk halaman Dashboard - BELUM BERFUNGSI
             const modalElement = document.querySelector('#modal-add-order');
             console.debug('Modal element:', modalElement);
             if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -768,7 +790,8 @@ function showErrorNotification(message) {
 }
 
 function setupEventListeners() {
-    prevMonthBtn.addEventListener('click', async () => {
+    prevMonthBtn.addEventListener('click', async (e) => {
+        e.preventDefault(); // Cegah submit form
         displayedMonth--;
         if (displayedMonth < 0) {
             displayedMonth = 11;
@@ -783,7 +806,8 @@ function setupEventListeners() {
         await renderCalendar(displayedYear, displayedMonth);
     });
 
-    nextMonthBtn.addEventListener('click', async () => {
+    nextMonthBtn.addEventListener('click', async (e) => {
+        e.preventDefault(); // Cegah submit form
         displayedMonth++;
         if (displayedMonth > 11) {
             displayedMonth = 0;
@@ -798,15 +822,19 @@ function setupEventListeners() {
         await renderCalendar(displayedYear, displayedMonth);
     });
 
-    todayBtn.addEventListener('click', async () => {
+    todayBtn.addEventListener('click', async (e) => {
+        e.preventDefault(); // Cegah submit form
         const today = new Date();
         displayedYear = today.getFullYear();
         displayedMonth = today.getMonth();
         await renderCalendar(displayedYear, displayedMonth);
     });
 
-    nextMonthButton.addEventListener('click', async () => {
-        const nextMonth = addMonths(new Date(displayedYear, displayedMonth, 1), 1);
+    nextMonthButton.addEventListener('click', async (e) => {
+        e.preventDefault(); // Cegah submit form
+        const nextMonth = addMonths(new Date(), 1);
+        if (displayedMonth === nextMonth.getMonth()) return;
+
         displayedYear = nextMonth.getFullYear();
         displayedMonth = nextMonth.getMonth();
         if (cachedHolidays.length === 0 || !cachedHolidays[0].date.startsWith(displayedYear.toString())) {
@@ -820,7 +848,8 @@ function setupEventListeners() {
         await renderCalendar(displayedYear, displayedMonth);
     });
 
-    clearButton.addEventListener('click', async () => {
+    clearButton.addEventListener('click', async (e) => {
+        e.preventDefault(); // Cegah submit form
         selectedDates.clear();
         await renderCalendar(displayedYear, displayedMonth);
         renderSelectedDates();
@@ -881,6 +910,6 @@ function setupEventListeners() {
     });
 }
 
-initialize();
+// initialize();
 
-export { initialize };
+export { initialize, setupEventListeners, fetchHolidayDates, renderCalendar, fetchCustomers, fetchPackages, calculateTotalPayment, setupAddRemovePackageHandlers };
