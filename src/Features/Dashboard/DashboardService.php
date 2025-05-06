@@ -64,6 +64,9 @@ class DashboardService
                 $options
             );
 
+            // Tambahkan logging untuk debugging
+            error_log("getDeliveriesAndUpdateStatus RPC response: " . json_encode($response));
+
             // Tangani error dari RPC, termasuk error struktur query
             if ($response['error']) {
                 $errorMessage = $response['error']['message'] ?? 'Gagal mengambil data pengantaran';
@@ -80,7 +83,7 @@ class DashboardService
             $data = $response['data'] ?? [];
 
             // Jika data kosong atau hanya baris default dengan courier_id NULL
-            if (empty($data) || (count($data) === 1 && is_null($data[0]['courier_id']))) {
+            if (empty($data)) {
                 return [
                     'data' => [],
                     'total' => 0,
@@ -93,8 +96,8 @@ class DashboardService
             // Validasi struktur data untuk memastikan konsistensi
             $deliveries = array_map(function ($item) {
                 return [
-                    'kurir_id' => (int) ($item['courier_id'] ?? 0),
-                    'courier_name' => (string) ($item['courier_name'] ?? 'Unknown'),
+                    'kurir_id' => $item['courier_id'] === null ? null : (int) ($item['courier_id'] ?? null),
+                    'courier_name' => (string) ($item['courier_name'] ?? 'Belum Dipilih'),
                     'jumlah_pengantaran' => (int) ($item['jumlah_pengantaran'] ?? 0),
                     'jumlah_selesai' => (int) ($item['jumlah_selesai'] ?? 0),
                 ];
@@ -104,7 +107,7 @@ class DashboardService
             $totalDeliveries = (int) ($data[0]['total_deliveries'] ?? array_sum(array_column($data, 'jumlah_pengantaran')));
 
             return [
-                'data' => array_filter($deliveries, fn($item) => $item['kurir_id'] !== 0),
+                'data' => $deliveries, // Sertakan semua item, termasuk kurir_id null
                 'total' => $totalDeliveries,
                 'today_date' => $date,
                 'processing_date' => date('Y-m-d'),
@@ -132,15 +135,15 @@ class DashboardService
     }
 
     /**
-     * Mengambil detail pengantaran untuk kurir tertentu berdasarkan tanggal.
+     * Mengambil detail pengantaran untuk kurir tertentu atau tanpa kurir berdasarkan tanggal.
      *
-     * @param string $courierId ID kurir
+     * @param string|null $courierId ID kurir atau 'null' untuk item tanpa kurir
      * @param string $date Format YYYY-MM-DD
      * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
      * @return array ['data' => array, 'error' => string|null]
      * @throws \InvalidArgumentException Jika parameter tidak valid
      */
-    public function getDeliveryDetails(string $courierId, string $date, ?string $accessToken = null): array
+    public function getDeliveryDetails(?string $courierId, string $date, ?string $accessToken = null): array
     {
         try {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
@@ -152,13 +155,20 @@ class DashboardService
                 $headers = ['Authorization' => "Bearer $accessToken"];
             }
 
-            $response = $this->client->get(
-                "/rest/v1/deliverydates?select=id,tanggal,kurir_id,ongkir,status,couriers(id,nama),item_tambahan,harga_tambahan,orders(id,notes,customer_id,total_harga,tanggal_pesan,metode_pembayaran,customers(nama,alamat,telepon,telepon_alt,maps)),orderdetails(id,paket(id,nama),jumlah,paket_id,delivery_id,catatan_dapur,catatan_kurir,subtotal_harga)&tanggal=eq.{$date}&kurir_id=eq.{$courierId}&status=neq.canceled",
-                $headers
-            );
+            // Query untuk item dengan kurir tertentu atau tanpa kurir
+            $kurirFilter = $courierId === 'null' || $courierId === null ? 'kurir_id=is.null' : "kurir_id=eq.{$courierId}";
+            $query = "/rest/v1/deliverydates?select=id,tanggal,kurir_id,ongkir,status,couriers(id,nama),item_tambahan,harga_tambahan,orders(id,notes,customer_id,total_harga,tanggal_pesan,metode_pembayaran,customers(nama,alamat,telepon,telepon_alt,maps)),orderdetails(id,paket(id,nama),jumlah,paket_id,delivery_id,catatan_dapur,catatan_kurir,subtotal_harga)&tanggal=eq.{$date}&{$kurirFilter}&status=neq.canceled";
+            
+            // Tambahkan logging untuk query
+            error_log("getDeliveryDetails query: {$query}");
+            
+            $response = $this->client->get($query, ['headers' => $headers]);
+
+            // Tambahkan logging untuk respons
+            error_log("getDeliveryDetails response: " . json_encode($response));
 
             if ($response['error']) {
-                error_log('Supabase GET error in getDeliveryDetails: ' . ($response['error']['message'] ?? 'Unknown error') . ' | CourierID: ' . $courierId . ' | Date: ' . $date);
+                error_log('Supabase GET error in getDeliveryDetails: ' . ($response['error']['message'] ?? 'Unknown error') . ' | CourierID: ' . ($courierId ?? 'null') . ' | Date: ' . $date);
                 return [
                     'data' => [],
                     'error' => null, // Tidak ada error di frontend
@@ -166,7 +176,14 @@ class DashboardService
             }
 
             $deliveryDatesData = $response['data'] ?? [];
+            
+            // Tambahkan logging untuk data mentah
+            error_log("getDeliveryDetails raw data: " . json_encode($deliveryDatesData));
+
             $groupedOrders = $this->groupByCustomerAndDate($deliveryDatesData);
+
+            // Tambahkan logging untuk data yang dikelompokkan
+            error_log("getDeliveryDetails grouped orders: " . json_encode($groupedOrders));
 
             return [
                 'data' => $groupedOrders,
@@ -179,7 +196,7 @@ class DashboardService
                 'error' => $e->getMessage(),
             ];
         } catch (\Exception $e) {
-            error_log('Unexpected error in getDeliveryDetails: ' . $e->getMessage() . ' | CourierID: ' . $courierId . ' | Date: ' . $date);
+            error_log('Unexpected error in getDeliveryDetails: ' . $e->getMessage() . ' | CourierID: ' . ($courierId ?? 'null') . ' | Date: ' . $date);
             return [
                 'data' => [],
                 'error' => null, // Tidak ada error di frontend
@@ -200,8 +217,11 @@ class DashboardService
             $order = $delivery['orders'] ?? [];
             $customerId = $order['customer_id'] ?? null;
             $tanggalPesan = $order['tanggal_pesan'] ?? null;
-            $namaKurir = $delivery['couriers']['nama'] ?? 'Belum dipilih';
+            $namaKurir = $delivery['couriers']['nama'] ?? 'Belum Dipilih';
             $ongkirKurir = $delivery['ongkir'] && isset($delivery['couriers']) ? (int) $delivery['ongkir'] : 0;
+
+            // Tambahkan logging untuk setiap entri
+            error_log("groupByCustomerAndDate processing delivery: customerId=$customerId, kurir_id=" . ($delivery['kurir_id'] ?? 'null'));
 
             if ($customerId && !isset($groupedOrders[$customerId])) {
                 $groupedOrders[$customerId] = [
@@ -217,9 +237,10 @@ class DashboardService
                     'item_tambahan' => $delivery['item_tambahan'] ?? '',
                     'harga_tambahan' => $delivery['harga_tambahan'] ?? 0,
                     'orders' => [],
+                    'kurir_id' => $delivery['kurir_id'] ?? null, // Tambahkan kurir_id ke groupedOrders
                 ];
             }
-
+            
             if ($customerId) {
                 foreach ($delivery['orderdetails'] ?? [] as $detail) {
                     $groupedOrders[$customerId]['orders'][] = [
@@ -232,7 +253,7 @@ class DashboardService
                         'notes' => $detail['catatan_kurir'] ?? '',
                         'metode_pembayaran' => $order['metode_pembayaran'] ?? 'unknown',
                         'status_pengiriman' => $delivery['status'] ?? 'pending',
-                        'kurir_id' => $delivery['kurir_id'] ?? 0,
+                        'kurir_id' => $delivery['kurir_id'] ?? null,
                     ];
                 }
             }

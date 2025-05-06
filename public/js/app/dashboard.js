@@ -82,17 +82,23 @@ async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBad
         });
 
         const data = await response.json();
-        console.debug('API response:', data);
+        console.debug('fetchDeliveries API response:', data);
 
         if (response.ok && data.error === null) {
             tableBody.innerHTML = '';
             if (data.deliveries?.length > 0) {
                 data.deliveries.forEach((delivery) => {
                     const row = document.createElement('tr');
+                    const avatarStyle =
+                    delivery.kurir_id === null || delivery.kurir_id === 0
+                        ? `<span class="avatar bg-pink">
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="white"  stroke-width="1.5"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                        </span>`
+                        : `<span class="avatar" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id});"></span>`;
                     row.innerHTML = `
                         <td>
                             <div class="d-flex align-items-center">
-                                <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id})"></span>
+                                ${avatarStyle}
                                 <div class="ms-2">${delivery.courier_name}</div>
                             </div>
                         </td>
@@ -101,7 +107,7 @@ async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBad
                             <div class="text-muted small">${delivery.jumlah_selesai} sudah sampai</div>
                         </td>
                         <td class="text-center">
-                            <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="${delivery.kurir_id}" data-courier-name="${delivery.courier_name}" aria-label="Lihat Antaran">
+                            <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="${delivery.kurir_id ?? 'null'}" data-courier-name="${delivery.courier_name}" aria-label="Lihat Antaran">
                                 <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                     <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
@@ -111,6 +117,8 @@ async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBad
                         </td>
                     `;
                     tableBody.appendChild(row);
+
+
                 });
                 initializeDeliveryDetailsListeners(date, prevButton, nextButton, tableBody, totalBadge, dateSubtitle);
             } else {
@@ -125,14 +133,14 @@ async function fetchDeliveries(date, prevButton, nextButton, tableBody, totalBad
             const errorContainer = document.querySelector('#error-container');
             if (errorContainer) errorContainer.innerHTML = '';
         } else {
-            console.error('API error:', data.error);
+            console.error('fetchDeliveries API error:', data.error);
             const errorContainer = document.querySelector('#error-container');
             if (errorContainer && !errorContainer.querySelector('.alert')) {
                 renderErrorAlert(data.error || 'Gagal mengambil data pengantaran');
             }
         }
     } catch (error) {
-        console.error('Fetch error:', error);
+        console.error('fetchDeliveries error:', error);
         const errorContainer = document.querySelector('#error-container');
         if (errorContainer && !errorContainer.querySelector('.alert')) {
             renderErrorAlert('Gagal mengambil data: ' + error.message);
@@ -237,7 +245,7 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
 
     /**
      * Mengambil detail pengantaran untuk kurir tertentu.
-     * @param {string} courierId ID kurir
+     * @param {string} courierId ID kurir atau 'null' untuk item tanpa kurir
      * @param {string} date Tanggal dalam format YYYY-MM-DD
      */
     const fetchDeliveryDetails = async (courierId, date) => {
@@ -251,13 +259,15 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
         deliveryList.innerHTML = '<p class="text-center transition-opacity duration-300">Memuat data...</p>';
 
         try {
-            const response = await fetch(`/api/delivery-details?courier_id=${courierId}&date=${encodeURIComponent(date)}`);
+            // courierId = courierId === '0' ? 'null' : courierId;
+            const response = await fetch(`/api/delivery-details?courier_id=${encodeURIComponent(courierId)}&date=${encodeURIComponent(date)}`);
             const data = await response.json();
+            console.debug('fetchDeliveryDetails API response:', data);
 
             if (response.ok && data.error === null) {
                 groupedOrders = data.grouped_orders || [];
-                renderDeliveryList(groupedOrders, date);
-                courierNameSpan.textContent = data.courier_name || 'Unknown';
+                renderDeliveryList(groupedOrders, date, courierId);
+                courierNameSpan.textContent = data.courier_name || 'Belum Dipilih';
                 deliveryDateSpan.textContent = data.date || date;
                 totalDeliveriesSpan.textContent = groupedOrders.length;
                 totalPending = groupedOrders.filter(group =>
@@ -269,11 +279,11 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
                     setAllDeliveredButton.classList.remove('disabled');
                 }
             } else {
-                console.error('API error in fetchDeliveryDetails:', data.error);
+                console.error('fetchDeliveryDetails API error:', data.error);
                 deliveryList.innerHTML = '<p class="text-center transition-opacity duration-300 text-danger">Gagal memuat data: ' + (data.error || 'Unknown error') + '</p>';
             }
         } catch (error) {
-            console.error('Fetch delivery details error:', error);
+            console.error('fetchDeliveryDetails error:', error);
             deliveryList.innerHTML = '<p class="text-center transition-opacity duration-300 text-danger">Gagal memuat data: ' + error.message + '</p>';
         } finally {
             isFetchingDetails = false;
@@ -284,14 +294,14 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
 
     /**
      * Handler untuk tombol refresh, menjalankan fetch data sekali.
-     * @param {string} courierId ID kurir
+     * @param {string} courierId ID kurir atau 'null' untuk item tanpa kurir
      * @param {string} date Tanggal dalam format YYYY-MM-DD
      */
     const handleRefreshDeliveries = async (courierId, date) => {
         if (isFetchingDetails) return; // Cegah fetch berulang
 
         // Nonaktifkan tombol refresh dengan btn-loading saat proses
-        refreshButton.classList.add('disabled');
+        refreshButton.classList.add('disabled', 'btn-loading');
         setAllDeliveredButton.classList.add('disabled');
 
         try {
@@ -425,10 +435,14 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
      * Merender daftar antaran di modal.
      * @param {Array} groupedOrders Data antaran yang dikelompokkan
      * @param {string} date Tanggal dalam format YYYY-MM-DD
+     * @param {string} courierId ID kurir atau 'null' untuk item tanpa kurir
      */
-    const renderDeliveryList = (groupedOrders, date) => {
+    const renderDeliveryList = (groupedOrders, date, courierId) => {
         deliveryList.innerHTML = '';
         deliveryList.classList.add('transition-opacity', 'duration-300');
+
+        // Log jumlah groupedOrders untuk debugging
+        console.debug('renderDeliveryList groupedOrders length:', groupedOrders.length);
 
         // Urutkan antaran: belum selesai di atas, selesai di bawah
         const pendingOrders = groupedOrders.filter(group =>
@@ -442,13 +456,12 @@ function initializeDeliveryDetailsListeners(currentDate, prevButton, nextButton,
         const sortedOrders = [...pendingOrders, ...deliveredOrders];
 
         if (sortedOrders.length === 0) {
-            deliveryList.innerHTML = '<p class="text-center">Tidak ada antaran untuk kurir ini.</p>';
+            deliveryList.innerHTML = '<p class="text-center">Tidak ada antaran untuk kurir ini pada tanggal tersebut.</p>';
             setAllDeliveredButton.textContent = 'Delivered';
-            // setAllDeliveredButton.classList.add('disabled', 'btn-loading');
+            setAllDeliveredButton.classList.add('disabled');
             return;
         }
 
-        // setAllDeliveredButton.classList.remove('disabled', 'btn-loading');
         // Atur state tombol berdasarkan totalPending
         setAllDeliveredButton.classList.toggle('disabled', totalPending === 0);
 

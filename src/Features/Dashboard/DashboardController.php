@@ -137,7 +137,7 @@ class DashboardController
     }
 
     /**
-     * Mengambil detail pengantaran untuk kurir tertentu.
+     * Mengambil detail pengantaran untuk kurir tertentu atau tanpa kurir.
      *
      * @param ServerRequestInterface $request Permintaan HTTP
      * @return ResponseInterface Respon JSON
@@ -146,15 +146,15 @@ class DashboardController
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $queryParams = $request->getQueryParams();
-        $courierId = $queryParams['courier_id'] ?? null;
+        $courierId = $queryParams['courier_id'] ?? 'null'; // Default ke 'null' jika tidak ada courier_id
         $date = $queryParams['date'] ?? date('Y-m-d');
 
-        if (!$courierId) {
-            return new JsonResponse(['error' => 'Courier ID is required'], 400);
-        }
-
         $deliveryDetails = $this->dashboardService->getDeliveryDetails($courierId, $date, $accessToken);
-        $courierResult = $this->supabaseService->fetchById('couriers', $courierId, $accessToken);
+        $courierName = 'Belum Dipilih';
+        if ($courierId !== 'null') {
+            $courierResult = $this->supabaseService->fetchById('couriers', $courierId, $accessToken);
+            $courierName = $courierResult['data']['nama'] ?? 'Unknown';
+        }
 
         $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
         $formatter = new IntlDateFormatter(
@@ -167,11 +167,14 @@ class DashboardController
         );
         $formattedDate = $formatter->format($dateObj);
 
+        // Tambahkan logging untuk debugging
+        error_log("getDeliveryDetails response: courierId=$courierId, date=$date, grouped_orders=" . json_encode($deliveryDetails['data']));
+
         return new JsonResponse([
             'grouped_orders' => $deliveryDetails['data'] ?? [],
-            'courier_name' => $courierResult['data']['nama'] ?? 'Unknown',
+            'courier_name' => $courierName,
             'date' => $formattedDate,
-            'error' => $deliveryDetails['error'] ?? $courierResult['error'] ?? null,
-        ], $deliveryDetails['error'] || $courierResult['error'] ? 500 : 200);
+            'error' => $deliveryDetails['error'] ?? null,
+        ], $deliveryDetails['error'] ? 500 : 200);
     }
 }
