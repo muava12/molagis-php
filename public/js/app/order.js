@@ -1,3 +1,4 @@
+// order.js
 import {
     format,
     startOfMonth,
@@ -103,7 +104,6 @@ async function renderCalendar(year, month) {
             const fullDate = format(date, 'yyyy-MM-dd');
             const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
             calendarDays.appendChild(dayElement);
-            // console.debug(`Rendered prev month day: ${fullDate}`);
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
@@ -112,7 +112,6 @@ async function renderCalendar(year, month) {
             const extraClass = isSameDay(date, new Date()) ? 'today' : '';
             const dayElement = createDayElement(date, fullDate, 'text-body', dayCounter++, extraClass);
             calendarDays.appendChild(dayElement);
-            // console.debug(`Rendered current month day: ${fullDate}`);
         }
 
         const totalDaysRendered = prevMonthDays + daysInMonth;
@@ -122,10 +121,8 @@ async function renderCalendar(year, month) {
             const fullDate = format(date, 'yyyy-MM-dd');
             const dayElement = createDayElement(date, fullDate, 'text-muted', dayCounter++);
             calendarDays.appendChild(dayElement);
-            // console.debug(`Rendered next month day: ${fullDate}`);
         }
 
-        console.debug(`Total days rendered: ${dayCounter}`);
         renderSelectedDates();
 
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -271,19 +268,16 @@ function renderSelectedDates() {
 
 async function fetchHolidayDates(year) {
     try {
-        // Periksa cache untuk tahun yang sama
         if (cachedHolidays.length > 0 && cachedHolidays[0].date.startsWith(year.toString())) {
             return cachedHolidays;
         }
         const response = await fetchWithRetry(`https://api-harilibur.pages.dev/api?year=${year}`, {}, true);
         console.debug('Fetched holidays:', response);
 
-        // Normalisasi tanggal dan filter hanya hari libur nasional
         const holidays = response
             .filter(h => h.is_national_holiday === true)
             .map(h => {
                 try {
-                    // Parse holiday_date dan format ulang ke yyyy-MM-dd
                     const parsedDate = parse(h.holiday_date, 'yyyy-M-d', new Date());
                     const normalizedDate = format(parsedDate, 'yyyy-MM-dd');
                     return {
@@ -292,10 +286,10 @@ async function fetchHolidayDates(year) {
                     };
                 } catch (error) {
                     console.warn(`Failed to parse holiday date: ${h.holiday_date}`, error);
-                    return null; // Abaikan entri dengan tanggal tidak valid
+                    return null;
                 }
             })
-            .filter(h => h !== null); // Hapus entri yang gagal diparse
+            .filter(h => h !== null);
 
         cachedHolidays = holidays;
         console.debug('Filtered and normalized holidays:', holidays);
@@ -402,15 +396,15 @@ function calculateTotalPayment() {
         const packageModal = packageData ? packageData.harga_modal : 0;
         const orderQty = parseInt(list.querySelector('#order-quantity').value) || 0;
         console.debug(`Package ID: ${packageId}, Price: ${packagePrice}, Modal: ${packageModal}, Quantity: ${orderQty}`);
-        totalPackageCost += packagePrice * orderQty; // Subtotal per hari
+        totalPackageCost += packagePrice * orderQty;
         totalModalCost += packageModal * orderQty;
     });
     const additionalItemsCost = parseFloat(document.querySelector('#harga-item-tambahan').value) || 0;
     const additionalModalCost = parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0;
     const shipping = parseFloat(shippingCost.value) || currentCustomerOngkir;
-    const totalPerDayValue = totalPackageCost + additionalItemsCost + shipping; // Total per hari
+    const totalPerDayValue = totalPackageCost + additionalItemsCost + shipping;
     const totalModalPerDayValue = totalModalCost + additionalModalCost;
-    const totalPaymentValue = totalPerDayValue * selectedDates.size; // Total untuk semua hari
+    const totalPaymentValue = totalPerDayValue * selectedDates.size;
 
     return {
         totalPerDay: totalPerDayValue,
@@ -525,7 +519,7 @@ function collectOrderData() {
         item_tambahan: document.getElementById('item-tambahan').value.trim(),
         harga_tambahan: parseFloat(document.querySelector('#harga-item-tambahan').value) || 0,
         harga_modal_tambahan: parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0,
-        total_harga_perhari: totals.totalPerDay, // Total per hari (termasuk ongkir)
+        total_harga_perhari: totals.totalPerDay,
         total_modal_perhari: totals.totalModalPerDay
     }));
 
@@ -541,7 +535,7 @@ function collectOrderData() {
                 delivery_index: index,
                 paket_id: pkg.packageId,
                 jumlah: pkg.quantity,
-                subtotal_harga: packageData ? packageData.harga_jual * pkg.quantity : 0, // Subtotal per hari
+                subtotal_harga: packageData ? packageData.harga_jual * pkg.quantity : 0,
                 catatan_dapur: document.getElementById('kitchen-notes').value.trim(),
                 catatan_kurir: document.getElementById('courier-notes').value.trim()
             });
@@ -553,7 +547,7 @@ function collectOrderData() {
         order_data: {
             customer_id: parseInt(customerId),
             tanggal_pesan: format(new Date(), 'yyyy-MM-dd'),
-            total_harga: totals.totalPayment, // Total untuk semua hari
+            total_harga: totals.totalPayment,
             notes: document.getElementById('order-notes').value.trim(),
             metode_pembayaran: paymentMethod.value
         },
@@ -582,7 +576,7 @@ async function submitOrder(e) {
         displayConfirmationModal(formData);
     } catch (error) {
         console.error('Submit order error:', error);
-        showToast('Error', error.message, true); // Replace showErrorNotification
+        showToast('Error', error.message, true);
     }
 }
 
@@ -642,7 +636,7 @@ function displayConfirmationModal(order) {
         const packageName = packageData ? packageData.nama : 'Unknown';
         const quantity = parseInt(list.querySelector('#order-quantity').value) || 0;
         const unitPrice = packageData ? packageData.harga_jual : 0;
-        const subtotal = quantity * unitPrice; // Subtotal per hari
+        const subtotal = quantity * unitPrice;
         if (quantity > 0) {
             packages[packageName] = { quantity, subtotal, unitPrice };
         }
@@ -737,17 +731,23 @@ function displayConfirmationModal(order) {
             if (!response.success) {
                 throw new Error(response.message);
             }
+
+            // Tutup modal konfirmasi
             modal.hide();
-            // displaySummaryModal(order, response.order_id);
+
+            // Tutup modal add-order
+            const addOrderModalElement = document.querySelector('#modal-add-order');
+            if (addOrderModalElement) {
+                const addOrderModalInstance = bootstrap.Modal.getInstance(addOrderModalElement) || new bootstrap.Modal(addOrderModalElement);
+                addOrderModalInstance.hide();
+                console.debug('Modal add-order hidden:', addOrderModalElement);
+            } else {
+                console.warn('Modal add-order element not found');
+            }
+
+            // Reset form dan tampilkan toast sukses
             resetForm();
             showToast('Sukses', 'Pesanan berhasil disimpan');
-            // Untuk halaman Dashboard - BELUM BERFUNGSI
-            const modalElement = document.querySelector('#modal-add-order');
-            console.debug('Modal element:', modalElement);
-            if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                const modalAddOrder = new bootstrap.Modal(modalElement);
-                modalAddOrder.hide();
-            }
         } catch (error) {
             console.error('Confirm order error:', error);
             showToast('Error', 'Gagal menyimpan pesanan: ' + error.message, true);
@@ -756,7 +756,7 @@ function displayConfirmationModal(order) {
             confirmBtn.classList.remove('btn-loading');
         }
     };
-    confirmBtn.removeEventListener('click', handler);
+    confirmBtn.removeEventListener('click', handler); // Hapus listener lama
     confirmBtn.addEventListener('click', handler);
 }
 
@@ -791,7 +791,7 @@ function showErrorNotification(message) {
 
 function setupEventListeners() {
     prevMonthBtn.addEventListener('click', async (e) => {
-        e.preventDefault(); // Cegah submit form
+        e.preventDefault();
         displayedMonth--;
         if (displayedMonth < 0) {
             displayedMonth = 11;
@@ -807,7 +807,7 @@ function setupEventListeners() {
     });
 
     nextMonthBtn.addEventListener('click', async (e) => {
-        e.preventDefault(); // Cegah submit form
+        e.preventDefault();
         displayedMonth++;
         if (displayedMonth > 11) {
             displayedMonth = 0;
@@ -823,7 +823,7 @@ function setupEventListeners() {
     });
 
     todayBtn.addEventListener('click', async (e) => {
-        e.preventDefault(); // Cegah submit form
+        e.preventDefault();
         const today = new Date();
         displayedYear = today.getFullYear();
         displayedMonth = today.getMonth();
@@ -831,7 +831,7 @@ function setupEventListeners() {
     });
 
     nextMonthButton.addEventListener('click', async (e) => {
-        e.preventDefault(); // Cegah submit form
+        e.preventDefault();
         const nextMonth = addMonths(new Date(), 1);
         if (displayedMonth === nextMonth.getMonth()) return;
 
@@ -849,7 +849,7 @@ function setupEventListeners() {
     });
 
     clearButton.addEventListener('click', async (e) => {
-        e.preventDefault(); // Cegah submit form
+        e.preventDefault();
         selectedDates.clear();
         await renderCalendar(displayedYear, displayedMonth);
         renderSelectedDates();
@@ -870,7 +870,6 @@ function setupEventListeners() {
     document.querySelector('#harga-modal-item-tambahan').addEventListener('input', calculateTotalPayment);
     orderForm.addEventListener('submit', submitOrder);
 
-    // Notes toggle listeners
     const notesToggles = document.querySelectorAll('.form-selectgroup-input[data-bs-toggle="collapse"]');
     notesToggles.forEach(toggle => {
         toggle.addEventListener('change', () => {
@@ -909,7 +908,5 @@ function setupEventListeners() {
         });
     });
 }
-
-// initialize();
 
 export { initialize, setupEventListeners, fetchHolidayDates, renderCalendar, fetchCustomers, fetchPackages, calculateTotalPayment, setupAddRemovePackageHandlers };

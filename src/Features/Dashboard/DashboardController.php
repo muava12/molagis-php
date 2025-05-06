@@ -9,6 +9,7 @@ use IntlDateFormatter;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Molagis\Shared\SupabaseService;
+use Molagis\Features\Settings\SettingsService;
 
 /**
  * Controller untuk mengelola halaman dan endpoint dashboard.
@@ -18,7 +19,8 @@ class DashboardController
     public function __construct(
         private DashboardService $dashboardService,
         private SupabaseService $supabaseService,
-        private Environment $twig
+        private SettingsService $settingsService, // Tambahkan SettingsService
+        private Environment $twig,
     ) {}
 
     /**
@@ -36,6 +38,13 @@ class DashboardController
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
         $deliveriesResult = $this->dashboardService->getDeliveriesAndUpdateStatus($currentDate, null, null, $accessToken);
 
+        // Ambil pengaturan default_courier dan default_shipping_cost
+        $defaultCourierResponse = $this->settingsService->getSettingByKey('default_courier', $accessToken);
+        $defaultCourier = $defaultCourierResponse['data'] ?? null;
+
+        $defaultShippingCostResponse = $this->settingsService->getSettingByKey('default_shipping_cost', $accessToken);
+        $defaultShippingCost = $defaultShippingCostResponse['data'] ?? '5000'; // Fallback ke 5000 jika tidak ada
+        
         $formatter = new IntlDateFormatter(
             'id_ID',
             IntlDateFormatter::FULL,
@@ -56,6 +65,8 @@ class DashboardController
             'error' => $couriersResult['error'] ?? $deliveriesResult['error'] ?? null,
             'user_id' => $user['id'] ?? 'default-seed',
             'active_couriers' => $couriersResult['data'] ?? [],
+            'default_courier' => $defaultCourier, // Kirim default_courier ke template
+            'default_shipping_cost' => $defaultShippingCost, // Kirim default_shipping_cost ke template
         ]);
     }
 

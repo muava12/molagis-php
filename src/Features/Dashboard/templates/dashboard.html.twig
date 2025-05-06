@@ -291,16 +291,16 @@
 										<div class="col-6">
 											<label class="form-label">Kurir</label>
 											<select title="Pilih Kurir" class="form-select" id="courier-select">
-												<option value="" disabled selected>Pilih Kurir</option>
+												<option value="" disabled>Pilih Kurir</option>
 												{% for courier in active_couriers %}
-													<option value="{{ courier.id }}">{{ courier.nama }}</option>
+													<option value="{{ courier.id }}" {{ courier.id == default_courier ? 'selected' : '' }}>{{ courier.nama }}</option>
 												{% endfor %}
 											</select>
 										</div>
 										<div class="col-6">
 											<label class="form-label">Ongkos Kirim</label>
 											<div class="input-group">
-												<input title="Masukkan Ongkos Kirim" class="form-control" type="number" id="shipping-cost" value="5000" min="5000" step="1000" required>
+												<input title="Masukkan Ongkos Kirim" class="form-control" type="number" id="shipping-cost" value="{{ default_shipping_cost|default('5000') }}" min="5000" step="1000" required>
 												<span class="input-group-text d-none" id="shipping-fast-icon">
 													{% include 'svg/truck-delivery.svg.twig' %}
 												</span>
@@ -321,21 +321,21 @@
 												<input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#order-notes-collapse" aria-expanded="false" aria-controls="order-notes-collapse" id="order-notes-toggle">
 												<span class="form-selectgroup-label">
 													{% include 'svg/pencil.svg.twig' %}
-													<span class="d-none d-md-inline">Order Notes</span>
+													Order Notes
 												</span>
 											</label>
 											<label class="form-selectgroup-item">
 												<input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#kitchen-notes-collapse" aria-expanded="false" aria-controls="kitchen-notes-collapse" id="kitchen-notes-toggle">
 												<span class="form-selectgroup-label">
 													{% include 'svg/pencil.svg.twig' %}
-													<span class="d-none d-md-inline">Kitchen Notes</span>
+													Kitchen Notes
 												</span>
 											</label>
 											<label class="form-selectgroup-item">
 												<input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#courier-notes-collapse" aria-expanded="false" aria-controls="courier-notes-collapse" id="courier-notes-toggle">
 												<span class="form-selectgroup-label">
 													{% include 'svg/pencil.svg.twig' %}
-													<span class="d-none d-md-inline">Courier Notes</span>
+													Courier Notes
 												</span>
 											</label>
 										</div>
@@ -350,7 +350,6 @@
 										</div>
 									</div>
 									<input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
-									<div class="d-grid mt-3"></div>
 								</div>
 							</div>
 						</div>
