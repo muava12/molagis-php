@@ -372,6 +372,10 @@
 		{% include 'toast.html.twig' %}
 	</div>
 {% endblock %}
-{% block javascripts %} <script src="/js/awesomplete.min.js"></script>
+{% block javascripts %} 
+	 <script src="/js/awesomplete.min.js"></script>
 	 <script type="module" src="/js/app/dashboard.js?v={{ 'now'|date('U') }}"></script>
+	 <!-- <script type="module">
+    	import { initialize as initOrder } from '/js/app/order.js?v={{ 'now'|date('U') }}';
+	</script> -->
 {% endblock %}

@@ -720,7 +720,7 @@ function displayConfirmationModal(order) {
     const confirmBtn = document.getElementById('confirmOrder');
     const handler = async () => {
         try {
-            confirmBtn.classList.add('btn-loading');
+            confirmBtn.classList.add('btn-loading','disabled');
             const response = await fetchWithRetry('/api/order', {
                 method: 'POST',
                 headers: {
@@ -753,7 +753,7 @@ function displayConfirmationModal(order) {
             showToast('Error', 'Gagal menyimpan pesanan: ' + error.message, true);
             modal.hide();
         } finally {
-            confirmBtn.classList.remove('btn-loading');
+            confirmBtn.classList.remove('btn-loading','disabled');
         }
     };
     confirmBtn.removeEventListener('click', handler); // Hapus listener lama
@@ -868,6 +868,7 @@ function setupEventListeners() {
     });
     document.querySelector('#harga-item-tambahan').addEventListener('input', calculateTotalPayment);
     document.querySelector('#harga-modal-item-tambahan').addEventListener('input', calculateTotalPayment);
+    orderForm.removeEventListener('submit', submitOrder);
     orderForm.addEventListener('submit', submitOrder);
 
     const notesToggles = document.querySelectorAll('.form-selectgroup-input[data-bs-toggle="collapse"]');

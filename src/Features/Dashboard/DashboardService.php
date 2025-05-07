@@ -67,7 +67,7 @@ class DashboardService
             // Tambahkan logging untuk debugging
             error_log("getDeliveriesAndUpdateStatus RPC response: " . json_encode($response));
 
-            // Tangani error dari RPC, termasuk error struktur query
+            // Tangani error dari RPC
             if ($response['error']) {
                 $errorMessage = $response['error']['message'] ?? 'Gagal mengambil data pengantaran';
                 error_log('Supabase RPC error in getDeliveriesAndUpdateStatus: ' . $errorMessage . ' | Date: ' . $date . ' | Payload: ' . json_encode($payload));
@@ -82,7 +82,7 @@ class DashboardService
 
             $data = $response['data'] ?? [];
 
-            // Jika data kosong atau hanya baris default dengan courier_id NULL
+            // Jika data kosong, kembalikan array kosong
             if (empty($data)) {
                 return [
                     'data' => [],
@@ -93,21 +93,27 @@ class DashboardService
                 ];
             }
 
-            // Validasi struktur data untuk memastikan konsistensi
-            $deliveries = array_map(function ($item) {
+            // Validasi dan format data
+            $deliveries = array_filter(array_map(function ($item) {
+                // Lewati item dengan jumlah_pengantaran 0 untuk konsistensi
+                if ((int) ($item['jumlah_pengantaran'] ?? 0) === 0) {
+                    return null;
+                }
                 return [
                     'kurir_id' => $item['courier_id'] === null ? null : (int) ($item['courier_id'] ?? null),
                     'courier_name' => (string) ($item['courier_name'] ?? 'Belum Dipilih'),
                     'jumlah_pengantaran' => (int) ($item['jumlah_pengantaran'] ?? 0),
                     'jumlah_selesai' => (int) ($item['jumlah_selesai'] ?? 0),
                 ];
-            }, $data);
+            }, $data), function ($item) {
+                return $item !== null;
+            });
 
             // Hitung total pengantaran
             $totalDeliveries = (int) ($data[0]['total_deliveries'] ?? array_sum(array_column($data, 'jumlah_pengantaran')));
 
             return [
-                'data' => $deliveries, // Sertakan semua item, termasuk kurir_id null
+                'data' => array_values($deliveries), // Pastikan array terindeks
                 'total' => $totalDeliveries,
                 'today_date' => $date,
                 'processing_date' => date('Y-m-d'),
