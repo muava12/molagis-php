@@ -3,57 +3,58 @@
   Description: Modal untuk menambah customer baru dengan form dan validasi HTML5.
 #}
 <div class="modal modal-blur fade" id="{{ modal_id|default('add-modal') }}" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Tambah Customer</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <!-- <form id="{{ modal_id|default('add-modal') }}-form" novalidate> -->
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label required">Nama</label>
-                        <input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-nama" name="nama" placeholder="Nama customer" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Alamat</label>
-                        <textarea class="form-control" id="{{ modal_id|default('add-modal') }}-alamat" name="alamat" rows="3" placeholder="Alamat customer"></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-6">
-                            <div class="mb-3">
-                                <label class="form-label">Telepon</label>
-                                <input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-telepon" name="telepon" placeholder="Nomor telepon">
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="mb-3">
-                                <label class="form-label">Telepon Alternatif</label>
-                                <input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-telepon-alt" name="telepon_alt" placeholder="Nomor telepon alternatif">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Telepon Pemesan</label>
-                        <input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-telepon-pemesan" name="telepon_pemesan" placeholder="Nomor telepon pemesan">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Maps</label>
-                        <input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-maps" name="maps" placeholder="Link Google Maps">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Ongkir</label>
-                        <input type="number" class="form-control" id="{{ modal_id|default('add-modal') }}-ongkir" name="ongkir" placeholder="Biaya ongkir">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
-                    <button type="submit" class="btn btn-primary ms-auto" id="{{ modal_id|default('add-modal') }}-save">
-                        {% include 'svg/plus.svg.twig' %}
-                        {{ button_text|default('Tambah Customer') }}
-                    </button>
-                </div>
-            <!-- </form> -->
-        </div>
-    </div>
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Tambah Customer</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<form id="{{ modal_id|default('add-modal') }}-form">
+					<div class="mb-3">
+						<label class="form-label required">Nama</label>
+						<input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-nama" name="nama" placeholder="Nama customer" required>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Alamat</label>
+						<textarea class="form-control" id="{{ modal_id|default('add-modal') }}-alamat" name="alamat" rows="3" placeholder="Alamat customer"></textarea>
+					</div>
+					<div class="row">
+						<div class="col-lg-6">
+							<div class="mb-3">
+								<label class="form-label">Telepon</label>
+								<input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-telepon" name="telepon" placeholder="Nomor telepon">
+							</div>
+						</div>
+						<div class="col-lg-6">
+							<div class="mb-3">
+								<label class="form-label">Telepon Alternatif</label>
+								<input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-telepon-alt" name="telepon_alt" placeholder="Nomor telepon alternatif">
+							</div>
+						</div>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Telepon Pemesan</label>
+						<input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-telepon-pemesan" name="telepon_pemesan" placeholder="Nomor telepon pemesan">
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Maps</label>
+						<input type="text" class="form-control" id="{{ modal_id|default('add-modal') }}-maps" name="maps" placeholder="Link Google Maps">
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Ongkir</label>
+						<input type="number" class="form-control" id="{{ modal_id|default('add-modal') }}-ongkir" name="ongkir" placeholder="Biaya ongkir">
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
+				<button type="submit" form="{{ modal_id|default('add-modal') }}-form" class="btn btn-primary ms-auto" id="{{ modal_id|default('add-modal') }}-save">
+					{% include 'svg/plus.svg.twig' %}
+					{{ button_text|default('Tambah Customer') }}
+				</button>
+			</div>
+
+		</div>
+	</div>
 </div>

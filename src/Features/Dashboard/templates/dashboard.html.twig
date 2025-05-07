@@ -198,49 +198,50 @@
         } %}
 
 		<!-- Modal Create New Order -->
-		<div class="modal modal-blur fade w-100" id="modal-add-order" tabindex="-1" role="dialog" aria-hidden="true">
+		<div class="modal modal-blur fade" id="modal-add-order" tabindex="-1" role="dialog" aria-hidden="true">
 			<div class="modal-dialog modal-lg modal-fullscreen-md-down" role="document">
 				<div class="modal-content">
 					<div class="modal-header">
 						<h5 class="modal-title">Input Pesanan Baru</h5>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 					</div>
-					<form id="order-form" novalidate>
-						<div class="modal-body">
-							<div class="row">
-								<div class="col-12 col-sm-6">
-									<div class="date-picker-container">
-										<div class="date-picker-buttons">
-											<button class="btn" id="today-btn">Hari Ini</button>
-											<button class="btn" id="next-month-btn">Bulan Depan</button>
-											<button class="btn" id="clear-btn">Clear</button>
-										</div>
-										<div class="date-picker-header">
-											<button class="btn btn-icon" id="prev-month">
-												{% include 'svg/chevron-left.svg.twig' %}
-											</button>
-											<div class="date-picker-month text-body" id="calendar-month-year"></div>
-											<button class="btn btn-icon" id="next-month">
-												{% include 'svg/chevron-right.svg.twig' %}
-											</button>
-										</div>
-										<div class="date-picker-weekdays text-secondary">
-											<div>Sen</div>
-											<div>Sel</div>
-											<div>Rab</div>
-											<div>Kam</div>
-											<div>Jum</div>
-											<div>Sab</div>
-											<div>Min</div>
-										</div>
-										<div class="date-picker-days" id="calendar-days"></div>
-										<div class="selected-date mt-2">
-											<h3 class="selected-dates-count h6" id="selected-dates-count">0 Hari dipilih</h3>
-											<div class="selected-dates" id="selected-dates"></div>
-										</div>
+
+					<div class="modal-body">
+						<div class="row">
+							<div class="col-12 col-sm-6">
+								<div class="date-picker-container">
+									<div class="date-picker-buttons">
+										<button class="btn" id="today-btn">Hari Ini</button>
+										<button class="btn" id="next-month-btn">Bulan Depan</button>
+										<button class="btn" id="clear-btn">Clear</button>
+									</div>
+									<div class="date-picker-header">
+										<button class="btn btn-icon" id="prev-month">
+											{% include 'svg/chevron-left.svg.twig' %}
+										</button>
+										<div class="date-picker-month text-body" id="calendar-month-year"></div>
+										<button class="btn btn-icon" id="next-month">
+											{% include 'svg/chevron-right.svg.twig' %}
+										</button>
+									</div>
+									<div class="date-picker-weekdays text-secondary">
+										<div>Sen</div>
+										<div>Sel</div>
+										<div>Rab</div>
+										<div>Kam</div>
+										<div>Jum</div>
+										<div>Sab</div>
+										<div>Min</div>
+									</div>
+									<div class="date-picker-days" id="calendar-days"></div>
+									<div class="selected-date mt-2">
+										<h3 class="selected-dates-count h6" id="selected-dates-count">0 Hari dipilih</h3>
+										<div class="selected-dates" id="selected-dates"></div>
 									</div>
 								</div>
-								<div class="col-12 col-sm-6">
+							</div>
+							<div class="col-12 col-sm-6">
+								<form id="order-form" novalidate>
 									<div class="mb-3">
 										<label for="customer-input" class="form-label text-muted">Pelanggan</label>
 										<input class="form-control w-100" type="text" id="customer-input" placeholder="Ketik Nama Pelanggan" autocomplete="off" required>
@@ -350,17 +351,18 @@
 										</div>
 									</div>
 									<input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
-								</div>
+								</form>
 							</div>
 						</div>
-						<div class="modal-footer">
-							<a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
-							<button type="submit" class="btn btn-primary ms-auto">
-								{% include 'svg/check.svg.twig' %}
-								Simpan Pesanan
-							</button>
-						</div>
-					</form>
+					</div>
+					<div class="modal-footer">
+						<a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
+						<button type="submit" class="btn btn-primary ms-auto" form="order-form">
+							{% include 'svg/check.svg.twig' %}
+							Simpan Pesanan
+						</button>
+					</div>
+
 				</div>
 			</div>
 		</div>
@@ -372,10 +374,9 @@
 		{% include 'toast.html.twig' %}
 	</div>
 {% endblock %}
-{% block javascripts %} 
-	 <script src="/js/awesomplete.min.js"></script>
+{% block javascripts %} <script src="/js/awesomplete.min.js"></script>
 	 <script type="module" src="/js/app/dashboard.js?v={{ 'now'|date('U') }}"></script>
-	 <!-- <script type="module">
-    	import { initialize as initOrder } from '/js/app/order.js?v={{ 'now'|date('U') }}';
-	</script> -->
+	<!--  <script type="module">
+	    	import { initialize as initOrder } from '/js/app/order.js?v={{ 'now'|date('U') }}';
+		</script> -->
 {% endblock %}
