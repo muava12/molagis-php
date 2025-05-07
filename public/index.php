@@ -20,11 +20,11 @@ use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
 use FastRoute\Dispatcher;
-use FastRoute\RouteCollector;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Laminas\Diactoros\ServerRequestFactory;
 use Laminas\Diactoros\Response;
+use DI\ContainerBuilder;
 
 // Start session
 session_start();
@@ -33,38 +33,62 @@ session_start();
 $dotenv = Dotenv::createImmutable($basePath);
 $dotenv->safeLoad();
 
-// Initialize Twig
-$loader = new FilesystemLoader([
-    "{$basePath}/src/Shared/templates",
-    "{$basePath}/src/Shared/templates/layouts",
-    "{$basePath}/src/Shared/templates/partials",
-    "{$basePath}/src/Features/Auth/templates",
-    "{$basePath}/src/Features/Dashboard/templates",
-    "{$basePath}/src/Features/Customers/templates",
-    "{$basePath}/src/Features/Order/templates",
-    "{$basePath}/src/Features/Settings/templates",
+// Initialize Dependency Injection Container
+$containerBuilder = new ContainerBuilder();
+$containerBuilder->addDefinitions([
+    SupabaseClient::class => fn() => new SupabaseClient($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']),
+    SupabaseService::class => fn($c) => new SupabaseService($c->get(SupabaseClient::class)),
+    AuthMiddleware::class => fn($c) => new AuthMiddleware($c->get(SupabaseService::class)),
+    SettingsService::class => fn($c) => new SettingsService($c->get(SupabaseClient::class)),
+    SettingsController::class => fn($c) => new SettingsController(
+        $c->get(SettingsService::class),
+        $c->get(SupabaseService::class),
+        $c->get(Environment::class)
+    ),
+    DashboardService::class => fn($c) => new DashboardService($c->get(SupabaseClient::class)),
+    DashboardController::class => fn($c) => new DashboardController(
+        $c->get(DashboardService::class),
+        $c->get(SupabaseService::class),
+        $c->get(SettingsService::class),
+        $c->get(Environment::class)
+    ),
+    CustomersService::class => fn($c) => new CustomersService($c->get(SupabaseClient::class)),
+    CustomersController::class => fn($c) => new CustomersController(
+        $c->get(CustomersService::class),
+        $c->get(SupabaseService::class),
+        $c->get(Environment::class)
+    ),
+    OrderService::class => fn($c) => new OrderService($c->get(SupabaseClient::class)),
+    OrderController::class => fn($c) => new OrderController(
+        $c->get(OrderService::class),
+        $c->get(SupabaseService::class),
+        $c->get(SettingsService::class),
+        $c->get(Environment::class)
+    ),
+    Environment::class => fn() => new Environment(
+        new FilesystemLoader([
+            "{$basePath}/src/Shared/templates",
+            "{$basePath}/src/Shared/templates/layouts",
+            "{$basePath}/src/Shared/templates/partials",
+            "{$basePath}/src/Features/Auth/templates",
+            "{$basePath}/src/Features/Dashboard/templates",
+            "{$basePath}/src/Features/Customers/templates",
+            "{$basePath}/src/Features/Order/templates",
+            "{$basePath}/src/Features/Settings/templates",
+        ]),
+        [
+            'debug' => $_ENV['APP_ENV'] === 'development',
+            'cache' => $_ENV['APP_ENV'] === 'production' ? "{$basePath}/cache/twig" : false,
+        ]
+    ),
 ]);
-$twig = new Environment($loader, [
-    'debug' => $_ENV['APP_ENV'] === 'development',
-    'cache' => $_ENV['APP_ENV'] === 'production' ? "{$basePath}/cache/twig" : false,
-]);
+$container = $containerBuilder->build();
+
+// Tambahkan Twig Debug Extension
+$twig = $container->get(Environment::class);
 $twig->addExtension(new \Twig\Extension\DebugExtension());
 
-// Initialize services
-$supabaseClient = new SupabaseClient($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']);
-$supabaseService = new SupabaseService($supabaseClient);
-$authMiddleware = new AuthMiddleware($supabaseService);
-$settingService = new SettingsService($supabaseClient);
-$settingController = new SettingsController($settingService, $supabaseService, $twig);
-$authController = new AuthController($supabaseService, $twig);
-$dashboardService = new DashboardService($supabaseClient);
-$dashboardController = new DashboardController($dashboardService, $supabaseService,$settingService, $twig);
-$customersService = new CustomersService($supabaseClient);
-$customersController = new CustomersController($customersService, $supabaseService, $twig);
-$orderService = new OrderService($supabaseClient);
-$orderController = new OrderController($orderService, $supabaseService, $settingService, $twig);
-
-// Create PSR-7 request with explicit body parsing
+// Create PSR-7 request with body parsing
 $request = ServerRequestFactory::fromGlobals();
 if (in_array($request->getMethod(), ['POST', 'PUT', 'PATCH'], true)) {
     $contentType = $request->getHeaderLine('Content-Type');
@@ -79,84 +103,51 @@ if (in_array($request->getMethod(), ['POST', 'PUT', 'PATCH'], true)) {
     }
 }
 
-// Define routes with middleware mapping
+// Define routes in a separate configuration
 $routes = [
     // Public routes
-    ['GET', '/', [$authController, 'showLogin'], []],
-    ['GET', '/login', [$authController, 'showLogin'], []],
-    ['POST', '/login', [$authController, 'handleLogin'], []],
-    
+    ['GET', '/', [AuthController::class, 'showLogin'], []],
+    ['GET', '/login', [AuthController::class, 'showLogin'], []],
+    ['POST', '/login', [AuthController::class, 'handleLogin'], []],
     // Protected routes
-    ['GET', '/dashboard', [$dashboardController, 'showDashboard'], [$authMiddleware]],
-    ['GET', '/api/deliveries', [$dashboardController, 'getDeliveries'], [$authMiddleware]],
-    ['POST', '/api/deliveries/update-status', [$dashboardController, 'updateDeliveryStatus'], [$authMiddleware]],
-    ['GET', '/api/delivery-details', [$dashboardController, 'getDeliveryDetails'], [$authMiddleware]],
-    ['POST', '/api/update-delivery-status', [$dashboardController, 'updateDeliveryStatus'], [$authMiddleware]],
-    ['GET', '/logout', [$authController, 'logout'], [$authMiddleware]],
-    ['GET', '/customers', [$customersController, 'showCustomers'], [$authMiddleware]],
-    ['GET', '/api/customers/all', [$customersController, 'getCustomers'], [$authMiddleware]],
-    ['GET', '/api/customers', [$orderController, 'getCustomers'], [$authMiddleware]],
-    ['POST', '/api/customers/add', [$customersController, 'addCustomer'], [$authMiddleware]],
-    ['POST', '/api/customers/update', [$customersController, 'updateCustomer'], [$authMiddleware]],
-    ['POST', '/api/customers/delete', [$customersController, 'deleteCustomer'], [$authMiddleware]],
-    ['GET', '/input-order', [$orderController, 'showOrder'], [$authMiddleware]],
-    ['POST', '/api/order', [$orderController, 'handleOrder'], [$authMiddleware]], 
-    ['GET', '/api/packages', [$orderController, 'getPackages'], [$authMiddleware]], 
-    ['GET', '/settings', [$settingController, 'showSettings'], [$authMiddleware]],
-    ['POST', '/api/settings/update', [$settingController, 'updateSettings'], [$authMiddleware]],
+    ['GET', '/dashboard', [DashboardController::class, 'showDashboard'], [AuthMiddleware::class]],
+    ['GET', '/api/deliveries', [DashboardController::class, 'getDeliveries'], [AuthMiddleware::class]],
+    ['POST', '/api/deliveries/update-status', [DashboardController::class, 'updateDeliveryStatus'], [AuthMiddleware::class]],
+    ['GET', '/api/delivery-details', [DashboardController::class, 'getDeliveryDetails'], [AuthMiddleware::class]],
+    ['POST', '/api/update-delivery-status', [DashboardController::class, 'updateDeliveryStatus'], [AuthMiddleware::class]],
+    ['GET', '/logout', [AuthController::class, 'logout'], [AuthMiddleware::class]],
+    ['GET', '/customers', [CustomersController::class, 'showCustomers'], [AuthMiddleware::class]],
+    ['GET', '/api/customers/all', [CustomersController::class, 'getCustomers'], [AuthMiddleware::class]],
+    ['GET', '/api/customers', [OrderController::class, 'getCustomers'], [AuthMiddleware::class]],
+    ['POST', '/api/customers/add', [CustomersController::class, 'addCustomer'], [AuthMiddleware::class]],
+    ['POST', '/api/customers/update', [CustomersController::class, 'updateCustomer'], [AuthMiddleware::class]],
+    ['POST', '/api/customers/delete', [CustomersController::class, 'deleteCustomer'], [AuthMiddleware::class]],
+    ['GET', '/input-order', [OrderController::class, 'showOrder'], [AuthMiddleware::class]],
+    ['POST', '/api/order', [OrderController::class, 'handleOrder'], [AuthMiddleware::class]],
+    ['GET', '/api/packages', [OrderController::class, 'getPackages'], [AuthMiddleware::class]],
+    ['GET', '/settings', [SettingsController::class, 'showSettings'], [AuthMiddleware::class]],
+    ['POST', '/api/settings/update', [SettingsController::class, 'updateSettings'], [AuthMiddleware::class]],
 ];
 
 // Create FastRoute dispatcher
-$dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) use ($routes) {
+$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($routes) {
     foreach ($routes as $route) {
         $r->addRoute($route[0], $route[1], $route);
     }
 });
 
-// Handle static files
-$staticExtensions = ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'woff', 'woff2', 'ttf'];
-$extension = pathinfo($request->getUri()->getPath(), PATHINFO_EXTENSION);
-if (in_array($extension, $staticExtensions, true)) {
-    $filePath = __DIR__ . $request->getUri()->getPath();
-    if (file_exists($filePath) && is_file($filePath)) {
-        $mimeTypes = [
-            'js' => 'application/javascript',
-            'css' => 'text/css',
-            'png' => 'image/png',
-            'jpg' => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'gif' => 'image/gif',
-            'ico' => 'image/x-icon',
-            'svg' => 'image/svg+xml',
-            'woff' => 'font/woff',
-            'woff2' => 'font/woff2',
-            'ttf' => 'font/ttf',
-        ];
-        
-        $response = new Response();
-        $response->getBody()->write(file_get_contents($filePath));
-        return $response
-            ->withHeader('Content-Type', $mimeTypes[$extension] ?? 'application/octet-stream')
-            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-            ->withHeader('Pragma', 'no-cache')
-            ->withHeader('Expires', '0');
-    }
-}
-
 // Dispatch route and handle response
-$response = handleDispatch($dispatcher, $request, $twig, $supabaseService);
+$response = handleDispatch($dispatcher, $request, $container);
 sendResponse($response);
 
-// Functions to handle the dispatch and response
-function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request, Environment $twig, SupabaseService $supabaseService): ResponseInterface {
-    $routeInfo = $dispatcher->dispatch(
-        $request->getMethod(), 
-        $request->getUri()->getPath()
-    );
+// Handle dispatch logic
+function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request, $container): ResponseInterface {
+    $routeInfo = $dispatcher->dispatch($request->getMethod(), $request->getUri()->getPath());
 
     switch ($routeInfo[0]) {
         case Dispatcher::NOT_FOUND:
             $response = new Response();
+            $twig = $container->get(Environment::class);
             $response->getBody()->write(
                 $twig->render('404.html.twig', [
                     'title' => 'Halaman Tidak Ditemukan',
@@ -164,9 +155,10 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                 ])
             );
             return $response->withStatus(404);
-            
+
         case Dispatcher::METHOD_NOT_ALLOWED:
             $response = new Response();
+            $twig = $container->get(Environment::class);
             $response->getBody()->write(
                 $twig->render('404.html.twig', [
                     'title' => 'Metode Tidak Diizinkan',
@@ -174,15 +166,18 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                 ])
             );
             return $response->withStatus(405);
-            
+
         case Dispatcher::FOUND:
             $routeData = $routeInfo[1];
             $vars = $routeInfo[2];
-            [$controller, $method] = $routeData[2];
-            $middlewares = $routeData[3] ?? [];
+            [$controllerClass, $method] = $routeData[2];
+            $middlewareClasses = $routeData[3] ?? [];
+
+            // Resolve controller from container
+            $controller = $container->get($controllerClass);
 
             // Create the final handler
-            $handler = function(ServerRequestInterface $request) use ($controller, $method, $vars, $supabaseService) {
+            $handler = function(ServerRequestInterface $request) use ($controller, $method, $vars, $container) {
                 $params = match($method) {
                     'handleLogin' => [$request->getParsedBody()],
                     'showDashboard' => [$request],
@@ -197,21 +192,17 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleOrder' => [$request],
                     'getPackages' => [$request],
                     'showOrder' => [$request],
-                    'showSettings' => [$request], // Tambahkan ini
-                    'updateSettings' => [$request], // Tambahkan ini
+                    'showSettings' => [$request],
+                    'updateSettings' => [$request],
                     default => []
                 };
-                
+
                 $result = $controller->$method(...$params);
-                
+
                 if ($result instanceof ResponseInterface) {
                     return $result;
                 }
 
-                // Tambahkan data kurir aktif untuk semua halaman (kecuali API)
-                $accessToken = $_SESSION['user_token'] ?? null;
-                $couriersResult = $supabaseService->getActiveCouriers($accessToken);
-                
                 $response = new Response();
                 $response->getBody()->write($result);
                 return $response;
@@ -219,8 +210,9 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
 
             // Build middleware stack
             $middlewareStack = array_reduce(
-                array_reverse($middlewares),
-                function(callable $next, callable $middleware) {
+                array_reverse($middlewareClasses),
+                function(callable $next, $middlewareClass) use ($container) {
+                    $middleware = $container->get($middlewareClass);
                     return function(ServerRequestInterface $request) use ($next, $middleware) {
                         return $middleware($request, $next);
                     };
@@ -232,6 +224,7 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
     }
 
     $response = new Response();
+    $twig = $container->get(Environment::class);
     $response->getBody()->write(
         $twig->render('404.html.twig', [
             'title' => 'Halaman Tidak Ditemukan',
@@ -241,17 +234,13 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
     return $response->withStatus(404);
 }
 
+// Send response
 function sendResponse(ResponseInterface $response): void {
-    // Send headers
     foreach ($response->getHeaders() as $name => $values) {
         foreach ($values as $value) {
             header(sprintf('%s: %s', $name, $value), false);
         }
     }
-
-    // Send status code
     http_response_code($response->getStatusCode());
-
-    // Send body
     echo $response->getBody();
 }

@@ -23,6 +23,7 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         'b6c2870932b0250c10334a86dcb33c7f' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/normalize_uploaded_files.php',
         'd02cf21124526632320d6f20b1bbf905' => __DIR__ . '/..' . '/laminas/laminas-diactoros/src/functions/parse_cookie_header.php',
         '253c157292f75eb38082b5acb06f3f01' => __DIR__ . '/..' . '/nikic/fast-route/src/functions.php',
+        'b33e3d135e5d9e47d845c576147bda89' => __DIR__ . '/..' . '/php-di/php-di/src/functions.php',
         '89efb1254ef2d1c5d80096acd12c4098' => __DIR__ . '/..' . '/twig/twig/src/Resources/core.php',
         'ffecb95d45175fd40f75be8a23b34f90' => __DIR__ . '/..' . '/twig/twig/src/Resources/debug.php',
         'c7baa00073ee9c61edf148c51917cfb4' => __DIR__ . '/..' . '/twig/twig/src/Resources/escaper.php',
@@ -45,6 +46,7 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         array (
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
+            'Psr\\Container\\' => 14,
             'PhpOption\\' => 10,
         ),
         'M' => 
@@ -55,7 +57,12 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         ),
         'L' => 
         array (
+            'Laravel\\SerializableClosure\\' => 28,
             'Laminas\\Diactoros\\' => 18,
+        ),
+        'I' => 
+        array (
+            'Invoker\\' => 8,
         ),
         'G' => 
         array (
@@ -72,6 +79,7 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         'D' => 
         array (
             'Dotenv\\' => 7,
+            'DI\\' => 3,
         ),
     );
 
@@ -105,6 +113,10 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         array (
             0 => __DIR__ . '/..' . '/psr/http-client/src',
         ),
+        'Psr\\Container\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/container/src',
+        ),
         'PhpOption\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
@@ -121,9 +133,17 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         array (
             0 => __DIR__ . '/..' . '/jerome/matrix/src/Matrix',
         ),
+        'Laravel\\SerializableClosure\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laravel/serializable-closure/src',
+        ),
         'Laminas\\Diactoros\\' => 
         array (
             0 => __DIR__ . '/..' . '/laminas/laminas-diactoros/src',
+        ),
+        'Invoker\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/php-di/invoker/src',
         ),
         'GuzzleHttp\\Psr7\\' => 
         array (
@@ -152,6 +172,10 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         'Dotenv\\' => 
         array (
             0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
+        ),
+        'DI\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/php-di/php-di/src',
         ),
     );
 
