@@ -1,9 +1,9 @@
 /* Gaya untuk halaman order */
 
-.btn-close {
+/* .btn-close {
   width: 0.5em;
   height: 0.5em;
-}
+} */
 
 .package-list {
   display: flex;
@@ -180,9 +180,9 @@
   z-index: 1000;
 }
 
-.tooltip .tooltip-arrow::before {
+/* .tooltip .tooltip-arrow::before {
   border-bottom-color: var(--tblr-dark, #343a40);
-}
+} */
 
 .selected-dates {
   margin-top: 10px;
@@ -195,30 +195,51 @@
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 5px;
-  color: var(--tblr-muted, #6c757d);
+  /* color: var(--tblr-muted, #6c757d); */
+  color: var(--tblr-body-color);
 }
 
-.badge {
+/* .badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 2px 4px;
 }
-
+*/
 .badge-close-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--tblr-muted, #6c757d);
-  cursor: pointer;
   transition: color 0.2s;
 }
 
 .badge-close-btn:hover {
   color: var(--tblr-danger, #dc3545);
+}
+
+
+/* nyomot dari preview Tabler */
+.modal-close {
+  position:absolute;
+  top:0;
+  right:0;
+  width:var(--tblr-space-5xl);
+  height:var(--tblr-space-5xl);
+  color:inherit;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:.5;
+  transition:var(--tblr-transition-opacity);
+  cursor:pointer;
+  z-index:1
+}
+.modal-close svg {
+  width:var(--tblr-space-2xl);
+  height:var(--tblr-space-2xl);
+  stroke-width:1.5;
+  transition:var(--tblr-transition-transform);
+}
+.modal-close:hover {
+  opacity:1
+}
+.modal-close:hover svg {
+  transform:rotate(90deg)
 }

@@ -244,12 +244,10 @@ function renderSelectedDates() {
         badge.appendChild(dateText);
 
         const closeButton = document.createElement('button');
-        closeButton.classList.add('badge-close-btn');
+        // closeButton.classList.add('badge-close-btn');
+        closeButton.classList.add('btn-close', 'btn-close-sm', 'ms-1');
         closeButton.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <svg  xmlns="http://www.w3.org/2000/svg"  width="20"  height="20"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="1.5"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
         `;
         closeButton.addEventListener('click', (e) => {
             e.stopPropagation();

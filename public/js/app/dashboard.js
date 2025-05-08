@@ -5,8 +5,8 @@
  */
 import { renderErrorAlert, showToast } from './utils.js';
 import { initAddCustomerModal } from './add-customer-modal.js';
-import { initialize as initOrder } from './order.js';
-import { format, parseISO, isValid, addDays, subDays } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { initialize as initOrder, fetchCustomers } from './order.js';
+import { parseISO, isValid, addDays, subDays } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 import { formatInTimeZone } from 'https://cdn.jsdelivr.net/npm/date-fns-tz@3.2.0/+esm';
 
 // Variabel global
@@ -424,7 +424,7 @@ export function initDashboard() {
     if (orderModal) {
         orderModal.addEventListener('shown.bs.modal', () => {
             console.log('Order modal shown, initializing order logic');
-            initOrder();
+            fetchCustomers();
         });
         orderModal.addEventListener('hidden.bs.modal', () => {
             console.log('Order modal hidden, resetting form');
@@ -724,6 +724,7 @@ export function initDashboard() {
 
 function initialize() {
     initDashboard();
+    initOrder();
 }
 
 initialize();
