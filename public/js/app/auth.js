@@ -45,6 +45,21 @@ export function initPasswordToggle() {
 
 // Inisialisasi fungsi saat halaman dimuat
 document.addEventListener('DOMContentLoaded', () => {
-    // initLogout();
     initPasswordToggle();
+
+    // Tangani error 401 untuk permintaan AJAX
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+        const response = await originalFetch(...args);
+        if (response.status === 401) {
+            try {
+                const data = await response.json();
+                alert(data.message || 'Sesi telah kedaluwarsa. Silakan login ulang.');
+            } catch {
+                alert('Sesi telah kadaluwarsa. Silakan login ulang.');
+            }
+            window.location.href = '/login';
+        }
+        return response;
+    };
 });

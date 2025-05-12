@@ -34,3 +34,19 @@ export function showToast(title, message, isError = false) {
     document.getElementById(messageId).textContent = message;
     toast.show();
 }
+
+// Fungsi untuk format Rupiah
+function formatRupiah(angka) {
+    return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Fungsi untuk format nomor telepon ke format WhatsApp
+function formatPhoneNumber(phone) {
+    phone = phone.replace(/\s+/g, '');
+    if (phone.startsWith('0')) {
+        phone = '62' + phone.slice(1);
+    }
+    return phone;
+}
+
+export { formatRupiah, formatPhoneNumber };
