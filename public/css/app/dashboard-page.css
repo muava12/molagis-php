@@ -1,10 +1,10 @@
-.fade-out {
+/* .fade-out {
     opacity: 0;
     transition: opacity 0.3s ease-out;
-}
-.card {
+} */
+/* .card {
     transition: all 0.3s ease-in-out;
-}
+} */
 .rotate-0 {
     transform: rotate(0deg);
 }

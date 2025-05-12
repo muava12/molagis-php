@@ -5,7 +5,6 @@
 	<link rel="stylesheet" href="/css/awesomplete.min.css">
 	<link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
 	<link rel="stylesheet" href="/css/app/custom.css?v={{ 'now'|date('U') }}">
-	<!-- <link rel="stylesheet" href="/css/app/dashboard-page.css?v={{ 'now'|date('U') }}"> -->
 	<style>
 		/* Pastikan tooltip responsif di dalam modal */
 		.tooltip {
@@ -106,7 +105,7 @@
 							<div class="card-header border-0">
 								<div class="me-auto">
 									<h2 class="h2 card-title">Daftar Pengantaran</h2>
-									<div class="text-muted" id="date-subtitle">{{ today_date }}</div>
+									<div class="text-muted" id="date-subtitle" style="min-height:1.4em;"> </div>
 								</div>
 								<div
 									class="d-flex align-items-center">
@@ -117,7 +116,6 @@
 											<path d="M15 6l-6 6l6 6"/>
 										</svg>
 									</button>
-
 									<!-- Tombol Next -->
 									<button id="next-day" class="btn btn-icon me-2" data-date="{{ current_date }}">
 										<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -376,7 +374,4 @@
 {% endblock %}
 {% block javascripts %} <script src="/js/awesomplete.min.js"></script>
 	 <script type="module" src="/js/app/dashboard.js?v={{ 'now'|date('U') }}"></script>
-	<!--  <script type="module">
-	    	import { initialize as initOrder } from '/js/app/order.js?v={{ 'now'|date('U') }}';
-		</script> -->
 {% endblock %}

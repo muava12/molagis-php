@@ -5,7 +5,6 @@ namespace Molagis\Features\Dashboard;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Twig\Environment;
-use IntlDateFormatter;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Molagis\Shared\SupabaseService;
@@ -19,7 +18,7 @@ class DashboardController
     public function __construct(
         private DashboardService $dashboardService,
         private SupabaseService $supabaseService,
-        private SettingsService $settingsService, // Tambahkan SettingsService
+        private SettingsService $settingsService,
         private Environment $twig,
     ) {}
 
@@ -44,29 +43,18 @@ class DashboardController
 
         $defaultShippingCostResponse = $this->settingsService->getSettingByKey('default_shipping_cost', $accessToken);
         $defaultShippingCost = $defaultShippingCostResponse['data'] ?? '5000'; // Fallback ke 5000 jika tidak ada
-        
-        $formatter = new IntlDateFormatter(
-            'id_ID',
-            IntlDateFormatter::FULL,
-            IntlDateFormatter::NONE,
-            'Asia/Makassar',
-            IntlDateFormatter::GREGORIAN,
-            'EEEE, dd MMMM yyyy'
-        );
-        $todayDate = $formatter->format($date);
 
         return $this->twig->render('dashboard.html.twig', [
             'title' => 'Dashboard Molagis',
             'couriers' => $couriersResult['data'] ?? [],
             'deliveries' => $deliveriesResult['data'] ?? [],
             'total_deliveries' => $deliveriesResult['total'] ?? 0,
-            'current_date' => $currentDate,
-            'today_date' => $todayDate,
+            // 'current_date' => $currentDate,
             'error' => $couriersResult['error'] ?? $deliveriesResult['error'] ?? null,
             'user_id' => $user['id'] ?? 'default-seed',
             'active_couriers' => $couriersResult['data'] ?? [],
-            'default_courier' => $defaultCourier, // Kirim default_courier ke template
-            'default_shipping_cost' => $defaultShippingCost, // Kirim default_shipping_cost ke template
+            'default_courier' => $defaultCourier,
+            'default_shipping_cost' => $defaultShippingCost,
         ]);
     }
 
@@ -85,21 +73,9 @@ class DashboardController
 
         $result = $this->dashboardService->getDeliveriesAndUpdateStatus($date, null, null, $accessToken);
 
-        $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
-        $formatter = new IntlDateFormatter(
-            'id_ID',
-            IntlDateFormatter::FULL,
-            IntlDateFormatter::NONE,
-            'Asia/Makassar',
-            IntlDateFormatter::GREGORIAN,
-            'EEEE, dd MMMM yyyy'
-        );
-        $formattedDate = $formatter->format($dateObj);
-
         return new JsonResponse([
             'deliveries' => $result['data'] ?? [],
             'total_deliveries' => $result['total'] ?? 0,
-            'today_date' => $formattedDate,
             'current_date' => $date,
             'error' => $result['error'] ?? null,
         ], $result['error'] ? 500 : 200);
@@ -127,21 +103,9 @@ class DashboardController
 
         $result = $this->dashboardService->getDeliveriesAndUpdateStatus($date, $deliveryIds, $status, $accessToken);
 
-        $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
-        $formatter = new IntlDateFormatter(
-            'id_ID',
-            IntlDateFormatter::FULL,
-            IntlDateFormatter::NONE,
-            'Asia/Makassar',
-            IntlDateFormatter::GREGORIAN,
-            'EEEE, dd MMMM yyyy'
-        );
-        $formattedDate = $formatter->format($dateObj);
-
         return new JsonResponse([
             'deliveries' => $result['data'] ?? [],
             'total_deliveries' => $result['total'] ?? 0,
-            'today_date' => $formattedDate,
             'current_date' => $date,
             'error' => $result['error'] ?? null,
         ], $result['error'] ? 500 : 200);
@@ -157,7 +121,7 @@ class DashboardController
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $queryParams = $request->getQueryParams();
-        $courierId = $queryParams['courier_id'] ?? 'null'; // Default ke 'null' jika tidak ada courier_id
+        $courierId = $queryParams['courier_id'] ?? 'null';
         $date = $queryParams['date'] ?? date('Y-m-d');
 
         $deliveryDetails = $this->dashboardService->getDeliveryDetails($courierId, $date, $accessToken);
@@ -167,24 +131,13 @@ class DashboardController
             $courierName = $courierResult['data']['nama'] ?? 'Unknown';
         }
 
-        $dateObj = new \DateTime($date, new \DateTimeZone('Asia/Makassar'));
-        $formatter = new IntlDateFormatter(
-            'id_ID',
-            IntlDateFormatter::FULL,
-            IntlDateFormatter::NONE,
-            'Asia/Makassar',
-            IntlDateFormatter::GREGORIAN,
-            'EEEE, dd MMMM yyyy'
-        );
-        $formattedDate = $formatter->format($dateObj);
-
         // Tambahkan logging untuk debugging
         error_log("getDeliveryDetails response: courierId=$courierId, date=$date, grouped_orders=" . json_encode($deliveryDetails['data']));
 
         return new JsonResponse([
             'grouped_orders' => $deliveryDetails['data'] ?? [],
             'courier_name' => $courierName,
-            'date' => $formattedDate,
+            'current_date' => $date,
             'error' => $deliveryDetails['error'] ?? null,
         ], $deliveryDetails['error'] ? 500 : 200);
     }
