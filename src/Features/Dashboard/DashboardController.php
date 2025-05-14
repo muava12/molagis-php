@@ -23,7 +23,7 @@ class DashboardController
     ) {}
 
     /**
-     * Menampilkan halaman dashboard.
+     * Menampilkan halaman dashboard dengan data pengantaran yang di-render ke Twig.
      *
      * @param ServerRequestInterface $request Permintaan HTTP
      * @return string Template Twig yang dirender
@@ -34,22 +34,46 @@ class DashboardController
         $accessToken = $_SESSION['user_token'] ?? null;
         $date = new \DateTime('now', new \DateTimeZone('Asia/Makassar'));
         $currentDate = $date->format('Y-m-d');
-        $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
+
+        // Ambil data pengantaran untuk tanggal saat ini
         $deliveriesResult = $this->dashboardService->getDeliveriesAndUpdateStatus($currentDate, null, null, $accessToken);
+
+        // Ambil daftar kurir aktif
+        $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
 
         // Ambil pengaturan default_courier dan default_shipping_cost
         $defaultCourierResponse = $this->settingsService->getSettingByKey('default_courier', $accessToken);
         $defaultCourier = $defaultCourierResponse['data'] ?? null;
 
         $defaultShippingCostResponse = $this->settingsService->getSettingByKey('default_shipping_cost', $accessToken);
-        $defaultShippingCost = $defaultShippingCostResponse['data'] ?? '5000'; // Fallback ke 5000 jika tidak ada
+        $defaultShippingCost = $defaultShippingCostResponse['data'] ?? '5000';
+
+        // Format delivery_date menggunakan IntlDateFormatter
+        $formatter = new \IntlDateFormatter(
+            'id_ID', // Lokalisasi Indonesia
+            \IntlDateFormatter::FULL, // Gaya tanggal lengkap
+            \IntlDateFormatter::NONE, // Tidak menyertakan waktu
+            'Asia/Makassar', // Zona waktu
+            \IntlDateFormatter::GREGORIAN,
+            'EEEE, dd MMMM yyyy' // Format: Rabu, 14 Mei 2025
+        );
+
+        $deliveryDate = $deliveriesResult['delivery_date'] ?? $currentDate;
+        try {
+            $formattedDate = $formatter->format(new \DateTime($deliveryDate, new \DateTimeZone('Asia/Makassar')));
+        } catch (\Exception $e) {
+            error_log('Error formatting date in showDashboard: ' . $e->getMessage());
+            $formattedDate = $formatter->format(new \DateTime('now', new \DateTimeZone('Asia/Makassar')));
+        }
 
         return $this->twig->render('dashboard.html.twig', [
             'title' => 'Dashboard Molagis',
             'couriers' => $couriersResult['data'] ?? [],
             'deliveries' => $deliveriesResult['data'] ?? [],
             'total_deliveries' => $deliveriesResult['total'] ?? 0,
-            // 'current_date' => $currentDate,
+            'current_date' => $deliveryDate,
+            'date_subtitle' => $formattedDate, // Kirim tanggal yang diformat ke Twig
+            'timezone' => $deliveriesResult['timezone'] ?? 'Asia/Makassar',
             'error' => $couriersResult['error'] ?? $deliveriesResult['error'] ?? null,
             'user_id' => $user['id'] ?? 'default-seed',
             'active_couriers' => $couriersResult['data'] ?? [],
@@ -59,7 +83,7 @@ class DashboardController
     }
 
     /**
-     * Mengambil data pengantaran melalui API.
+     * Mengambil data pengantaran melalui API untuk interaksi dinamis.
      *
      * @param ServerRequestInterface $request Permintaan HTTP
      * @return ResponseInterface Respon JSON
@@ -68,7 +92,6 @@ class DashboardController
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $queryParams = $request->getQueryParams();
-
         $date = $queryParams['date'] ?? date('Y-m-d');
 
         $result = $this->dashboardService->getDeliveriesAndUpdateStatus($date, null, null, $accessToken);
@@ -76,7 +99,8 @@ class DashboardController
         return new JsonResponse([
             'deliveries' => $result['data'] ?? [],
             'total_deliveries' => $result['total'] ?? 0,
-            'current_date' => $date,
+            'delivery_date' => $result['delivery_date'] ?? $date,
+            'timezone' => $result['timezone'] ?? 'Asia/Makassar',
             'error' => $result['error'] ?? null,
         ], $result['error'] ? 500 : 200);
     }
@@ -98,7 +122,7 @@ class DashboardController
         $status = $data['status'] ?? null;
 
         if (!$deliveryIds || !$status) {
-            return new JsonResponse(['error' => 'Delivery IDs and status are required'], 400);
+            return new JsonResponse(['error' => 'Delivery IDs dan status diperlukan'], 400);
         }
 
         $result = $this->dashboardService->getDeliveriesAndUpdateStatus($date, $deliveryIds, $status, $accessToken);
@@ -106,7 +130,8 @@ class DashboardController
         return new JsonResponse([
             'deliveries' => $result['data'] ?? [],
             'total_deliveries' => $result['total'] ?? 0,
-            'current_date' => $date,
+            'delivery_date' => $result['delivery_date'] ?? $date,
+            'timezone' => $result['timezone'] ?? 'Asia/Makassar',
             'error' => $result['error'] ?? null,
         ], $result['error'] ? 500 : 200);
     }
@@ -137,7 +162,6 @@ class DashboardController
         return new JsonResponse([
             'grouped_orders' => $deliveryDetails['data'] ?? [],
             'courier_name' => $courierName,
-            'current_date' => $date,
             'error' => $deliveryDetails['error'] ?? null,
         ], $deliveryDetails['error'] ? 500 : 200);
     }

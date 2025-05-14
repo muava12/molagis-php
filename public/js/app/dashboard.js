@@ -145,10 +145,10 @@ async function fetchDeliveries(date, showSpinner = true, deliveryIds = null, sta
                     const row = document.createElement('tr');
                     const avatarStyle =
                         delivery.kurir_id === null || delivery.kurir_id === 0
-                            ? `<span class="avatar bg-pink">
+                            ? `<span class="avatar avatar-sm bg-pink">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
                             </span>`
-                            : `<span class="avatar" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id});"></span>`;
+                            : `<span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id});"></span>`;
                     row.innerHTML = `
                         <td>
                             <div class="d-flex align-items-center">
@@ -177,10 +177,10 @@ async function fetchDeliveries(date, showSpinner = true, deliveryIds = null, sta
             }
 
             totalBadge.textContent = data.total_deliveries || 0;
-            dateSubtitle.textContent = formatInTimeZone(validDate, TIMEZONE, 'eeee, dd MMMM yyyy', { locale: id });
-            prevButton.dataset.date = validDate;
-            nextButton.dataset.date = validDate;
-            showDate = validDate;
+            dateSubtitle.textContent = formatInTimeZone(data.delivery_date || validDate, data.timezone || TIMEZONE, 'eeee, dd MMMM yyyy', { locale: id });
+            prevButton.dataset.date = data.delivery_date || validDate;
+            nextButton.dataset.date = data.delivery_date || validDate;
+            showDate = data.delivery_date || validDate;
 
             const errorContainer = document.querySelector('#error-container');
             if (errorContainer) errorContainer.innerHTML = '';
@@ -275,11 +275,11 @@ async function fetchDeliveryDetails(courierId, date) {
 }
 
 /**
-     * Merender daftar antaran di modal.
-     * @param {Array} groupedOrders Data antaran yang dikelompokkan
-     * @param {string} date Tanggal dalam format YYYY-MM-DD
-     * @param {string} courierId ID kurir atau 'null' untuk item tanpa kurir
-     */
+ * Merender daftar antaran di modal.
+ * @param {Array} groupedOrders Data antaran yang dikelompokkan
+ * @param {string} date Tanggal dalam format YYYY-MM-DD
+ * @param {string} courierId ID kurir atau 'null' untuk item tanpa kurir
+ */
 const renderDeliveryList = (groupedOrders, date, courierId) => {
     deliveryList.innerHTML = '';
     deliveryList.classList.add('transition-opacity', 'duration-300');
@@ -707,9 +707,8 @@ export function initDashboard() {
         });
     }
 
-    // Fetch data awal
-    dateSubtitle.textContent = formatInTimeZone(showDate, TIMEZONE, 'eeee, dd MMMM yyyy', { locale: id });
-    fetchDeliveries(showDate, false);
+    // Tidak perlu fetch data awal karena data sudah di-render oleh Twig
+    // showDate sudah diatur oleh Twig melalui current_date
 }
 
 function initialize() {

@@ -105,7 +105,9 @@
 							<div class="card-header border-0">
 								<div class="me-auto">
 									<h2 class="h2 card-title">Daftar Pengantaran</h2>
-									<div class="text-muted" id="date-subtitle" style="min-height:1.4em;"> </div>
+									<div class="text-muted" id="date-subtitle" style="min-height:1.4em;">
+										{{ date_subtitle|default('') }}
+									</div>
 								</div>
 								<div
 									class="d-flex align-items-center">
@@ -144,7 +146,13 @@
 													<tr>
 														<td>
 															<div class="d-flex align-items-center">
-																<span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ delivery.kurir_id }})"></span>
+																{% if delivery.kurir_id is null %}
+																	<span class="avatar bg-pink">
+																		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+																	</span>
+																{% else %}
+																	<span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ delivery.kurir_id }})"></span>
+																{% endif %}
 																<div class="ms-2">{{ delivery.courier_name }}</div>
 															</div>
 														</td>
@@ -155,7 +163,7 @@
 																sudah sampai</div>
 														</td>
 														<td class="text-center">
-															<a href="#" class="btn btn-icon view-delivery-details" data-courier-id="{{ delivery.kurir_id }}" data-courier-name="{{ delivery.courier_name }}" aria-label="Lihat Antaran">
+															<a href="#" class="btn btn-icon view-delivery-details" data-courier-id="{{ delivery.kurir_id ?? 'null' }}" data-courier-name="{{ delivery.courier_name }}" aria-label="Lihat Antaran">
 																<svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
 																	<path stroke="none" d="M0 0h24v24H0z" fill="none"/>
 																	<path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>

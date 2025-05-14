@@ -22,9 +22,9 @@ class DashboardService
      *
      * @param string $date Format YYYY-MM-DD
      * @param array|null $deliveryIds Daftar ID pengiriman yang akan diperbarui (opsional)
-     * @param string|null $status Status baru (pending/completed, opsional)
+     * @param string|null $status Status baru (pending/in-progress/completed/canceled, opsional)
      * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
-     * @return array ['data' => array, 'total' => int, 'today_date' => string, 'processing_date' => string, 'error' => string|null]
+     * @return array ['data' => array, 'total' => int, 'delivery_date' => string, 'timezone' => string, 'error' => string|null]
      * @throws \InvalidArgumentException Jika parameter tidak valid
      */
     public function getDeliveriesAndUpdateStatus(string $date, ?array $deliveryIds = null, ?string $status = null, ?string $accessToken = null): array
@@ -42,7 +42,7 @@ class DashboardService
 
             // Validasi deliveryIds jika diberikan
             if ($deliveryIds && empty($deliveryIds)) {
-                throw new \InvalidArgumentException('Delivery IDs cannot be empty');
+                throw new \InvalidArgumentException('Delivery IDs tidak boleh kosong');
             }
 
             // Siapkan payload untuk RPC
@@ -74,49 +74,52 @@ class DashboardService
                 return [
                     'data' => [],
                     'total' => 0,
-                    'today_date' => $date,
-                    'processing_date' => date('Y-m-d'),
+                    'delivery_date' => $date,
+                    'timezone' => 'Asia/Makassar',
                     'error' => null, // Tidak ada error di frontend untuk kasus kosong
                 ];
             }
 
-            $data = $response['data'] ?? [];
+            $rpcData = $response['data'] ?? [];
 
             // Jika data kosong, kembalikan array kosong
-            if (empty($data)) {
+            if (empty($rpcData)) {
                 return [
                     'data' => [],
                     'total' => 0,
-                    'today_date' => $date,
-                    'processing_date' => date('Y-m-d'),
+                    'delivery_date' => $date,
+                    'timezone' => 'Asia/Makassar',
                     'error' => null,
                 ];
             }
 
+            // Ambil data utama dari respons RPC
+            $data = $rpcData['data'] ?? [];
+            $totalDeliveries = (int) ($rpcData['total_deliveries'] ?? 0);
+            $deliveryDate = (string) ($rpcData['delivery_date'] ?? $date);
+            $timezone = (string) ($rpcData['timezone'] ?? 'Asia/Makassar');
+
             // Validasi dan format data
             $deliveries = array_filter(array_map(function ($item) {
-                // Lewati item dengan jumlah_pengantaran 0 untuk konsistensi
-                if ((int) ($item['jumlah_pengantaran'] ?? 0) === 0) {
+                // Lewati item dengan delivery_count 0 untuk konsistensi
+                if ((int) ($item['delivery_count'] ?? 0) === 0) {
                     return null;
                 }
                 return [
                     'kurir_id' => $item['courier_id'] === null ? null : (int) ($item['courier_id'] ?? null),
                     'courier_name' => (string) ($item['courier_name'] ?? 'Belum Dipilih'),
-                    'jumlah_pengantaran' => (int) ($item['jumlah_pengantaran'] ?? 0),
-                    'jumlah_selesai' => (int) ($item['jumlah_selesai'] ?? 0),
+                    'jumlah_pengantaran' => (int) ($item['delivery_count'] ?? 0),
+                    'jumlah_selesai' => (int) ($item['completed_count'] ?? 0),
                 ];
             }, $data), function ($item) {
                 return $item !== null;
             });
 
-            // Hitung total pengantaran
-            $totalDeliveries = (int) ($data[0]['total_deliveries'] ?? array_sum(array_column($data, 'jumlah_pengantaran')));
-
             return [
                 'data' => array_values($deliveries), // Pastikan array terindeks
                 'total' => $totalDeliveries,
-                'today_date' => $date,
-                'processing_date' => date('Y-m-d'),
+                'delivery_date' => $deliveryDate,
+                'timezone' => $timezone,
                 'error' => null,
             ];
         } catch (\InvalidArgumentException $e) {
@@ -124,8 +127,8 @@ class DashboardService
             return [
                 'data' => [],
                 'total' => 0,
-                'today_date' => $date,
-                'processing_date' => date('Y-m-d'),
+                'delivery_date' => $date,
+                'timezone' => 'Asia/Makassar',
                 'error' => $e->getMessage(),
             ];
         } catch (\Exception $e) {
@@ -133,8 +136,8 @@ class DashboardService
             return [
                 'data' => [],
                 'total' => 0,
-                'today_date' => $date,
-                'processing_date' => date('Y-m-d'),
+                'delivery_date' => $date,
+                'timezone' => 'Asia/Makassar',
                 'error' => null, // Tidak ada error di frontend
             ];
         }
