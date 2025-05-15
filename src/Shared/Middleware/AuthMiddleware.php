@@ -173,6 +173,8 @@ class AuthMiddleware
 
     private function getRefreshToken(): string
     {
+        error_log('Encryption key: ' . $_ENV['ENCRYPTION_KEY']);
+        
         if (isset($_COOKIE['refresh_token'])) {
             return $this->decrypt($_COOKIE['refresh_token']);
         }
@@ -184,7 +186,8 @@ class AuthMiddleware
 
     private function encrypt(string $data): string
     {
-        $key = $_ENV['ENCRYPTION_KEY'] ?? 'aBKUnE8J7jCfUFv7zwfdXQuePyWDSUMh'; // Ganti dengan kunci aman dari env
+        error_log('Encryption key for encrypt: ' . $_ENV['ENCRYPTION_KEY']);
+        $key = $_ENV['ENCRYPTION_KEY']; // Ganti dengan kunci aman dari env
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv);
         if ($encrypted === false) {
@@ -195,7 +198,7 @@ class AuthMiddleware
 
     private function decrypt(string $encrypted): string
     {
-        $key = $_ENV['ENCRYPTION_KEY'] ?? 'aBKUnE8J7jCfUFv7zwfdXQuePyWDSUMh'; // Ganti dengan kunci aman dari env
+        $key = $_ENV['ENCRYPTION_KEY']; // Ganti dengan kunci aman dari env
         $decoded = base64_decode($encrypted);
         if ($decoded === false) {
             throw new \RuntimeException('Gagal mendekripsi refresh token: Data tidak valid');

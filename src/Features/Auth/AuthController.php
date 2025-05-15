@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Molagis\Features\Auth;
 
 use Molagis\Shared\SupabaseService;
+use Molagis\Shared\ConfigSession;
 use Twig\Environment;
 
 class AuthController
@@ -44,10 +45,6 @@ class AuthController
                 throw new \RuntimeException('Login gagal: Token tidak diterima');
             }
 
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
-
             $_SESSION['user_token'] = $response['access_token'];
             $_SESSION['user_id'] = $response['user']['id'] ?? null;
 
@@ -57,33 +54,14 @@ class AuthController
                 setcookie('refresh_token', $encryptedRefreshToken, [
                     'expires' => time() + (60 * 24 * 60 * 60), // 60 hari
                     'path' => '/',
-                    'secure' => true, // Hanya HTTPS
-                    'httponly' => true, // Cegah akses JavaScript
-                    'samesite' => 'Strict' // Cegah CSRF
-                ]);
-
-                // Atur sesi untuk bertahan 7 hari
-                $sessionLifetime = 7 * 24 * 60 * 60; // 7 hari
-                session_set_cookie_params([
-                    'lifetime' => $sessionLifetime,
-                    'path' => '/',
                     'secure' => true,
                     'httponly' => true,
                     'samesite' => 'Strict'
                 ]);
-                ini_set('session.gc_maxlifetime', (string)$sessionLifetime);
                 session_regenerate_id(true);
             } else {
                 // Simpan refresh token di sesi untuk masa berlaku sementara
                 $_SESSION['refresh_token'] = $response['refresh_token'] ?? null;
-                session_set_cookie_params([
-                    'lifetime' => 0, // Berakhir saat browser ditutup
-                    'path' => '/',
-                    'secure' => true,
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
-                ini_set('session.cookie_lifetime', '0');
             }
 
             header('Location: /dashboard');
@@ -104,16 +82,33 @@ class AuthController
 
     public function logout(): void
     {
+        $maxRetries = 3;
+        $retryDelay = 1; // Detik
+        $success = false;
+
         try {
             if (isset($_SESSION['user_token'])) {
-                $this->supabase->signOut($_SESSION['user_token']);
+                // Coba logout ke Supabase dengan retry
+                for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                    try {
+                        $this->supabase->signOut($_SESSION['user_token']);
+                        $success = true;
+                        break;
+                    } catch (\Exception $e) {
+                        error_log("Logout attempt $attempt failed: " . $e->getMessage());
+                        if ($attempt < $maxRetries) {
+                            sleep($retryDelay);
+                        }
+                    }
+                }
             }
-        } catch (\Exception) {
-            // Ignore logout errors
+        } catch (\Exception $e) {
+            error_log('Final logout error: ' . $e->getMessage());
         } finally {
-            // Hapus sesi dan cookie refresh token
+            // Hapus sesi dan cookie lokal terlepas dari keberhasilan Supabase
             session_unset();
             session_destroy();
+
             setcookie('refresh_token', '', [
                 'expires' => time() - 3600,
                 'path' => '/',
@@ -121,6 +116,13 @@ class AuthController
                 'httponly' => true,
                 'samesite' => 'Strict'
             ]);
+
+            // Jika logout ke Supabase gagal, tandai sesi sebagai tidak valid
+            if (!$success) {
+                error_log('Failed to logout from Supabase after retries. Local session destroyed.');
+                // Opsional: Tambahkan logika untuk memberi tahu admin atau user
+            }
+
             header('Location: /login');
             exit;
         }
@@ -136,28 +138,20 @@ class AuthController
         return $user ? ['id' => $user['id']] : null;
     }
 
-    /**
-     * Enkripsi data menggunakan AES-256-CBC.
-     * @param string $data Data yang akan dienkripsi.
-     * @return string Data terenkripsi dalam format base64.
-     */
     private function encrypt(string $data): string
     {
-        $key = $_ENV['ENCRYPTION_KEY'] ?? 'aBKUnE8J7jCfUFv7zwfdXQuePyWDSUMh'; // Ganti dengan kunci aman dari env
+        $key = $_ENV['ENCRYPTION_KEY']; // Ganti dengan kunci aman dari env
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv);
+        if ($encrypted === false) {
+            throw new \RuntimeException('Gagal mengenkripsi refresh token');
+        }
         return base64_encode($encrypted . '::' . $iv);
     }
 
-    /**
-     * Dekripsi data yang dienkripsi dengan AES-256-CBC.
-     * @param string $encrypted Data terenkripsi dalam format base64.
-     * @return string Data yang telah didekripsi.
-     * @throws \RuntimeException Jika dekripsi gagal.
-     */
     private function decrypt(string $encrypted): string
     {
-        $key = $_ENV['ENCRYPTION_KEY'] ?? 'aBKUnE8J7jCfUFv7zwfdXQuePyWDSUMh'; // Ganti dengan kunci aman dari env
+        $key = $_ENV['ENCRYPTION_KEY'];
         $decoded = base64_decode($encrypted);
         if ($decoded === false) {
             throw new \RuntimeException('Gagal mendekripsi refresh token: Data tidak valid');
