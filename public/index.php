@@ -4,6 +4,7 @@ declare(strict_types=1);
 $basePath = dirname(__DIR__);
 require "{$basePath}/vendor/autoload.php";
 
+use Molagis\Shared\ConfigSession;
 use Molagis\Shared\SupabaseClient;
 use Molagis\Shared\SupabaseService;
 use Molagis\Shared\Middleware\AuthMiddleware;
@@ -27,11 +28,13 @@ use Laminas\Diactoros\Response;
 use DI\ContainerBuilder;
 
 // Start session
-session_start();
+// session_start();
 
 // Load environment variables
 $dotenv = Dotenv::createImmutable($basePath);
 $dotenv->safeLoad();
+
+ConfigSession::init();
 
 // Initialize Dependency Injection Container
 $containerBuilder = new ContainerBuilder();
