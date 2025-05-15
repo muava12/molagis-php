@@ -8,6 +8,8 @@ use Psr\Http\Message\ResponseInterface;
 use Laminas\Diactoros\Response\JsonResponse;
 use Laminas\Diactoros\Response\RedirectResponse;
 use Molagis\Shared\SupabaseService;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class AuthMiddleware
 {
@@ -20,18 +22,26 @@ class AuthMiddleware
         ServerRequestInterface $request,
         callable $next
     ): ResponseInterface {
-        // 1. Check session token
+        // 1. Periksa apakah ada access_token di sesi
         if (!isset($_SESSION['user_token'])) {
-            return $this->handleUnauthorized($request);
+            // Coba refresh menggunakan cookie jika ada
+            return $this->handleTokenRefresh($request, $next);
         }
 
-        // 2. Verify token
-        $user = $this->supabase->getUser($_SESSION['user_token']);
+        $accessToken = $_SESSION['user_token'];
+
+        // 2. Verifikasi token kadaluarsa secara lokal
+        if ($this->isTokenExpired($accessToken)) {
+            return $this->handleTokenRefresh($request, $next);
+        }
+
+        // 3. Verifikasi token dengan Supabase
+        $user = $this->supabase->getUser($accessToken);
         if (!$user) {
             return $this->handleTokenRefresh($request, $next);
         }
 
-        // 3. Attach user data to request
+        // 4. Lampirkan data pengguna ke permintaan
         return $next($request->withAttribute('user', $user));
     }
 
@@ -42,46 +52,15 @@ class AuthMiddleware
         if (!$this->hasRefreshToken()) {
             return $this->handleUnauthorized($request);
         }
-    
-        return $this->attemptTokenRefresh($request, $next);
+        error_log('Refresh token found, attempting to refresh session.');
+        return $this->processTokenRefresh($request, $next);
     }
-    
+
     private function hasRefreshToken(): bool
     {
         return isset($_COOKIE['refresh_token']) || isset($_SESSION['refresh_token']);
     }
-    
-    private function attemptTokenRefresh(
-        ServerRequestInterface $request,
-        callable $next
-    ): ResponseInterface {
-        $lock = $this->createLockFile();
-        
-        if (!$this->acquireLock($lock)) {
-            return $this->handleUnauthorized($request, true);
-        }
-    
-        try {
-            return $this->processTokenRefresh($request, $next);
-        } catch (\Exception $e) {
-            $this->logRefreshError($e);
-            return $this->handleUnauthorized($request, true);
-        } finally {
-            $this->releaseLock($lock);
-        }
-    }
-    
-    private function createLockFile()
-    {
-        $lockPath = sys_get_temp_dir() . '/supabase_refresh.lock';
-        return fopen($lockPath, 'w+');
-    }
-    
-    private function acquireLock($lock): bool
-    {
-        return flock($lock, LOCK_EX);
-    }
-    
+
     private function processTokenRefresh(
         ServerRequestInterface $request,
         callable $next
@@ -90,9 +69,14 @@ class AuthMiddleware
             // Ambil refresh token dari cookie atau sesi
             $refreshToken = $this->getRefreshToken();
             $newTokens = $this->supabase->refreshToken($refreshToken);
-            
+
             if (!$newTokens || !isset($newTokens['access_token'])) {
                 throw new \RuntimeException('Gagal memperbarui token: Respon tidak valid dari Supabase');
+            }
+
+            // Pastikan sesi dimulai jika belum aktif
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
             }
 
             // Simpan token akses baru di sesi
@@ -115,7 +99,17 @@ class AuthMiddleware
                 $_SESSION['refresh_token'] = $newRefreshToken;
             }
 
-            return $next($request);
+            // Ambil data pengguna dengan token baru
+            $user = $this->supabase->getUser($newTokens['access_token']);
+            if (!$user) {
+                throw new \RuntimeException('Gagal mengambil data pengguna setelah refresh token');
+            }
+
+            // Regenerasi ID sesi untuk keamanan
+            session_regenerate_id(true);
+
+            // Lanjutkan dengan permintaan
+            return $next($request->withAttribute('user', $user));
         } catch (\Exception $e) {
             $this->logRefreshError($e);
             $message = strpos($e->getMessage(), 'Invalid refresh token') !== false
@@ -124,7 +118,19 @@ class AuthMiddleware
             return $this->handleUnauthorized($request, true, $message);
         }
     }
-    
+
+    private function isTokenExpired(string $token): bool
+    {
+        try {
+            $decoded = JWT::decode($token, new Key($_ENV['SUPABASE_JWT_SECRET'], 'HS256'));
+            $exp = $decoded->exp ?? 0;
+            return time() >= $exp;
+        } catch (\Exception $e) {
+            error_log('Error decoding JWT: ' . $e->getMessage());
+            return true; // Asumsikan kadaluarsa jika tidak bisa dekode
+        }
+    }
+
     private function logRefreshError(\Exception $e): void
     {
         error_log(sprintf(
@@ -134,12 +140,6 @@ class AuthMiddleware
             $e->getLine()
         ));
     }
-    
-    private function releaseLock($lock): void
-    {
-        flock($lock, LOCK_UN);
-        fclose($lock);
-    }
 
     private function handleUnauthorized(
         ServerRequestInterface $request,
@@ -147,8 +147,10 @@ class AuthMiddleware
         string $message = 'Sesi telah kadaluarsa'
     ): ResponseInterface {
         if ($destroySession) {
-            session_unset();
-            session_destroy();
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_unset();
+                session_destroy();
+            }
             // Hapus cookie refresh token jika ada
             setcookie('refresh_token', '', [
                 'expires' => time() - 3600,
@@ -169,11 +171,6 @@ class AuthMiddleware
         return new RedirectResponse($this->loginPath);
     }
 
-    /**
-     * Ambil refresh token dari cookie atau sesi dan dekripsi jika perlu.
-     * @return string Refresh token yang telah didekripsi.
-     * @throws \RuntimeException Jika refresh token tidak valid atau gagal didekripsi.
-     */
     private function getRefreshToken(): string
     {
         if (isset($_COOKIE['refresh_token'])) {
@@ -185,25 +182,17 @@ class AuthMiddleware
         throw new \RuntimeException('Refresh token tidak ditemukan');
     }
 
-    /**
-     * Enkripsi data menggunakan AES-256-CBC.
-     * @param string $data Data yang akan dienkripsi.
-     * @return string Data terenkripsi dalam format base64.
-     */
     private function encrypt(string $data): string
     {
         $key = $_ENV['ENCRYPTION_KEY'] ?? 'aBKUnE8J7jCfUFv7zwfdXQuePyWDSUMh'; // Ganti dengan kunci aman dari env
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv);
+        if ($encrypted === false) {
+            throw new \RuntimeException('Gagal mengenkripsi refresh token');
+        }
         return base64_encode($encrypted . '::' . $iv);
     }
 
-    /**
-     * Dekripsi data yang dienkripsi dengan AES-256-CBC.
-     * @param string $encrypted Data terenkripsi dalam format base64.
-     * @return string Data yang telah didekripsi.
-     * @throws \RuntimeException Jika dekripsi gagal.
-     */
     private function decrypt(string $encrypted): string
     {
         $key = $_ENV['ENCRYPTION_KEY'] ?? 'aBKUnE8J7jCfUFv7zwfdXQuePyWDSUMh'; // Ganti dengan kunci aman dari env

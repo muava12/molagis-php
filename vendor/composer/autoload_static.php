@@ -73,6 +73,7 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         ),
         'F' => 
         array (
+            'Firebase\\JWT\\' => 13,
             'Fetch\\' => 6,
             'FastRoute\\' => 10,
         ),
@@ -160,6 +161,10 @@ class ComposerStaticInit4e4ea9553a290919b56d4eae24ec97dd
         'GrahamCampbell\\ResultType\\' => 
         array (
             0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
+        ),
+        'Firebase\\JWT\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
         ),
         'Fetch\\' => 
         array (
