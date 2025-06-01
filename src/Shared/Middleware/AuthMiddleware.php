@@ -88,7 +88,7 @@ class AuthMiddleware
                 // Jika refresh token berasal dari cookie, perbarui cookie
                 $encryptedRefreshToken = $this->encrypt($newRefreshToken);
                 setcookie('refresh_token', $encryptedRefreshToken, [
-                    'expires' => time() + (60 * 24 * 60 * 60), // 60 hari
+                    'expires' => time() + 60 * 24 * 60 * 60, // 60 hari
                     'path' => '/',
                     'secure' => true,
                     'httponly' => true,
@@ -173,7 +173,7 @@ class AuthMiddleware
 
     private function getRefreshToken(): string
     {
-        error_log('Encryption key: ' . $_ENV['ENCRYPTION_KEY']);
+        // error_log('Encryption key: ' . $_ENV['ENCRYPTION_KEY']);
         
         if (isset($_COOKIE['refresh_token'])) {
             return $this->decrypt($_COOKIE['refresh_token']);
@@ -186,7 +186,7 @@ class AuthMiddleware
 
     private function encrypt(string $data): string
     {
-        error_log('Encryption key for encrypt: ' . $_ENV['ENCRYPTION_KEY']);
+        // error_log('Encryption key for encrypt: ' . $_ENV['ENCRYPTION_KEY']);
         $key = $_ENV['ENCRYPTION_KEY']; // Ganti dengan kunci aman dari env
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv);

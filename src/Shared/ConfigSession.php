@@ -7,11 +7,6 @@ class ConfigSession
 {
     public static function init(): void
     {
-        // Load environment variables
-        // $basePath = dirname(__DIR__);
-        // $dotenv = \Dotenv\Dotenv::createImmutable($basePath);
-        // $dotenv->safeLoad();
-
         // Session configuration
         $sessionConfig = [
             'lifetime' => (int) ($_ENV['SESSION_LIFETIME'] ?? 7 * 24 * 60 * 60), // Default 7 hari
@@ -23,6 +18,7 @@ class ConfigSession
 
         // Set session parameters before starting session
         if (session_status() === PHP_SESSION_NONE) {
+            error_log('Session is not started, initializing session with config: ' . json_encode($sessionConfig));
             session_set_cookie_params($sessionConfig);
             ini_set('session.gc_maxlifetime', (string) $sessionConfig['lifetime']);
             ini_set('session.cookie_lifetime', (string) $sessionConfig['lifetime']);
