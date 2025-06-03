@@ -3,18 +3,47 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = customerSearchInput ? customerSearchInput.closest('form') : null;
     const bootstrap = window.tabler?.bootstrap;
-    const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Moved higher for access
+    const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
+    const byNameContainer = contentWrapper; // Alias for clarity in new logic
+    const byDateContainer = document.getElementById('delivery_date_search_results_container');
+    const ordersTabContent = document.getElementById('orders-tab-content'); // Parent for event delegation
 
-    // Function to update the batch delete toast
+    // Function to update the batch delete toast based on the active tab
     function updateBatchDeleteToast() {
-        if (!contentWrapper || typeof window.batchDeleteToast === 'undefined') {
-            return; // Exit if wrapper or toast functions aren't available
+        if (typeof window.batchDeleteToast === 'undefined') {
+            console.warn('batchDeleteToast helper not found on window object.');
+            return;
         }
-        const selectedCheckboxes = contentWrapper.querySelectorAll('.select-delivery-item:checked');
-        const selectedCount = selectedCheckboxes.length;
 
-        if (selectedCount > 0) {
-            window.batchDeleteToast.show(selectedCount);
+        let activeViewSelectedCount = 0;
+        const activePane = document.querySelector('.tab-pane.active');
+
+        if (activePane) {
+            // Check if the active pane itself is one of the containers, or find a container within it.
+            // This handles cases where the pane IS the container (e.g. if results are directly in pane-by-date)
+            // or if the container is a child of the pane.
+            let containerToCount = null;
+            if (activePane.id === 'pane-by-name' && byNameContainer) { // #pane-by-name contains orders-by-name-content-wrapper
+                 containerToCount = activePane.querySelector('#orders-by-name-content-wrapper');
+            } else if (activePane.id === 'pane-by-date' && byDateContainer) { // #pane-by-date contains delivery_date_search_results_container
+                 containerToCount = activePane.querySelector('#delivery_date_search_results_container');
+            } else {
+                // Fallback or if structure is different, check direct children common for tables
+                containerToCount = activePane; // Default to activePane if specific containers aren't matched
+            }
+
+            if (containerToCount) {
+                 activeViewSelectedCount = containerToCount.querySelectorAll('.select-delivery-item:checked').length;
+            } else {
+                // If specific containers aren't found within the active pane, try querying the activePane directly.
+                // This is a fallback, ideally specific containers are more robust.
+                activeViewSelectedCount = activePane.querySelectorAll('.select-delivery-item:checked').length;
+            }
+        }
+         // console.log('Active pane:', activePane, 'Selected count:', activeViewSelectedCount);
+
+        if (activeViewSelectedCount > 0) {
+            window.batchDeleteToast.show(activeViewSelectedCount);
         } else {
             window.batchDeleteToast.hide();
         }
@@ -52,16 +81,16 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const html = await response.text();
 
-            // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Already defined above
-            if (contentWrapper) {
-                contentWrapper.innerHTML = html;
+    // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // This is byNameContainer
+    if (byNameContainer) { // Only operate if this specific container is being updated
+        byNameContainer.innerHTML = html;
 
-                const selectAllCheckbox = contentWrapper.querySelector('#select-all-deliveries');
+        const selectAllCheckbox = byNameContainer.querySelector('#select-all-deliveries');
                 if (selectAllCheckbox) {
                     selectAllCheckbox.checked = false;
                     selectAllCheckbox.indeterminate = false;
                 }
-                updateBatchDeleteToast();
+        // updateBatchDeleteToast(); // Called by checkbox logic if items are re-rendered
 
                 // --- ADDED LOGIC START ---
                 // Use a full URL if 'url' is relative, to ensure URLSearchParams works correctly.
@@ -216,7 +245,103 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (deliveryDateSearchButton && deliveryDateSearchInput && deliveryDateSearchResultsContainer) {
-        deliveryDateSearchButton.addEventListener('click', function() { /* ... existing logic ... */ });
+        deliveryDateSearchButton.addEventListener('click', function() {
+            const dateQuery = deliveryDateSearchInput.value.trim();
+            deliveryDateSearchResultsContainer.innerHTML = '<p class="text-center">Loading...</p>'; // Basic loading indicator
+
+            if (!dateQuery) {
+                deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Please select a date.</p>';
+                return;
+            }
+
+            // Validate date format YYYY-MM-DD (basic regex)
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateQuery)) {
+                deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Invalid date format. Please use YYYY-MM-DD.</p>';
+                return;
+            }
+
+            fetch(`/api/orders/search/date?date=${encodeURIComponent(dateQuery)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || `HTTP error ${response.status}`);
+                        }).catch(() => {
+                            throw new Error(`HTTP error ${response.status} - ${response.statusText || 'Server error'}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.deliveries) {
+                        let html = '<table class="table table-vcenter card-table table-selectable">';
+                        html += `
+                            <thead>
+                                <tr>
+                                    <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
+                                    <th>Tanggal</th>
+                                    <th>Customer</th>
+                                    <th>Order ID</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                        <tbody>`;
+
+                        if (data.deliveries.length === 0) {
+                            html += '<tr><td colspan="8" class="text-center">No deliveries found for this date.</td></tr>';
+                        } else {
+                            data.deliveries.forEach(delivery => {
+                                let itemsHtml = '';
+                                if (delivery.orderdetails && delivery.orderdetails.length > 0) {
+                                    itemsHtml += '<ul class="list-unstyled mb-0">'; // Added mb-0 for tighter list
+                                    delivery.orderdetails.forEach(detail => {
+                                        itemsHtml += `<li>${detail.paket.nama} (x${detail.jumlah})</li>`;
+                                    });
+                                    itemsHtml += '</ul>';
+                                } else {
+                                    itemsHtml = 'N/A';
+                                }
+
+                                let badge_class = 'secondary';
+                                const status_lower = delivery.status ? delivery.status.toLowerCase() : '';
+                                if (status_lower === 'completed') badge_class = 'success';
+                                else if (status_lower === 'pending') badge_class = 'warning';
+                                else if (status_lower === 'canceled' || status_lower === 'cancelled') badge_class = 'danger';
+                                else if (status_lower === 'in-progress' || status_lower === 'in_progress') badge_class = 'info';
+
+                                html += `
+                                    <tr>
+                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.id}" aria-label="Select delivery ${delivery.id}"></td>
+                                        <td>${new Date(delivery.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                        <td>${delivery.orders && delivery.orders.customers ? delivery.orders.customers.nama : 'N/A'}</td>
+                                        <td>${delivery.orders ? delivery.orders.id : 'N/A'}</td>
+                                        <td>${itemsHtml}</td>
+                                        <td>${delivery.total_harga_perhari ? Number(delivery.total_harga_perhari).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A'}</td>
+                                        <td><span class="badge bg-${badge_class} me-1"></span> ${delivery.status ? delivery.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}</td>
+                                        <td>
+                                            <div class="btn-list flex-nowrap">
+                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.id}" title="Hapus Pengiriman">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                        }
+                        html += '</tbody></table>';
+                        deliveryDateSearchResultsContainer.innerHTML = html;
+                    } else {
+                        deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching deliveries by date:', error);
+                    deliveryDateSearchResultsContainer.innerHTML = `<p class="text-danger text-center">Error: ${error.message}</p>`;
+                });
+        });
     }
 
 
@@ -366,40 +491,99 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- "Select All" Checkbox Functionality ---
-    // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Already defined above
+    // --- Unified "Select All" Checkbox Functionality via Event Delegation ---
+    if (ordersTabContent) {
+        ordersTabContent.addEventListener('change', function(event) {
+            const target = event.target;
+            let currentTableContainer = null;
+            let selectAllCheckboxInstance = null; // Renamed to avoid conflict with selectAllCheckbox var if any
 
-    if (contentWrapper) {
-        contentWrapper.addEventListener('change', function(event) {
-            if (event.target.matches('#select-all-deliveries')) {
-                const isChecked = event.target.checked;
-                const itemCheckboxes = contentWrapper.querySelectorAll('.select-delivery-item');
+            // Determine current container and corresponding "select all" checkbox
+            if (target.closest('#orders-by-name-content-wrapper')) {
+                currentTableContainer = byNameContainer;
+                selectAllCheckboxInstance = currentTableContainer?.querySelector('#select-all-deliveries');
+            } else if (target.closest('#delivery_date_search_results_container')) {
+                currentTableContainer = byDateContainer;
+                selectAllCheckboxInstance = currentTableContainer?.querySelector('#select-all-deliveries-by-date');
+            }
+
+            if (!currentTableContainer) {
+                // If the change event is not within a known container, exit.
+                // This can happen if other form elements within ordersTabContent trigger change events.
+                return;
+            }
+
+            const itemCheckboxes = currentTableContainer.querySelectorAll('.select-delivery-item');
+
+            if (target.matches('#select-all-deliveries, #select-all-deliveries-by-date')) {
+                // Handle "Select All" checkbox click
+                const isChecked = target.checked;
                 itemCheckboxes.forEach(checkbox => {
                     checkbox.checked = isChecked;
                 });
-                updateBatchDeleteToast(); // <--- ADD THIS
-            } else if (event.target.matches('.select-delivery-item')) {
-                const selectAllCheckbox = contentWrapper.querySelector('#select-all-deliveries');
-                if (selectAllCheckbox) {
-                    const itemCheckboxes = contentWrapper.querySelectorAll('.select-delivery-item');
+            } else if (target.matches('.select-delivery-item')) {
+                // Handle individual item checkbox click
+                if (selectAllCheckboxInstance) {
                     const allChecked = Array.from(itemCheckboxes).every(checkbox => checkbox.checked);
                     const someChecked = Array.from(itemCheckboxes).some(checkbox => checkbox.checked);
 
                     if (allChecked && itemCheckboxes.length > 0) {
-                        selectAllCheckbox.checked = true;
-                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckboxInstance.checked = true;
+                        selectAllCheckboxInstance.indeterminate = false;
                     } else if (someChecked) {
-                        selectAllCheckbox.checked = false;
-                        selectAllCheckbox.indeterminate = true;
+                        selectAllCheckboxInstance.checked = false;
+                        selectAllCheckboxInstance.indeterminate = true;
                     } else {
-                        selectAllCheckbox.checked = false;
-                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckboxInstance.checked = false;
+                        selectAllCheckboxInstance.indeterminate = false;
                     }
                 }
-                updateBatchDeleteToast(); // <--- ADD THIS
+            }
+
+            // After any relevant checkbox change, update the toast.
+            // This will correctly count from the active tab due to updateBatchDeleteToast's internal logic.
+            if (target.matches('#select-all-deliveries, #select-all-deliveries-by-date, .select-delivery-item')) {
+                 updateBatchDeleteToast();
             }
         });
+        // Initial call to set toast state when page loads (e.g. if there are pre-selected items from server-side rendering, though not current case)
+        // updateBatchDeleteToast(); // This might be better called after initial content load for each tab if applicable
     } else {
-        console.warn("Content wrapper for select-all functionality ('orders-by-name-content-wrapper') not found.");
+        console.warn("Main tab content area ('orders-tab-content') not found. Checkbox functionality might be affected.");
     }
+
+    // Ensure toast is updated when tabs change
+    tabButtons.forEach(tabButton => {
+        tabButton.addEventListener('shown.bs.tab', function (event) {
+            // event.target // newly activated tab
+            // event.relatedTarget // previous active tab
+            updateSearchFormVisibility(event.target.getAttribute('data-bs-target'));
+
+            // Reset "Select All" for the tab that is becoming inactive (event.relatedTarget)
+            const previousActivePaneTarget = event.relatedTarget ? event.relatedTarget.getAttribute('data-bs-target') : null;
+            if (previousActivePaneTarget) {
+                const previousPane = document.querySelector(previousActivePaneTarget);
+                if (previousPane) {
+                    const selectAllInPrevious = previousPane.querySelector('#select-all-deliveries, #select-all-deliveries-by-date');
+                    if (selectAllInPrevious && selectAllInPrevious.checked) {
+                        // selectAllInPrevious.checked = false; // Optionally uncheck all when tab becomes inactive
+                        // selectAllInPrevious.indeterminate = false;
+                        // const itemsInPrevious = previousPane.querySelectorAll('.select-delivery-item');
+                        // itemsInPrevious.forEach(item => item.checked = false);
+                    }
+                }
+            }
+            updateBatchDeleteToast(); // Update toast based on the new active tab's selection state
+        });
+    });
+
+    // Initial toast update on page load, considering the initially active tab
+    // This ensures the toast is correctly shown/hidden if the page loads with an active tab that might have selections
+    // (though currently selections are client-side only).
+    const initialActiveTab = document.querySelector('#orders-view-tabs .nav-link.active');
+    if (initialActiveTab) {
+        updateSearchFormVisibility(initialActiveTab.getAttribute('data-bs-target')); // Ensure correct form visibility
+    }
+    updateBatchDeleteToast(); // Update toast for the initially active tab
+
 });

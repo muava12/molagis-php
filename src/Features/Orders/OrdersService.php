@@ -280,4 +280,84 @@ class OrdersService
             return ['count' => 0, 'error' => 'An unexpected error occurred while fetching delivery count.'];
         }
     }
+
+    /**
+     * Batch deletes delivery dates by their IDs.
+     *
+     * @param array $deliveryDateIds An array of integer delivery date IDs.
+     * @param string|null $accessToken User's access token.
+     * @return array Result array with 'success', 'message'/'error', and optionally 'deleted_ids'.
+     */
+    public function batchDeleteDeliveryDatesByIds(array $deliveryDateIds, ?string $accessToken = null): array
+    {
+        if (empty($deliveryDateIds)) {
+            return ['success' => false, 'error' => 'No delivery IDs provided.', 'status_code' => 400];
+        }
+
+        // Ensure all IDs are integers, just in case they weren't sanitized before.
+        $ids = array_map('intval', $deliveryDateIds);
+        $ids = array_filter($ids, fn($id) => $id > 0);
+
+        if (empty($ids)) {
+            return ['success' => false, 'error' => 'No valid delivery IDs after filtering.', 'status_code' => 400];
+        }
+
+        $idList = implode(',', $ids); // Format for "in" clause: e.g., "1,2,3"
+
+        // Using "deliverydates" as the table name as per previous delete logic for single items.
+        $query = sprintf(
+            '/rest/v1/deliverydates?id=in.(%s)',
+            $idList
+        );
+
+        try {
+            // Assuming $this->supabaseClient->delete() handles the request appropriately.
+            // The Supabase PHP client's delete method might return true on 204,
+            // or throw an exception for other errors.
+            $response = $this->supabaseClient->delete($query, [], $accessToken);
+
+            // Check if Supabase client returned an error array (e.g. RLS violation)
+            if (is_array($response) && isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
+                error_log('Supabase batchDeleteDeliveryDatesByIds error: ' . $errorMessage);
+                return ['success' => false, 'error' => $errorMessage, 'status_code' => 500]; // Generic server error for DB issues
+            }
+
+            // Ideal scenario: Supabase client returns true for 204, or a Guzzle response object for 204.
+            if ($response === true || (is_object($response) && method_exists($response, 'getStatusCode') && $response->getStatusCode() === 204)) {
+                return [
+                    'success' => true,
+                    'message' => count($ids) . ' delivery date(s) processed for deletion.',
+                    'deleted_ids' => $ids
+                ];
+            }
+
+            // Fallback for unexpected response types from Supabase client
+            // This might indicate that nothing was deleted, or an issue not caught as an exception or error array.
+            // Supabase DELETE with `in` clause on items that don't exist still returns 204.
+            // So, if we reach here, it's an ambiguous success/failure from the client's perspective.
+            // For safety, let's assume it might not have worked as expected if not explicitly a 204 or true.
+            // However, many clients might just return the response body/object even if it's a success without specific content.
+            // Given the previous single delete logic, let's assume if no error was thrown and no ['error'] key, it's a success.
+            return [
+               'success' => true,
+               'message' => count($ids) . ' delivery date(s) targeted for deletion. Verify results.',
+               'deleted_ids' => $ids
+           ];
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $responseBody = $e->getResponse() ? $e->getResponse()->getBody()->getContents() : $e->getMessage();
+            error_log('Guzzle ClientException in batchDeleteDeliveryDatesByIds: ' . $responseBody);
+            $decodedBody = json_decode($responseBody, true);
+            $errorMessage = $decodedBody['message'] ?? $decodedBody['error'] ?? 'Batch delete failed due to client error.';
+            $statusCode = $e->getResponse() ? $e->getResponse()->getStatusCode() : 500;
+            // A 404 for a batch delete (e.g., if all IDs in the list were not found) might still be considered "processed".
+            // However, Supabase usually returns 204 even if no rows match the `in` criteria for a DELETE.
+            // So a 404 here would be unusual and likely indicate a problem with the request itself or endpoint.
+            return ['success' => false, 'error' => $errorMessage, 'status_code' => $statusCode];
+        } catch (\Exception $e) {
+            error_log('Generic Exception in batchDeleteDeliveryDatesByIds: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'An exception occurred during batch delete: ' . $e->getMessage(), 'status_code' => 500];
+        }
+    }
 }

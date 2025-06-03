@@ -252,4 +252,48 @@ class OrdersController
             return new JsonResponse(['success' => false, 'message' => $serviceResponse['error'] ?? 'Failed to delete delivery date.'], $statusCode);
         }
     }
+
+    public function batchDeleteDeliveriesApi(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $data = json_decode($request->getBody()->getContents(), true);
+        $deliveryDateIds = $data['ids'] ?? null;
+
+        if (empty($deliveryDateIds) || !is_array($deliveryDateIds)) {
+            return new JsonResponse(['success' => false, 'message' => 'Invalid or missing delivery IDs.'], 400);
+        }
+
+        // Basic sanitation: ensure all IDs are integers
+        $sanitizedIds = array_filter(array_map('intval', $deliveryDateIds), fn($id) => $id > 0);
+
+        if (empty($sanitizedIds)) {
+            return new JsonResponse(['success' => false, 'message' => 'No valid delivery IDs provided after sanitation.'], 400);
+        }
+
+        if (count($sanitizedIds) !== count($deliveryDateIds)) {
+           error_log("[BatchDelete] Some IDs were invalid. Original: " . json_encode($deliveryDateIds) . " Sanitized: " . json_encode($sanitizedIds));
+           // Decide if to proceed with only valid ones or reject. For now, let's proceed with valid ones but acknowledge.
+           // To be stricter, you could return an error here if count($sanitizedIds) !== count($deliveryDateIds)
+        }
+
+        $serviceResponse = $this->ordersService->batchDeleteDeliveryDatesByIds($sanitizedIds, $accessToken);
+
+        if ($serviceResponse['success']) {
+            return new JsonResponse([
+                'success' => true,
+                'message' => $serviceResponse['message'] ?? 'Selected deliveries deleted successfully.',
+                'deleted_ids' => $serviceResponse['deleted_ids'] ?? $sanitizedIds // Return sanitized IDs if service doesn't specify
+            ]);
+        } else {
+            $statusCode = $serviceResponse['status_code'] ?? 500; // Default to 500 if not specified
+            return new JsonResponse([
+                'success' => false,
+                'message' => $serviceResponse['error'] ?? 'Failed to delete selected deliveries.'
+            ], $statusCode);
+        }
+    }
 }
