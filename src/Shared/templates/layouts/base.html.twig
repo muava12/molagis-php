@@ -56,7 +56,7 @@
     <script type="module" src="/js/app/index.js?v={{ 'now'|date('U') }}"></script>
     {% block javascripts %}
       {# JavaScript spesifik untuk halaman ini #}
-    <script src="{{ base_url() }}js/app/batch-delete.js"></script>
+    <script src="/js/app/batch-delete.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof initializeBatchDeleteToast === 'function') {
