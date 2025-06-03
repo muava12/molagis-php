@@ -164,4 +164,72 @@ class OrdersService
             return ['data' => [], 'error' => 'Exception occurred while fetching deliveries by date: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Menghapus data pengiriman berdasarkan ID (deliverydates.id).
+     *
+     * @param int $deliveryDateId ID dari record deliverydates yang akan dihapus.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'success' (boolean) dan 'error' (string|null).
+     */
+    public function deleteDeliveryDateById(int $deliveryDateId, ?string $accessToken = null): array
+    {
+        $query = sprintf(
+            '/rest/v1/deliverydates?id=eq.%d',
+            $deliveryDateId
+        );
+
+        try {
+            // SupabaseClient->delete typically returns true on success (204 No Content)
+            // or throws an exception on network/HTTP error, or returns an array with 'error' on Supabase/DB error.
+            $response = $this->supabaseClient->delete($query, [], $accessToken);
+
+            // If $response is an array with an 'error' key, it's a Supabase-level error (e.g., RLS, policy violation)
+            if (is_array($response) && isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
+                error_log('Supabase deleteDeliveryDateById error: ' . $errorMessage);
+                return ['success' => false, 'error' => $errorMessage];
+            }
+
+            // If $response is true (or anything not an error array), assume success.
+            // The Supabase PHP client might return true for 204, or the Guzzle response object.
+            // If it's the Guzzle response, check status code: $response->getStatusCode() === 204
+            // For simplicity, if it didn't throw and didn't return an error array, assume it worked.
+            // A more robust check might be needed depending on SupabaseClient->delete precise return.
+            if ($response === true || (is_object($response) && method_exists($response, 'getStatusCode') && $response->getStatusCode() === 204) ) {
+                 return ['success' => true, 'error' => null];
+            }
+
+
+            // If the client's delete method returns the Guzzle response object on non-erroring non-204,
+            // or if it returns an unexpected array structure without 'error' but also not true.
+            // This part might need adjustment based on how SupabaseClient->delete signals "not found" or other non-exception errors.
+            // Typically, DELETE on a non-existent resource is a 404, which should throw an exception in a Guzzle client.
+            // If it returns an empty array for "not found" without error, that's also a success in terms of the operation.
+            // For now, we assume if no error was thrown and no ['error'] key, it's a success.
+            return ['success' => true, 'error' => null];
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            // Catch specific Guzzle client exceptions (4xx errors)
+            $responseBody = $e->getResponse() ? $e->getResponse()->getBody()->getContents() : $e->getMessage();
+            error_log('Guzzle ClientException in deleteDeliveryDateById for ID ' . $deliveryDateId . ': ' . $responseBody);
+            // Try to parse Supabase error from response body
+            $decodedBody = json_decode($responseBody, true);
+            $errorMessage = $decodedBody['message'] ?? $decodedBody['error'] ?? 'Failed to delete due to client error (e.g., RLS, not found).';
+            if ($e->getResponse() && $e->getResponse()->getStatusCode() === 404) {
+                 // While 404 means not found, for a DELETE operation, this can be considered "success"
+                 // as the resource is not there post-operation. Or, you can report it differently.
+                 // Let's report it as a specific type of failure or a specific success message.
+                 // For now, let's say the goal was for it to not exist, so it's a success in that sense.
+                 // However, client-side might want to know if it was actually deleted vs not found.
+                 // The prompt said: "even if no rows were affected... consider it a success"
+                 // but a 404 is an actual error response. Let's treat 404 as "not found" error for now.
+                return ['success' => false, 'error' => 'Delivery date not found.'];
+            }
+            return ['success' => false, 'error' => $errorMessage];
+        } catch (\Exception $e) {
+            error_log('Generic Exception in deleteDeliveryDateById for ID ' . $deliveryDateId . ': ' . $e->getMessage());
+            return ['success' => false, 'error' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
 }

@@ -124,7 +124,7 @@
           <div class="tab-pane fade {{ view == 'by_name' or view is null or view == '' ? 'show active' : '' }}" id="pane-by-name" role="tabpanel" aria-labelledby="tab-by-name-button">
             {# Customer search form was moved to control bar #}
             {% if selected_customer_id %}
-              <h3 class="card-title mt-4 mb-2">Daftar Pengiriman untuk: {{ selected_customer_name | default('Pelanggan Terpilih') }}</h3>
+              <h3 class="card-title mt-4 mb-2">Daftar Pengiriman untuk: <strong>{{ selected_customer_name | default('Pelanggan Terpilih') }}</strong></h3>
               <div class="card-table table-responsive">
                 <table class="table table-vcenter card-table table-selectable">
                   <thead>
@@ -265,6 +265,13 @@
     </div>
   </div>
 </div>
+
+{% include 'confirmation-modal.html.twig' with {
+    'id': 'deleteDeliveryConfirmModal',
+    'title': 'Konfirmasi Hapus Pengiriman',
+    'message': 'Apakah Anda yakin ingin menghapus data pengiriman ini?',
+    'confirmText': 'Ya, Hapus'
+} %}
 {% endblock %}
 
 {% block javascripts %}

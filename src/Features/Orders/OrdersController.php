@@ -188,4 +188,27 @@ class OrdersController
 
         return new JsonResponse(['success' => true, 'deliveries' => $serviceResponse['data']]);
     }
+
+    public function deleteDeliveryDateApi(ServerRequestInterface $request, array $args): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $deliveryDateId = isset($args['id']) ? (int)$args['id'] : 0;
+
+        if ($deliveryDateId <= 0) {
+            return new JsonResponse(['success' => false, 'message' => 'Invalid Delivery ID provided.'], 400);
+        }
+
+        $serviceResponse = $this->ordersService->deleteDeliveryDateById($deliveryDateId, $accessToken);
+
+        if ($serviceResponse['success']) {
+            return new JsonResponse(['success' => true, 'message' => 'Delivery date deleted successfully.']);
+        } else {
+            $statusCode = ($serviceResponse['error'] === 'Delivery date not found.') ? 404 : 500;
+            return new JsonResponse(['success' => false, 'message' => $serviceResponse['error'] ?? 'Failed to delete delivery date.'], $statusCode);
+        }
+    }
 }

@@ -367,4 +367,97 @@ document.addEventListener('DOMContentLoaded', function () {
         // Call updateSearchFormVisibility to ensure JS state matches.
         updateSearchFormVisibility('#pane-by-name');
     }
+
+    // --- Delete Delivery Confirmation Modal Logic ---
+    const deleteConfirmModalElement = document.getElementById('deleteDeliveryConfirmModal');
+    let deleteConfirmModalInstance = null;
+    if (deleteConfirmModalElement && typeof bootstrap !== 'undefined') {
+        deleteConfirmModalInstance = new bootstrap.Modal(deleteConfirmModalElement);
+    }
+    // const deleteConfirmModalTitle = document.getElementById('deleteDeliveryConfirmModal-title'); // Title set by Twig
+    const deleteConfirmModalMessage = document.getElementById('deleteDeliveryConfirmModal-message');
+    const deleteConfirmModalConfirmBtn = document.getElementById('deleteDeliveryConfirmModal-confirm');
+    let deliveryIdToDelete = null;
+
+    const tabContentForDelete = document.getElementById('orders-tab-content');
+    if (tabContentForDelete && deleteConfirmModalInstance) {
+        tabContentForDelete.addEventListener('click', function(event) {
+            const deleteButton = event.target.closest('.delete-delivery-btn');
+            if (deleteButton) {
+                event.preventDefault();
+                deliveryIdToDelete = deleteButton.getAttribute('data-delivery-id');
+
+                if (deleteConfirmModalMessage) {
+                    deleteConfirmModalMessage.innerHTML = `Apakah Anda yakin ingin menghapus data pengiriman dengan ID: <strong>${deliveryIdToDelete}</strong>? Data yang sudah dihapus tidak dapat dikembalikan.`;
+                }
+                deleteConfirmModalInstance.show();
+            }
+        });
+    } else {
+        if (!tabContentForDelete) console.warn('Delete logic: #orders-tab-content not found.');
+        if (!deleteConfirmModalInstance) console.warn('Delete logic: deleteConfirmModalInstance not initialized. Bootstrap Modal JS might be missing or modal HTML.');
+    }
+
+    if (deleteConfirmModalConfirmBtn && deleteConfirmModalInstance) {
+        deleteConfirmModalConfirmBtn.addEventListener('click', function() {
+            if (deliveryIdToDelete) {
+                performDeleteDelivery(deliveryIdToDelete);
+                deliveryIdToDelete = null;
+            }
+            deleteConfirmModalInstance.hide();
+        });
+    }
+
+    function performDeleteDelivery(deliveryId) {
+        console.log('Attempting to delete delivery ID:', deliveryId);
+
+        // Assuming showToast is globally available or imported
+        // You might need to pass it or ensure its scope if it's from utils.js
+        const showToast = window.showToast || function(title, message, isError = false) { // Basic fallback
+            alert(`${title}: ${message}`);
+            if(isError) console.error(message); else console.log(message);
+        };
+
+
+        fetch(`/api/delivery/${deliveryId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                // Add any other necessary headers, like CSRF tokens if your app uses them
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Try to get error message from JSON response, then fallback to statusText
+                return response.json().then(errData => {
+                    throw new Error(errData.message || `Error deleting delivery. Status: ${response.status}`);
+                }).catch(() => { // Fallback if response isn't JSON or .json() fails
+                    throw new Error(`Error deleting delivery. Status: ${response.status} - ${response.statusText}`);
+                });
+            }
+            return response.json(); // Or response.text() if the API returns no body or non-JSON on success
+        })
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                // The row can be identified by a data attribute or by finding the button and its parent row
+                const rowToRemove = document.querySelector(`.delete-delivery-btn[data-delivery-id="${deliveryId}"]`)?.closest('tr');
+                if (rowToRemove) {
+                    rowToRemove.remove();
+                    console.log('Row removed for delivery ID:', deliveryId);
+                } else {
+                    console.warn('Could not find row to remove for delivery ID:', deliveryId, '. Consider reloading list.');
+                    // Optionally, trigger a full list refresh for the current view if row removal is complex
+                }
+                showToast('Sukses', data.message || `Pengiriman ID ${deliveryId} berhasil dihapus.`);
+            } else {
+                // Handle cases where success is false but HTTP was OK (e.g., validation error from API)
+                showToast('Error', data.message || `Gagal menghapus pengiriman ID ${deliveryId}.`, true);
+            }
+        })
+        .catch(error => {
+            console.error('Error in performDeleteDelivery:', error);
+            showToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, true);
+        });
+    }
 });
