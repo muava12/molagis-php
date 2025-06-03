@@ -146,10 +146,22 @@ class OrdersController
             'allowed_limits' => $allowedLimits // Pass allowed limits for dropdown UI
         ];
 
+        // Detect AJAX request
+        $isAjaxRequest = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+
         $response = new Response();
-        $response->getBody()->write(
-            $this->twig->render('order-list.html.twig', $twigData)
-        );
+
+        if ($isAjaxRequest && ($view === 'by_name' || $view === '') && $selectedCustomerId) {
+            // If AJAX request for 'by_name' view with a customer, render only the partial
+            $response->getBody()->write(
+                $this->twig->render('_orders_table_partial.html.twig', $twigData)
+            );
+        } else {
+            // Otherwise, render the full page
+            $response->getBody()->write(
+                $this->twig->render('order-list.html.twig', $twigData)
+            );
+        }
 
         return $response;
     }

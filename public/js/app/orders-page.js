@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const customerSearchInput = document.getElementById('customer_search_orders');
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = customerSearchInput ? customerSearchInput.closest('form') : null;
-    const bootstrap = window.tabler?.bootstrap;
 
     // --- Clear and unfocus customer search input if a customer is selected (page has reloaded with results) ---
     if (selectedCustomerIdHidden && selectedCustomerIdHidden.value && customerSearchInput) {
@@ -486,27 +485,130 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- Items Per Page Dropdown Logic ---
-    const itemsPerPageSelect = document.getElementById('items_per_page_select');
+    // fetchAndUpdateOrdersView function should be defined before it's used.
+    // It might be better to define it earlier in the script or ensure all calls are made after its definition.
+    async function fetchAndUpdateOrdersView(url) {
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // Important for backend detection
+                }
+            });
+            if (!response.ok) {
+                // Try to get a more specific error message if the server sent one
+                let errorText = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json(); // Assuming error responses might be JSON
+                    if (errorData && errorData.message) {
+                        errorText = errorData.message;
+                    }
+                } catch (e) {
+                    // Not a JSON error response, or failed to parse, stick to status.
+                }
+                throw new Error(errorText);
+            }
+            const html = await response.text();
 
-    if (itemsPerPageSelect) {
-        itemsPerPageSelect.addEventListener('change', function() {
-            const newLimit = this.value;
-            const currentUrl = new URL(window.location.href);
-            const params = new URLSearchParams(currentUrl.search);
+            const contentWrapper = document.getElementById('orders-by-name-content-wrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+                // After replacing content, re-evaluate or re-attach any necessary JS behaviors
+                // for the new content, if not handled by delegation.
+                // For example, if flatpickr or other plugins were used inside the updated content.
+                // For now, this is basic.
+            } else {
+                console.error('Error: Target content wrapper #orders-by-name-content-wrapper for AJAX update not found.');
+                window.location.href = url; // Fallback to full page reload
+                return;
+            }
 
-            // Set new limit and reset page to 1
-            params.set('limit', newLimit);
-            params.set('page', '1');
+            // Update URL using history.pushState
+            if (history.pushState) {
+                history.pushState({path: url}, '', url);
+            } else {
+                // Fallback for older browsers
+                window.location.href = url;
+            }
 
-            // view and customer_id should already be in params if the dropdown is visible
-            // as per Twig conditions.
+        } catch (error) {
+            console.error('Error fetching or updating orders view:', error);
+            // Consider showing a user-friendly error message on the page
+            // For now, fallback to full page reload on error.
+            window.location.href = url;
+        }
+    }
 
-            currentUrl.search = params.toString();
-            window.location.href = currentUrl.toString();
+    // --- Event Delegation for controls within #pane-by-name ---
+    const paneByName = document.getElementById('pane-by-name');
+
+    if (paneByName) {
+        // Delegated event listener for "Items Per Page" dropdown
+        paneByName.addEventListener('change', function(event) {
+            if (event.target.matches('#items_per_page_select')) {
+                const newLimit = event.target.value;
+                const currentUrl = new URL(window.location.href); // Use current window location as base
+                const params = new URLSearchParams(currentUrl.search);
+
+                params.set('limit', newLimit);
+                params.set('page', '1'); // Reset to page 1 when limit changes
+
+                // Ensure view is 'by_name'
+                params.set('view', 'by_name');
+                // customer_id should already be in params if this dropdown is visible and active
+
+                currentUrl.search = params.toString();
+                fetchAndUpdateOrdersView(currentUrl.toString());
+            }
         });
-    } else {
-        // This is not necessarily an error, as the dropdown is conditionally rendered by Twig.
-        // console.log('Items per page select #items_per_page_select not found on this page view.');
+
+        // Delegated event listener for Pagination links
+        paneByName.addEventListener('click', function(event) {
+            let clickedLinkElement = event.target;
+            // Check if the click was on an icon/svg inside the link
+            if (!clickedLinkElement.matches('.page-link')) {
+                clickedLinkElement = clickedLinkElement.closest('.page-link');
+            }
+
+            // Proceed if it's a valid pagination link (<a> tag with href, not disabled)
+            if (clickedLinkElement && clickedLinkElement.tagName === 'A' && clickedLinkElement.href &&
+                !clickedLinkElement.href.endsWith('#') &&
+                !clickedLinkElement.closest('.page-item.disabled')) {
+
+                event.preventDefault(); // Prevent full page reload
+                fetchAndUpdateOrdersView(clickedLinkElement.href);
+            }
+        });
+    }
+
+    // --- AJAXify Customer Search Form (within 'by_name' view) ---
+    // Note: customerSearchForm and selectedCustomerIdHidden are defined at the top of the DOMContentLoaded
+    if (customerSearchForm) {
+        customerSearchForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const customerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
+
+            const baseUrl = customerSearchForm.action || (window.location.origin + '/orders');
+            const params = new URLSearchParams();
+            params.set('view', 'by_name');
+            if (customerId) {
+                params.set('customer_id', customerId);
+            }
+            // If no customer_id, the server-side logic (already in place)
+            // will result in the partial rendering the "select customer" message.
+
+            params.set('page', '1'); // Reset page when a new customer is searched
+
+            // Preserve existing limit if set in current URL, otherwise server default will apply
+            // This is important if user has selected a non-default limit
+            const currentUrlForLimit = new URL(window.location.href);
+            const currentLimit = currentUrlForLimit.searchParams.get('limit');
+            if (currentLimit) {
+                params.set('limit', currentLimit);
+            }
+            // If no limit in URL, controller will use its default.
+
+            fetchAndUpdateOrdersView(baseUrl + '?' + params.toString());
+        });
     }
 });
