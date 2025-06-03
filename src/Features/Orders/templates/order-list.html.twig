@@ -26,19 +26,43 @@
       <div class="card-header">
         <h3 class="card-title">Manajemen Pesanan</h3>
         <div class="ms-auto">
-          <nav class="nav nav-segmented" role="tablist" id="orders-view-tabs">
-            <button class="nav-link {{ view == 'by_name' or view is null or view == '' ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" type="button" role="tab" aria-controls="pane-by-name" aria-selected="{{ view == 'by_name' or view is null or view == '' ? 'true' : 'false' }}">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-users"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
-              <span class="d-none d-sm-inline ms-1">By Name</span>
-            </button>
-            <button class="nav-link {{ view == 'by_order_id' ? 'active' : '' }}" id="tab-by-order-id-button" data-bs-toggle="tab" data-bs-target="#pane-by-order-id" type="button" role="tab" aria-controls="pane-by-order-id" aria-selected="{{ view == 'by_order_id' ? 'true' : 'false' }}">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icon-tabler-hash"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 9l14 0" /><path d="M5 15l14 0" /><path d="M11 4l-4 16" /><path d="M17 4l-4 16" /></svg>
-              <span class="d-none d-sm-inline ms-1">By Order ID</span>
-            </button>
-            <button class="nav-link {{ view == 'by_date' ? 'active' : '' }}" id="tab-by-date-button" data-bs-toggle="tab" data-bs-target="#pane-by-date" type="button" role="tab" aria-controls="pane-by-date" aria-selected="{{ view == 'by_date' ? 'true' : 'false' }}">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icon-tabler-calendar"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M11 15h1" /><path d="M12 15v3" /></svg>
-              <span class="d-none d-sm-inline ms-1">By Date</span>
-            </button>
+          <nav class="nav nav-segmented nav-sm" role="tablist" id="orders-view-tabs">
+              <button class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" type="button" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">
+                  <!-- SVG for List icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                    <path d="M9 6l11 0"></path>
+                    <path d="M9 12l11 0"></path>
+                    <path d="M9 18l11 0"></path>
+                    <path d="M5 6l0 .01"></path>
+                    <path d="M5 12l0 .01"></path>
+                    <path d="M5 18l0 .01"></path>
+                  </svg>
+                  By Name
+              </button>
+              <button class="nav-link {{ view == 'by_order_id' ? 'active' : '' }}" id="tab-by-order-id-button" data-bs-toggle="tab" data-bs-target="#pane-by-order-id" type="button" role="tab" aria-controls="pane-by-order-id" aria-selected="{{ view == 'by_order_id' ? 'true' : 'false' }}">
+                  <!-- SVG for Hash/Layout icon (using a generic one, replace if specific needed) -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                      <path d="M5 9l14 0" /><path d="M5 15l14 0" /><path d="M11 4l-4 16" /><path d="M17 4l-4 16" /></svg>
+                  By Order ID
+              </button>
+              <button class="nav-link {{ view == 'by_date' ? 'active' : '' }}" id="tab-by-date-button" data-bs-toggle="tab" data-bs-target="#pane-by-date" type="button" role="tab" aria-controls="pane-by-date" aria-selected="{{ view == 'by_date' ? 'true' : 'false' }}">
+                  <!-- SVG for Calendar icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                    <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path>
+                    <path d="M16 3v4"></path>
+                    <path d="M8 3v4"></path>
+                    <path d="M4 11h16"></path>
+                    <path d="M11 15h1"></path>
+                    <path d="M12 15v3"></path>
+                  </svg>
+                  By Date
+              </button>
+              {# Example of a disabled tab as in user's reference - adapt if needed, or remove if not applicable #}
+              {# <button class="nav-link disabled" role="tab" data-bs-toggle="tab" aria-selected="false" aria-disabled="true" tabindex="-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                  </svg>
+                  Other (Disabled)
+              </button> #}
           </nav>
         </div>
       </div>

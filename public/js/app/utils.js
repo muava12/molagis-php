@@ -1,52 +1,41 @@
-export function renderErrorAlert(errorMessage) {
-    const errorContainer = document.querySelector('#error-container');
-    if (!errorContainer) {
-        console.error('Error container not found');
+// public/js/app/utils.js
+window.showGlobalToast = function(title, message, type = 'success') {
+    let toastElementId;
+    let titleElementId;
+    let messageElementId;
+
+    if (type === 'success') {
+        toastElementId = 'toast';
+        titleElementId = 'toast-title';
+        messageElementId = 'toast-message';
+    } else if (type === 'error') {
+        toastElementId = 'toast-error';
+        titleElementId = 'toast-error-title';
+        messageElementId = 'toast-error-message';
+    } else {
+        console.error('Unknown toast type:', type);
         return;
     }
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-danger alert-dismissible';
-    alert.innerHTML = `
-            <div>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>
-                    <path d="M12 8l0 4"/>
-                    <path d="M12 16l0 .01"/>
-                </svg>
-            </div>
-            <div>
-                <h4 class="alert-title">Koneksi Bermasalah 🫤</h4>
-                <div class="alert-description">${errorMessage}</div>
-            </div>
-        <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-    `;
-    errorContainer.innerHTML = ``;
-    errorContainer.appendChild(alert);
-}
 
-export function showToast(title, message, isError = false) {
-    const toastId = isError ? 'toast-error' : 'toast';
-    const titleId = isError ? 'toast-error-title' : 'toast-title';
-    const messageId = isError ? 'toast-error-message' : 'toast-message';
-    const toast = new tabler.bootstrap.Toast(document.getElementById(toastId));
-    document.getElementById(titleId).textContent = title;
-    document.getElementById(messageId).textContent = message;
-    toast.show();
-}
+    const toastElement = document.getElementById(toastElementId);
+    const titleElement = document.getElementById(titleElementId);
+    const messageElement = document.getElementById(messageElementId);
 
-// Fungsi untuk format Rupiah
-function formatRupiah(angka) {
-    return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-// Fungsi untuk format nomor telepon ke format WhatsApp
-function formatPhoneNumber(phone) {
-    phone = phone.replace(/\s+/g, '');
-    if (phone.startsWith('0')) {
-        phone = '62' + phone.slice(1);
+    if (!toastElement || !titleElement || !messageElement) {
+        console.error(`Toast elements not found for type '${type}'. DOM IDs: ${toastElementId}, ${titleElementId}, ${messageElementId}. Ensure toast.html.twig is included and IDs are correct.`);
+        alert(`${title}: ${message}`); // Fallback
+        return;
     }
-    return phone;
-}
 
-export { formatRupiah, formatPhoneNumber };
+    titleElement.textContent = title;
+    messageElement.textContent = message;
+
+    const bs = window.tabler?.bootstrap; // Use the Tabler-provided Bootstrap instance
+    if (bs && bs.Toast) {
+        const toastInstance = bs.Toast.getOrCreateInstance(toastElement);
+        toastInstance.show();
+    } else {
+        console.error('Bootstrap Toast component (via window.tabler.bootstrap.Toast) not available.');
+        alert(`${title}: ${message}`); // Fallback
+    }
+};
