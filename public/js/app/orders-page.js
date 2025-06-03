@@ -270,4 +270,47 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         // console.warn('Elements for "By Date" tab not fully found. HTML structure might be pending.');
     }
+
+    // --- Save active tab to localStorage ---
+    const tabButtons = document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]');
+    tabButtons.forEach(tabButton => {
+        tabButton.addEventListener('shown.bs.tab', function (event) {
+            // event.target is the newly activated tab button
+            const activeTabTarget = event.target.getAttribute('data-bs-target'); // e.g., "#pane-by-name"
+            if (activeTabTarget) {
+                localStorage.setItem('activeOrdersTab', activeTabTarget);
+                console.log('Active tab target saved:', activeTabTarget); // For debugging
+            }
+        });
+    });
+
+    // --- Activate tab from localStorage if no view in URL ---
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    const urlView = currentUrlParams.get('view');
+
+    if (!urlView) { // Only apply localStorage if URL doesn't specify a view
+        const savedTabTarget = localStorage.getItem('activeOrdersTab');
+        if (savedTabTarget) {
+            // Find the tab button that corresponds to this target
+            const tabButtonToActivate = document.querySelector(`#orders-view-tabs .nav-link[data-bs-target="${savedTabTarget}"]`);
+            if (tabButtonToActivate) {
+                // Check if Bootstrap and Tab class are available
+                if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') {
+                    console.log('Activating tab from localStorage:', savedTabTarget); // For debugging
+                    const tabInstance = bootstrap.Tab.getOrCreateInstance(tabButtonToActivate);
+                    if (tabInstance) {
+                        tabInstance.show();
+                    } else {
+                        console.warn('Could not create or get tab instance for:', savedTabTarget);
+                    }
+                } else {
+                    console.warn('Bootstrap Tab API not available for activating tab from localStorage.');
+                }
+            } else {
+                console.warn('Saved tab button not found for target:', savedTabTarget); // For debugging
+            }
+        }
+    } else {
+        console.log('View is set by URL parameter, localStorage tab preference ignored:', urlView); // For debugging
+    }
 });
