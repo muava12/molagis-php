@@ -66,13 +66,20 @@ class OrdersController
 
         // Initialize pagination variables with defaults
         $page = 1;
-        $limit = 100; // Default items per page, also used by by_name view
+        // $limit = 100; // Default items per page, also used by by_name view // Replaced by new logic below
         $totalPages = 1; // Default total pages
+
+        // Handle "Items Per Page" limit
+        $allowedLimits = [10, 50, 100, 1000];
+        $defaultLimit = 100; // Current default
+        $limit = isset($queryParams['limit']) ? (int)$queryParams['limit'] : $defaultLimit;
+        if (!in_array($limit, $allowedLimits)) {
+            $limit = $defaultLimit;
+        }
 
         if ($view === 'by_name' || $view === '') { // Default view or explicitly by_name
             if ($selectedCustomerId) {
                 $page = isset($queryParams['page']) ? (int)$queryParams['page'] : 1;
-                // $limit is already 100 as per default
                 $offset = ($page - 1) * $limit;
 
                 $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken, $limit, $offset);
@@ -133,8 +140,10 @@ class OrdersController
             'view' => $view,
             'error' => $finalError,
             'current_page' => $page,
-            'items_per_page' => $limit,
-            'total_pages' => $totalPages
+            'items_per_page' => $limit, // This now correctly reflects the potentially user-selected limit
+            'total_pages' => $totalPages,
+            'current_limit' => $limit, // Pass current limit for dropdown UI
+            'allowed_limits' => $allowedLimits // Pass allowed limits for dropdown UI
         ];
 
         $response = new Response();

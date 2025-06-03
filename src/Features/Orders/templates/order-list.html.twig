@@ -44,7 +44,22 @@
       </div>
       {# New Control Bar - Below the card-header with tabs, but before the card-body with tab-content #}
       <div class="card-body border-bottom py-3">
-        <div class="d-flex">
+        <div class="d-flex align-items-center"> {# Outer flex container, added align-items-center #}
+            {# Items per page dropdown #}
+            {% if view == 'by_name' and selected_customer_id and allowed_limits is defined and current_limit is defined %}
+            <div class="me-3"> {# Margin to separate from pagination #}
+                <label for="items_per_page_select" class="form-label visually-hidden">Items per page</label> {# Visually hidden label for accessibility #}
+                <select class="form-select form-select-sm" id="items_per_page_select" style="width: auto;">
+                    {% for limit_option in allowed_limits %}
+                        <option value="{{ limit_option }}" {{ limit_option == current_limit ? 'selected' : '' }}>
+                            {{ limit_option }} per page
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            {# Existing pagination container #}
           <div class="text-muted">
             {# Placeholder for Pagination - to be added in a later step #}
             <!-- <ul class="pagination m-0"> (Example structure)
@@ -65,8 +80,12 @@
 
                 {# Page Numbers #}
                 {% for i in 1..total_pages %}
-                  <li class="page-item {{ i == current_page ? 'active' : '' }}" {{ i == current_page ? 'aria-current="page"' : '' }}>
-                    <a class="page-link" href="{{ '/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ i }}">{{ i }}</a>
+                  <li class="page-item {{ (i == current_page or total_pages == 1) ? 'active' : '' }}" {{ (i == current_page or total_pages == 1) ? 'aria-current="page"' : '' }}>
+                    {% if total_pages == 1 %}
+                      <span class="page-link">{{ i }}</span>
+                    {% else %}
+                      <a class="page-link" href="{{ '/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ i }}">{{ i }}</a>
+                    {% endif %}
                   </li>
                 {% endfor %}
 

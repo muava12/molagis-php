@@ -371,18 +371,26 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Delete Delivery Confirmation Modal Logic ---
     const deleteConfirmModalElement = document.getElementById('deleteDeliveryConfirmModal');
     let deleteConfirmModalInstance = null;
-    if (deleteConfirmModalElement && typeof bootstrap !== 'undefined') {
-        deleteConfirmModalInstance = new bootstrap.Modal(deleteConfirmModalElement);
+
+    if (typeof bootstrap !== 'undefined' && typeof bootstrap.Modal !== 'undefined') {
+        if (deleteConfirmModalElement) {
+            deleteConfirmModalInstance = new bootstrap.Modal(deleteConfirmModalElement);
+        } else {
+            console.error('Delete Modal Error: Modal HTML element #deleteDeliveryConfirmModal not found.');
+        }
+    } else {
+        console.error('Delete Modal Error: Bootstrap Modal component not available. Ensure Bootstrap JS is loaded and initialized.');
     }
+
     // const deleteConfirmModalTitle = document.getElementById('deleteDeliveryConfirmModal-title'); // Title set by Twig
     const deleteConfirmModalMessage = document.getElementById('deleteDeliveryConfirmModal-message');
     const deleteConfirmModalConfirmBtn = document.getElementById('deleteDeliveryConfirmModal-confirm');
     let deliveryIdToDelete = null;
 
     const tabContentForDelete = document.getElementById('orders-tab-content');
-    if (tabContentForDelete && deleteConfirmModalInstance) {
+    if (tabContentForDelete) { // Check for tabContentForDelete first
         tabContentForDelete.addEventListener('click', function(event) {
-            console.log('Click detected on #orders-tab-content. Event target:', event.target);
+            // console.log('Click detected on #orders-tab-content. Event target:', event.target); // Keep for debugging if needed
             const deleteButton = event.target.closest('.delete-delivery-btn');
             if (deleteButton) {
                 event.preventDefault();
@@ -391,23 +399,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (deleteConfirmModalMessage) {
                     deleteConfirmModalMessage.innerHTML = `Apakah Anda yakin ingin menghapus data pengiriman dengan ID: <strong>${deliveryIdToDelete}</strong>? Data yang sudah dihapus tidak dapat dikembalikan.`;
                 }
-                console.log('Attempting to show modal #deleteDeliveryConfirmModal. Instance:', deleteConfirmModalInstance);
-                deleteConfirmModalInstance.show();
+
+                if (deleteConfirmModalInstance) { // Explicitly check if instance is valid
+                    console.log('Attempting to show modal #deleteDeliveryConfirmModal for delivery ID:', deliveryIdToDelete);
+                    deleteConfirmModalInstance.show();
+                } else {
+                    console.error('Delete Modal Error: Modal instance is not available. Cannot show modal.');
+                    // Fallback if modal instance failed, though not ideal UX
+                    if (confirm(`Apakah Anda yakin ingin menghapus data pengiriman dengan ID: ${deliveryIdToDelete}? (Modal error)`)) {
+                        performDeleteDelivery(deliveryIdToDelete);
+                    }
+                }
             }
         });
     } else {
-        if (!tabContentForDelete) console.warn('Delete logic: #orders-tab-content not found.');
-        if (!deleteConfirmModalInstance) console.warn('Delete logic: deleteConfirmModalInstance not initialized. Bootstrap Modal JS might be missing or modal HTML.');
+        console.warn('Delete logic: #orders-tab-content not found. Delete button event listeners will not be active.');
     }
 
-    if (deleteConfirmModalConfirmBtn && deleteConfirmModalInstance) {
+    if (deleteConfirmModalConfirmBtn) { // Check for button existence
         deleteConfirmModalConfirmBtn.addEventListener('click', function() {
             if (deliveryIdToDelete) {
                 performDeleteDelivery(deliveryIdToDelete);
-                deliveryIdToDelete = null;
+                deliveryIdToDelete = null; // Reset after use
             }
-            deleteConfirmModalInstance.hide();
+            if (deleteConfirmModalInstance) { // Also check here before hiding
+                deleteConfirmModalInstance.hide();
+            } else {
+                console.error('Delete Modal Error: Cannot hide modal, instance is not available.');
+            }
         });
+    } else {
+        console.warn('Delete Modal Warning: Confirm button #deleteDeliveryConfirmModal-confirm not found. Delete confirmation will not work through modal.');
     }
 
     function performDeleteDelivery(deliveryId) {
@@ -461,5 +483,29 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error in performDeleteDelivery:', error);
             showToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, true);
         });
+    }
+
+    // --- Items Per Page Dropdown Logic ---
+    const itemsPerPageSelect = document.getElementById('items_per_page_select');
+
+    if (itemsPerPageSelect) {
+        itemsPerPageSelect.addEventListener('change', function() {
+            const newLimit = this.value;
+            const currentUrl = new URL(window.location.href);
+            const params = new URLSearchParams(currentUrl.search);
+
+            // Set new limit and reset page to 1
+            params.set('limit', newLimit);
+            params.set('page', '1');
+
+            // view and customer_id should already be in params if the dropdown is visible
+            // as per Twig conditions.
+
+            currentUrl.search = params.toString();
+            window.location.href = currentUrl.toString();
+        });
+    } else {
+        // This is not necessarily an error, as the dropdown is conditionally rendered by Twig.
+        // console.log('Items per page select #items_per_page_select not found on this page view.');
     }
 });
