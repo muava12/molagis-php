@@ -1,5 +1,7 @@
 // public/js/app/batch-delete.js
 
+const bootstrap = window.tabler?.bootstrap; // <--- ADD THIS LINE
+
 function initializeBatchDeleteToast() {
     const toastElement = document.getElementById('batch-delete-toast');
     if (!toastElement) {
@@ -26,11 +28,87 @@ function initializeBatchDeleteToast() {
 
     if (deleteSelectedBtnToast) {
         deleteSelectedBtnToast.addEventListener('click', () => {
-            // Placeholder for delete action.
-            // This should ideally trigger a confirmation modal or call a delete function.
-            console.log('Delete selected button clicked. Actual deletion logic needs to be implemented.');
-            // For now, just hide the toast after clicking delete.
-            hideBatchDeleteToast();
+            const selectedCheckboxes = document.querySelectorAll('#orders-by-name-content-wrapper .select-delivery-item:checked');
+            const deliveryIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+            if (deliveryIdsToDelete.length === 0) {
+                console.warn('No items selected for deletion.');
+                if (typeof window.batchDeleteToast !== 'undefined' && window.batchDeleteToast.hide) {
+                    window.batchDeleteToast.hide();
+                }
+                return;
+            }
+
+            // Confirmation step
+            if (!window.confirm(`Are you sure you want to delete ${deliveryIdsToDelete.length} selected item(s)? This action cannot be undone.`)) {
+                return; // User cancelled
+            }
+
+            console.log('Proceeding with deletion of delivery IDs:', deliveryIdsToDelete);
+
+            // API call
+            fetch('/api/deliveries/batch', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    // Add any other necessary headers, like CSRF tokens if used by the backend
+                },
+                body: JSON.stringify({ ids: deliveryIdsToDelete })
+            })
+            .then(response => {
+                // Step 5 (Handle API response) will be detailed in the next plan step.
+                // For now, just log the response and process basic success/failure.
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.message || `Error deleting items. Status: ${response.status}`);
+                    }).catch(() => { // Handle cases where response is not JSON or other errors
+                        throw new Error(`Error deleting items. Status: ${response.status} - ${response.statusText}`);
+                    });
+                }
+                return response.json(); // Assuming backend sends a JSON response on success
+            })
+            .then(data => {
+                console.log('Batch delete successful:', data);
+
+                const successfullyDeletedIds = data.deleted_ids || deliveryIdsToDelete;
+
+                successfullyDeletedIds.forEach(id => {
+                    const rowToRemove = document.querySelector(`#orders-by-name-content-wrapper .select-delivery-item[value="${id}"]`)?.closest('tr');
+                    if (rowToRemove) {
+                        rowToRemove.remove();
+                    }
+                });
+
+                // After removing rows, reset the main "select all" checkbox in the table
+                const selectAllCheckbox = document.querySelector('#orders-by-name-content-wrapper #select-all-deliveries');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = false;
+                }
+
+                // Hide the batch delete toast (this toast)
+                if (typeof window.batchDeleteToast !== 'undefined' && window.batchDeleteToast.hide) {
+                    window.batchDeleteToast.hide();
+                }
+
+                // Show global success message
+                if (typeof window.showGlobalToast === 'function') {
+                    window.showGlobalToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`, 'success');
+                } else {
+                    alert(data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`);
+                }
+            })
+            .catch(error => {
+                console.error('Error during batch delete:', error);
+                // Example: Show a global error toast if available
+                if (typeof window.showGlobalToast === 'function') {
+                    window.showGlobalToast('Error', error.message || 'An error occurred while deleting items.', 'error');
+                } else {
+                    alert(error.message || 'An error occurred while deleting items.');
+                }
+                // Do not hide the batch delete toast on error, so user can retry or see selection.
+            });
         });
     }
 
