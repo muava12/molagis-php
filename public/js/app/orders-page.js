@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 <div class="col-md-3 mb-2"> <!-- Subtotal display column -->
                     <label class="form-label">Subtotal</label>
-                    <input type="text" class="form-control item-subtotal-display" readonly style="pointer-events: none; background-color: #e9ecef;">
+                    <input type="text" class="form-control item-subtotal-display" readonly style="pointer-events: none;">
                 </div>
             </div>
             <div class="mb-2">
