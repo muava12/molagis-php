@@ -43,31 +43,70 @@ class OrdersController
 
         // Get selected customer_id from query parameters
         $queryParams = $request->getQueryParams();
+        $view = $queryParams['view'] ?? 'by_name'; // Default to 'by_name'
         $selectedCustomerId = isset($queryParams['customer_id']) ? (int)$queryParams['customer_id'] : null;
+
+        $selectedCustomerName = ''; // Default to empty
+        if ($selectedCustomerId && !empty($allCustomers)) {
+            foreach ($allCustomers as $customer) {
+                // Ensure type comparison is robust, customer ID from DB might be int or string
+                if ((string)$customer['id'] == (string)$selectedCustomerId) { 
+                    $selectedCustomerName = $customer['nama'];
+                    break;
+                }
+            }
+        }
 
         $customerDeliveries = [];
         $deliveriesError = null;
-        if ($selectedCustomerId) {
-            // Uses getDeliveriesByCustomerId from the new OrdersService
-            $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken);
-            $customerDeliveries = $deliveriesResponse['data'] ?? [];
-            $deliveriesError = $deliveriesResponse['error'] ?? null;
+        $orderByIdResult = [];
+        $orderByIdError = null;
+        $orderIdQueryValue = $queryParams['order_id_query'] ?? null;
+
+        if ($view === 'by_name' || $view === '') { // Default view or explicitly by_name
+            if ($selectedCustomerId) {
+                $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken);
+                $customerDeliveries = $deliveriesResponse['data'] ?? [];
+                $deliveriesError = $deliveriesResponse['error'] ?? null;
+            }
+        } elseif ($view === 'by_order_id') {
+            if ($orderIdQueryValue && is_numeric($orderIdQueryValue)) {
+                $orderId = (int)$orderIdQueryValue;
+                $orderResponse = $this->ordersService->getOrderByExactId($orderId, $accessToken);
+                if (isset($orderResponse['data']) && $orderResponse['data'] !== null) {
+                    $orderByIdResult = [$orderResponse['data']]; // Wrap single order in array
+                } else {
+                    $orderByIdError = $orderResponse['error'] ?? 'Order not found or error fetching.';
+                }
+            } elseif ($orderIdQueryValue !== null && !is_numeric($orderIdQueryValue) && $orderIdQueryValue !== '') {
+                 $orderByIdError = 'Order ID must be a number.';
+            }
+            // If $orderIdQueryValue is null or empty string, no search is performed, $orderByIdResult remains empty.
         }
+        // Logic for 'by_date' view can be added here later with an elseif block
 
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
         
+        $finalError = $deliveriesError ?? $orderByIdError ?? $couriersResult['error'] ?? null;
+
+        $twigData = [
+            'title' => 'Manajemen Pesanan', // Generic title, can be adjusted by view in Twig if needed
+            'all_customers' => $allCustomers,
+            'selected_customer_id' => $selectedCustomerId,
+            'selected_customer_name' => $selectedCustomerName,
+            'deliveries' => $customerDeliveries, // For 'by_name' view
+            'orders_by_id_result' => $orderByIdResult, // For 'by_order_id' view
+            'order_id_query_value' => $orderIdQueryValue, // For pre-filling search box
+            'business_name' => $businessName,
+            'couriers' => $couriersResult['data'] ?? [],
+            'user_id' => $userId,
+            'view' => $view,
+            'error' => $finalError
+        ];
+        
         $response = new Response();
         $response->getBody()->write(
-            $this->twig->render('order-list.html.twig', [ // This template will be moved later
-                'title' => 'Riwayat Pengiriman Pelanggan',
-                'all_customers' => $allCustomers,
-                'selected_customer_id' => $selectedCustomerId,
-                'deliveries' => $customerDeliveries,
-                'business_name' => $businessName,
-                'couriers' => $couriersResult['data'] ?? [],
-                'user_id' => $userId,
-                'error' => $deliveriesError ?? $couriersResult['error'] ?? null
-            ])
+            $this->twig->render('order-list.html.twig', $twigData)
         );
 
         return $response;

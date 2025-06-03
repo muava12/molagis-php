@@ -17,123 +17,149 @@
 
 <div class="page-body">
   <div class="container-xl">
-    <div class="card mb-3">
-      <div class="card-header">
-        <h3 class="card-title">Pilih Pelanggan</h3>
-      </div>
-      <div class="card-body">
-        <form method="GET" action="/orders"> {# Using /orders directly for simplicity #}
-          <div class="row">
-            <div class="col-md-6">
-              <label for="customer_id_select" class="form-label">Pelanggan</label>
-              <select name="customer_id" id="customer_id_select" class="form-select" onchange="this.form.submit()">
-                <option value="">-- Pilih Pelanggan --</option>
-                {% for customer in all_customers %}
-                  <option value="{{ customer.id }}" {{ customer.id == selected_customer_id ? 'selected' : '' }}>
-                    {{ customer.nama }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-            {# Optional: Add a submit button if onchange is not preferred, or for fallback #}
-            {# <div class="col-md-2 d-flex align-items-end">
-              <button type="submit" class="btn btn-primary">Tampilkan</button>
-            </div> #}
-          </div>
-        </form>
-      </div>
+
+    <div class="card-header border-bottom-0 mb-3"> <!-- Or <div class="mb-3"> if placed outside a card -->
+      <ul class="nav nav-tabs nav-tabs-alt" role="tablist">
+        <li class="nav-item">
+          <a href="/orders?view=by_name{% if selected_customer_id %}&customer_id={{ selected_customer_id }}{% endif %}" class="nav-link {{ view == 'by_name' or view is null or view == '' ? 'active' : '' }}">By Name / Customer</a>
+        </li>
+        <li class="nav-item">
+          <a href="/orders?view=by_order_id" class="nav-link {{ view == 'by_order_id' ? 'active' : '' }}">By Order ID</a>
+        </li>
+        <li class="nav-item">
+          <a href="/orders?view=by_date" class="nav-link {{ view == 'by_date' ? 'active' : '' }}">By Date</a>
+        </li>
+      </ul>
     </div>
 
-    {% if selected_customer_id %}
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Daftar Pengiriman untuk: {{ deliveries[0].customer_nama | default('Pelanggan Terpilih') }}</h3>
-          {# This assumes deliveries array is not empty if selected_customer_id is set and has deliveries.
-             A more robust way to get selected customer name might be to pass it separately or find from all_customers. #}
+    <div class="tab-content">
+      <div class="tab-pane fade {{ view == 'by_name' or view is null or view == '' ? 'show active' : '' }}" id="content-by-name" role="tabpanel">
+        <div class="card mb-3">
+          <div class="card-header">
+            <h3 class="card-title">Pilih Pelanggan</h3>
+          </div>
+          <div class="card-body">
+            <form method="GET" action="/orders"> {# Ensure action path is correct, view param will be added by tab selection #}
+              <input type="hidden" name="view" value="by_name"> {# Keep current view context #}
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label for="customer_search_orders" class="form-label">Pelanggan</label>
+                  <input type="text" id="customer_search_orders" class="form-control" 
+                         placeholder="Ketik nama pelanggan..." 
+                         value="{{ selected_customer_name | default('') }}"> {# Pre-fill with name if available #}
+                  <input type="hidden" name="customer_id" id="selected_customer_id_hidden" 
+                         value="{{ selected_customer_id | default('') }}">
+                </div>
+                <div class="col-md-auto d-flex align-items-end">
+                  <button type="submit" class="btn btn-primary">Cari</button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
-        <div class="table-responsive">
-          <table class="table table-vcenter card-table">
-            <thead>
-              <tr>
-                <th>Tgl Kirim</th>
-                <th>Detail Pesanan (Paket)</th>
-                <th>Tambahan</th>
-                <th>Kurir</th>
-                <th>Ongkir</th>
-                <th>Total Hari Ini</th>
-                <th>Status Kirim</th>
-                <th>Info Order Induk</th>
-                {# <th>Aksi</th> #}
-              </tr>
-            </thead>
-            <tbody>
-              {% if deliveries is not empty %}
-                {% for delivery in deliveries %}
+
+        {% if selected_customer_id %}
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Daftar Pengiriman untuk: {{ deliveries[0].customer_nama | default(selected_customer_name | default('Pelanggan Terpilih')) }}</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table">
+                <thead>
                   <tr>
-                    <td>{{ delivery.delivery_tanggal | date("d M Y") }}</td>
-                    <td>
-                      {% if delivery.details is not empty %}
-                        <ul class="list-unstyled mb-0">
-                        {% for detail in delivery.details %}
-                          <li>
-                            {{ detail.paket.nama | default('N/A') }} ({{ detail.jumlah }}) - Rp {{ detail.subtotal_harga | number_format(0, ',', '.') }}
-                            {% if detail.catatan_dapur %}<br><small class="text-muted"><em>Dapur: {{ detail.catatan_dapur }}</em></small>{% endif %}
-                            {% if detail.catatan_kurir %}<br><small class="text-muted"><em>Kurir: {{ detail.catatan_kurir }}</em></small>{% endif %}
-                          </li>
-                        {% endfor %}
-                        </ul>
-                      {% else %}
-                        N/A
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if delivery.item_tambahan %}
-                        {{ delivery.item_tambahan }} (Rp {{ delivery.harga_tambahan | number_format(0, ',', '.') }})
-                      {% else %}
-                        -
-                      {% endif %}
-                    </td>
-                    <td>{{ delivery.courier_nama | default('N/A') }}</td>
-                    <td>Rp {{ delivery.delivery_ongkir | number_format(0, ',', '.') }}</td>
-                    <td>Rp {{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
-                    <td>
-                      {% set status_lower = delivery.delivery_status | lower %}
-                      {% set badge_class = 'secondary' %} {# Default badge #}
-                      {% if status_lower == 'completed' %}
-                        {% set badge_class = 'success' %}
-                      {% elseif status_lower == 'pending' %}
-                        {% set badge_class = 'warning' %}
-                      {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %} {# Handle both spellings #}
-                        {% set badge_class = 'danger' %}
-                      {% elseif status_lower == 'in-progress' or status_lower == 'in_progress' %}
-                        {% set badge_class = 'info' %}
-                      {% endif %}
-                      <span class="badge bg-{{ badge_class }} me-1"></span>
-                      {{ delivery.delivery_status | replace({'_': ' '}) | title }}
-                    </td>
-                    <td>
-                      ID: {{ delivery.order_id }} <br>
-                      Tgl Pesan: {{ delivery.order_tanggal_pesan | date("d M Y") }} <br>
-                      Bayar: {{ delivery.order_metode_pembayaran | replace({'_': ' '}) | title }}
-                      {% if delivery.order_notes %}<br><small class="text-muted"><em>Catatan: {{ delivery.order_notes }}</em></small>{% endif %}
-                    </td>
-                    {#<td><a href="#" class="btn btn-sm">Detail</a></td>#}
+                    <th>Tgl Kirim</th>
+                    <th>Detail Pesanan (Paket)</th>
+                    <th>Tambahan</th>
+                    <th>Kurir</th>
+                    <th>Ongkir</th>
+                    <th>Total Hari Ini</th>
+                    <th>Status Kirim</th>
+                    <th>Info Order Induk</th>
+                    {# <th>Aksi</th> #}
                   </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="8" class="text-center">Tidak ada data pengiriman untuk pelanggan ini.</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {% if deliveries is not empty %}
+                    {% for delivery in deliveries %}
+                      <tr>
+                        <td>{{ delivery.delivery_tanggal | date("d M Y") }}</td>
+                        <td>
+                          {% if delivery.details is not empty %}
+                            <ul class="list-unstyled mb-0">
+                            {% for detail in delivery.details %}
+                              <li>
+                                {{ detail.paket.nama | default('N/A') }} ({{ detail.jumlah }}) - Rp {{ detail.subtotal_harga | number_format(0, ',', '.') }}
+                                {% if detail.catatan_dapur %}<br><small class="text-muted"><em>Dapur: {{ detail.catatan_dapur }}</em></small>{% endif %}
+                                {% if detail.catatan_kurir %}<br><small class="text-muted"><em>Kurir: {{ detail.catatan_kurir }}</em></small>{% endif %}
+                              </li>
+                            {% endfor %}
+                            </ul>
+                          {% else %}
+                            N/A
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if delivery.item_tambahan %}
+                            {{ delivery.item_tambahan }} (Rp {{ delivery.harga_tambahan | number_format(0, ',', '.') }})
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
+                        <td>{{ delivery.courier_nama | default('N/A') }}</td>
+                        <td>Rp {{ delivery.delivery_ongkir | number_format(0, ',', '.') }}</td>
+                        <td>Rp {{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
+                        <td>
+                          {% set status_lower = delivery.delivery_status | lower %}
+                          {% set badge_class = 'secondary' %} {# Default badge #}
+                          {% if status_lower == 'completed' %}
+                            {% set badge_class = 'success' %}
+                          {% elseif status_lower == 'pending' %}
+                            {% set badge_class = 'warning' %}
+                          {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %} {# Handle both spellings #}
+                            {% set badge_class = 'danger' %}
+                          {% elseif status_lower == 'in-progress' or status_lower == 'in_progress' %}
+                            {% set badge_class = 'info' %}
+                          {% endif %}
+                          <span class="badge bg-{{ badge_class }} me-1"></span>
+                          {{ delivery.delivery_status | replace({'_': ' '}) | title }}
+                        </td>
+                        <td>
+                          ID: {{ delivery.order_id }} <br>
+                          Tgl Pesan: {{ delivery.order_tanggal_pesan | date("d M Y") }} <br>
+                          Bayar: {{ delivery.order_metode_pembayaran | replace({'_': ' '}) | title }}
+                          {% if delivery.order_notes %}<br><small class="text-muted"><em>Catatan: {{ delivery.order_notes }}</em></small>{% endif %}
+                        </td>
+                        {#<td><a href="#" class="btn btn-sm">Detail</a></td>#}
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="8" class="text-center">Tidak ada data pengiriman untuk pelanggan ini.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {% elseif selected_customer_id is null and (view == 'by_name' or view is null or view == '') %}
+          {# Only show this if no customer is selected AND we are on the "by_name" tab #}
+          <div class="alert alert-info" role="alert">
+            Silakan pilih pelanggan untuk melihat riwayat pengiriman.
+          </div>
+        {% endif %}
       </div>
-    {% else %}
-      <div class="alert alert-info" role="alert">
-        Silakan pilih pelanggan untuk melihat riwayat pengiriman.
+      <div class="tab-pane fade {{ view == 'by_order_id' ? 'show active' : '' }}" id="content-by-order-id" role="tabpanel">
+        <div class="card"><div class="card-body"><p class="text-center p-5">Search by Order ID - Coming Soon</p></div></div>
       </div>
-    {% endif %}
+      <div class="tab-pane fade {{ view == 'by_date' ? 'show active' : '' }}" id="content-by-date" role="tabpanel">
+        <div class="card"><div class="card-body"><p class="text-center p-5">Search by Date - Coming Soon</p></div></div>
+      </div>
+    </div>
   </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }} {# To include any scripts from a parent block if layout nesting occurs #}
+  <script type="module" src="/js/app/orders-page.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

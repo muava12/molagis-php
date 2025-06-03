@@ -85,4 +85,40 @@ class OrdersService
             return ['data' => [], 'error' => 'Exception occurred while fetching customer deliveries: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Mengambil data pesanan tunggal berdasarkan ID pesanan yang spesifik.
+     *
+     * @param int $orderId ID pesanan yang dicari.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (objek pesanan tunggal) atau 'error'.
+     */
+    public function getOrderByExactId(int $orderId, ?string $accessToken = null): array
+    {
+        $query = sprintf(
+            '/rest/v1/orders?id=eq.%d&select=id,tanggal_pesan,total_harga,metode_pembayaran,notes,customers(nama)',
+            $orderId
+        );
+
+        try {
+            $response = $this->supabaseClient->get($query, [], $accessToken);
+
+            if (isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
+                error_log('Supabase getOrderByExactId error: ' . $errorMessage);
+                return ['data' => null, 'error' => $errorMessage];
+            }
+
+            if (empty($response['data'])) {
+                // error_log('Order not found for ID: ' . $orderId); // Optional: log not found as well
+                return ['data' => null, 'error' => 'Order not found.'];
+            }
+
+            // Supabase returns an array even for single item queries by eq filter
+            return ['data' => $response['data'][0], 'error' => null]; 
+        } catch (\Exception $e) {
+            error_log('Exception in getOrderByExactId: ' . $e->getMessage());
+            return ['data' => null, 'error' => 'Exception occurred while fetching order by ID: ' . $e->getMessage()];
+        }
+    }
 }
