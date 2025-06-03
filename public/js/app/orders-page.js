@@ -3,6 +3,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = customerSearchInput ? customerSearchInput.closest('form') : null;
 
+    // --- Clear and unfocus customer search input if a customer is selected (page has reloaded with results) ---
+    if (selectedCustomerIdHidden && selectedCustomerIdHidden.value && customerSearchInput) {
+        // The Twig template might have pre-filled customerSearchInput with selected_customer_name.
+        // We clear it here to allow for a new search if the user wants to,
+        // but only if the current view is 'by_name' or default, as this input is specific to that tab.
+        const currentUrlParamsForClear = new URLSearchParams(window.location.search);
+        const currentViewForClear = currentUrlParamsForClear.get('view') || 'by_name';
+        if (currentViewForClear === 'by_name') {
+            customerSearchInput.value = '';
+            customerSearchInput.blur();
+            console.log('Customer search input cleared and unfocused as a customer is selected in "by_name" view.');
+        }
+    }
+
     if (customerSearchInput && selectedCustomerIdHidden && customerSearchForm) {
         // Initialize Awesomplete
         const awesompleteInstance = new Awesomplete(customerSearchInput, {
@@ -43,11 +57,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         console.warn('Awesomplete: Customer list is empty after processing.'); // <<< ADD THIS
                     }
-                } else if (data && Array.isArray(data.customers)) { 
+                } else if (data && Array.isArray(data.customers)) {
                     // If the API returns {customers: [...]} like in another part of the app
                      const customerList = data.customers.map(customer => ({
                         label: customer.nama,
-                        value: customer.id  
+                        value: customer.id
                     }));
                     console.log('Awesomplete: Processed customerList (from data.customers):', customerList); // <<< ADD THIS
                     awesompleteInstance.list = customerList;
@@ -166,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
             container.innerHTML = '<p class="text-muted">No deliveries to display for this date.</p>';
             return;
         }
-    
+
         let tableHtml = '<div class="table-responsive"><table class="table table-vcenter mt-3">';
         tableHtml += `<thead><tr>
             <th>Customer</th>
@@ -177,12 +191,12 @@ document.addEventListener('DOMContentLoaded', function () {
             <th>Items</th>
             <th>Total (Day)</th>
             </tr></thead><tbody>`;
-    
+
         deliveries.forEach(delivery => {
             const customerName = delivery.orders && delivery.orders.customers ? delivery.orders.customers.nama : 'N/A';
             const orderId = delivery.orders ? delivery.orders.id : 'N/A';
             const deliveryDate = delivery.tanggal ? new Date(delivery.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
-            
+
             let statusHtml = delivery.status || 'N/A';
             if (delivery.status) {
                 const statusLower = delivery.status.toLowerCase();
@@ -196,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const totalPerHari = delivery.total_harga_perhari ? Number(delivery.total_harga_perhari).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A';
             const courierName = delivery.couriers ? delivery.couriers.nama : 'N/A';
-    
+
             let itemsHtml = '<ul class="list-unstyled mb-0 small">';
             if (delivery.orderdetails && delivery.orderdetails.length > 0) {
                 delivery.orderdetails.forEach(detail => {
@@ -211,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 itemsHtml += `<li>${delivery.item_tambahan} (Tambahan: Rp ${Number(delivery.harga_tambahan || 0).toLocaleString('id-ID')})</li>`;
             }
             if (itemsHtml === '<ul class="list-unstyled mb-0 small">') itemsHtml = 'N/A'; else itemsHtml += '</ul>';
-    
+
             tableHtml += `<tr>
                 <td>${customerName}</td>
                 <td>${orderId}</td>
@@ -222,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${totalPerHari}</td>
                 </tr>`;
         });
-    
+
         tableHtml += '</tbody></table></div>';
         container.innerHTML = tableHtml;
     }

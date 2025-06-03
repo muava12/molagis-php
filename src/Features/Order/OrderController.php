@@ -208,7 +208,7 @@ class OrderController
         }
 
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
-        
+
         $response = new Response();
         $response->getBody()->write(
             $this->twig->render('order-list.html.twig', [

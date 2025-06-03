@@ -2,6 +2,11 @@
 
 {% block title %}{{ title | default("Riwayat Pengiriman Pelanggan") }}{% endblock %}
 
+{% block stylesheets %}
+  {{ parent() }}
+  <link rel="stylesheet" href="/css/app/awesomplete.css" />
+{% endblock %}
+
 {% block content %}
 <div class="page-header d-print-none">
   <div class="container-xl">
@@ -50,7 +55,7 @@
                 </div>
               </div>
             </form>
-            
+
             {% if selected_customer_id %}
               <h3 class="card-title mt-4 mb-2">Daftar Pengiriman untuk: {{ selected_customer_name | default('Pelanggan Terpilih') }}</h3>
               <div class="card-table table-responsive">
@@ -59,7 +64,7 @@
                     <tr>
                       <th><input class="form-check-input m-0 align-middle" type="checkbox" id="select-all-deliveries" aria-label="Select all deliveries"></th>
                       <th>Tanggal</th>
-                      <th>Nama</th>
+                      {# <th>Nama</th> Removed #}
                       <th>Details</th>
                       <th>Kurir</th>
                       <th>Tambahan</th>
@@ -75,7 +80,7 @@
                         <tr>
                           <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="{{ delivery.delivery_id }}" aria-label="Select delivery {{ delivery.delivery_id }}"></td>
                           <td>{{ delivery.delivery_tanggal | date("d M Y") }}</td>
-                          <td>{{ delivery.customer_nama }}</td>
+                          {# <td>{{ delivery.customer_nama }}</td> Removed #}
                           <td>
                             {% if delivery.details is not empty %}
                               <table class="table table-sm table-borderless mb-0">
@@ -84,7 +89,7 @@
                                     <tr>
                                       <td>{{ detail_item.paket.nama | default('N/A') }}</td>
                                       <td>({{ detail_item.jumlah }})</td>
-                                      <td class="text-end">Rp {{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                      <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
                                     </tr>
                                     {% if detail_item.catatan_dapur %}
                                       <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
@@ -104,17 +109,17 @@
                             {% if delivery.item_tambahan %}
                               {{ delivery.item_tambahan }}
                               {% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}
-                                <br><small class="text-muted">(Rp {{ delivery.harga_tambahan | number_format(0, ',', '.') }})</small>
+                                <br><small class="text-muted">({{ delivery.harga_tambahan | number_format(0, ',', '.') }})</small>
                               {% endif %}
                             {% else %}
                               -
                             {% endif %}
                           </td>
-                          <td>Rp {{ delivery.delivery_ongkir | number_format(0, ',', '.') }}</td>
-                          <td>Rp {{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
+                          <td>{{ delivery.delivery_ongkir | number_format(0, ',', '.') }}</td>
+                          <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
                           <td>
                             {% set status_lower = delivery.delivery_status | lower %}
-                            {% set badge_class = 'secondary' %} 
+                            {% set badge_class = 'secondary' %}
                             {% if status_lower == 'completed' %}{% set badge_class = 'success' %}
                             {% elseif status_lower == 'pending' %}{% set badge_class = 'warning' %}
                             {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %}{% set badge_class = 'danger' %}
@@ -128,12 +133,15 @@
                               <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Edit Pengiriman">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
                               </button>
+                              <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Hapus Pengiriman">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                              </button>
                             </div>
                           </td>
                         </tr>
                       {% endfor %}
                     {% else %}
-                      <tr><td colspan="10" class="text-center">Tidak ada data pengiriman untuk pelanggan ini.</td></tr>
+                      <tr><td colspan="9" class="text-center">Tidak ada data pengiriman untuk pelanggan ini.</td></tr>
                     {% endif %}
                   </tbody>
                 </table>
@@ -202,6 +210,7 @@
 {% endblock %}
 
 {% block javascripts %}
-  {{ parent() }} {# To include any scripts from a parent block if layout nesting occurs #}
+  {{ parent() }}
+  <script src="/js/awesomplete.min.js"></script>
   <script type="module" src="/js/app/orders-page.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

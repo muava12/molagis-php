@@ -208,7 +208,7 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleOrder' => [$request],
                     'getPackages' => [$request],
                     'showOrder' => [$request],
-                    'showOrdersPage' => [$request], 
+                    'showOrdersPage' => [$request],
                     'searchOrderByIdApi' => [$request],
                     'getDeliveriesByDateApi' => [$request], // Added case
                     'showSettings' => [$request],

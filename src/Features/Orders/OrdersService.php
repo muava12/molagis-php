@@ -115,7 +115,7 @@ class OrdersService
             }
 
             // Supabase returns an array even for single item queries by eq filter
-            return ['data' => $response['data'][0], 'error' => null]; 
+            return ['data' => $response['data'][0], 'error' => null];
         } catch (\Exception $e) {
             error_log('Exception in getOrderByExactId: ' . $e->getMessage());
             return ['data' => null, 'error' => 'Exception occurred while fetching order by ID: ' . $e->getMessage()];
@@ -135,7 +135,7 @@ class OrdersService
                         'orders!inner(id,tanggal_pesan,metode_pembayaran,notes,customers!inner(id,nama)),' .
                         'couriers(id,nama),' . // Left join for couriers
                         'orderdetails!inner(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket!inner(id,nama))';
-        
+
         $query = sprintf(
             '/rest/v1/deliverydates?tanggal=eq.%s&select=%s&order=orders.customers.nama.asc,orders.id.asc',
             $date,

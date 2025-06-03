@@ -40,7 +40,7 @@ class OrdersController
 
         // Fetch all customers for the dropdown
         // Uses getCustomers from the new OrdersService
-        $allCustomers = $this->ordersService->getCustomers($accessToken); 
+        $allCustomers = $this->ordersService->getCustomers($accessToken);
 
         // Get selected customer_id from query parameters
         $queryParams = $request->getQueryParams();
@@ -51,7 +51,7 @@ class OrdersController
         if ($selectedCustomerId && !empty($allCustomers)) {
             foreach ($allCustomers as $customer) {
                 // Ensure type comparison is robust, customer ID from DB might be int or string
-                if ((string)$customer['id'] == (string)$selectedCustomerId) { 
+                if ((string)$customer['id'] == (string)$selectedCustomerId) {
                     $selectedCustomerName = $customer['nama'];
                     break;
                 }
@@ -87,7 +87,7 @@ class OrdersController
         // Logic for 'by_date' view can be added here later with an elseif block
 
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
-        
+
         $finalError = $deliveriesError ?? $orderByIdError ?? $couriersResult['error'] ?? null;
 
         $twigData = [
@@ -104,7 +104,7 @@ class OrdersController
             'view' => $view,
             'error' => $finalError
         ];
-        
+
         $response = new Response();
         $response->getBody()->write(
             $this->twig->render('order-list.html.twig', $twigData)
@@ -141,7 +141,7 @@ class OrdersController
         } elseif (isset($serviceResponse['error'])) {
             return new JsonResponse(['success' => false, 'message' => $serviceResponse['error']], 500);
         }
-        
+
         // Should not be reached if service always returns 'data' or 'error'
         return new JsonResponse(['success' => false, 'message' => 'An unexpected error occurred.'], 500);
     }

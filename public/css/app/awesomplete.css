@@ -36,8 +36,19 @@
 }
 
 .awesomplete > ul {
-  border-radius: 10px;
-  overflow: hidden;
+  position: absolute; /* Often needed for correct positioning under input */
+  z-index: 1000;      /* Ensure it's above other elements */
+  list-style: none;   /* Remove bullets */
+  margin: 0;          /* Remove default margin */
+  padding: 0;         /* Remove default padding */
+  background: #fff;   /* Default background, will be overridden by dark theme if necessary */
+  border: 1px solid #ccc; /* Default border */
+  border-radius: 10px; /* Keep existing border-radius */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Add a subtle shadow */
+  width: 100%;        /* Ensure it matches input width */
+  max-height: 200px;  /* Limit height and enable scroll */
+  overflow-y: auto;   /* Enable scroll if list is long */
+  /* overflow: hidden; was there, but overflow-y: auto is more specific for scrolling long lists */
 }
 
 [data-bs-theme="dark"] .awesomplete > ul {

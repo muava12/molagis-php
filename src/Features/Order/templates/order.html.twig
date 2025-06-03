@@ -3,7 +3,7 @@
 {% block og_title %}{{ business_name ? business_name ~ ' - Input Pesanan' : 'Input Pesanan Catering Harian' }}{% endblock %}
 {% block twitter_title %}{{ business_name ? business_name ~ ' - Input Pesanan' : 'Input Pesanan Catering Harian' }}{% endblock %}
 {% block stylesheets %}
-    <link rel="stylesheet" href="/css/awesomplete.min.css">
+    {{ parent() }}
     <link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
     <link rel="stylesheet" href="/css/app/input-order-page.css?v={{ 'now'|date('U') }}">
     <link rel="stylesheet" href="/css/app/order.modal-summary.css?v={{ 'now'|date('U') }}">
@@ -180,6 +180,7 @@
     {% include 'toast.html.twig' %}
 {% endblock %}
 {% block javascripts %}
+    {{ parent() }}
     <script src="/js/awesomplete.min.js"></script>
     <script type="module" src="/js/app/order-page.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}
