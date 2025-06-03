@@ -237,6 +237,16 @@
             <input class="form-control" type="number" id="harga-modal-tambahan-input" name="harga_modal_tambahan" step="500" min="0">
           </div>
 
+          <h6 class="mt-4">Catatan Harian (untuk seluruh pengiriman di tanggal ini):</h6>
+          <div class="mb-3">
+            <label for="daily-kitchen-note" class="form-label">Catatan Dapur (Harian)</label>
+            <textarea id="daily-kitchen-note" name="daily_kitchen_note" class="form-control" rows="2" placeholder="Catatan umum untuk dapur di hari ini..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="daily-courier-note" class="form-label">Catatan Kurir (Harian)</label>
+            <textarea id="daily-courier-note" name="daily_courier_note" class="form-control" rows="2" placeholder="Catatan umum untuk kurir di hari ini..."></textarea>
+          </div>
+
           {# Display for overall total, calculated by JS #}
           <div class="mb-3 mt-4">
             <label for="overall-total-display" class="form-label fw-bold">Perkiraan Total Harga Pengiriman Ini</label>

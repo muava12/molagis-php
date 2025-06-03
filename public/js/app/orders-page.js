@@ -703,12 +703,24 @@ document.addEventListener('DOMContentLoaded', function () {
         const hargaModalTambahanInput = document.getElementById('harga-modal-tambahan-input');
         if (hargaModalTambahanInput) hargaModalTambahanInput.value = deliveryData.harga_modal_tambahan || 0;
 
+        // Populate new daily notes fields
+        const dailyKitchenNoteEl = document.getElementById('daily-kitchen-note');
+        if (dailyKitchenNoteEl) dailyKitchenNoteEl.value = deliveryData.kitchen_note || '';
+
+        const dailyCourierNoteEl = document.getElementById('daily-courier-note');
+        if (dailyCourierNoteEl) dailyCourierNoteEl.value = deliveryData.courier_note || '';
+
         // Order-level notes (display only, or make editable if form field exists)
         const orderNotesDisplay = document.getElementById('order-notes-display'); // Example ID for a display area
         if (orderNotesDisplay && deliveryData.orders && deliveryData.orders.notes) {
             orderNotesDisplay.textContent = deliveryData.orders.notes;
+            // Show the container if notes exist
+            const orderNotesContainer = document.getElementById('order-notes-container');
+            if(orderNotesContainer) orderNotesContainer.style.display = 'block';
         } else if (orderNotesDisplay) {
             orderNotesDisplay.textContent = 'Tidak ada catatan pesanan.';
+            const orderNotesContainer = document.getElementById('order-notes-container');
+            if(orderNotesContainer) orderNotesContainer.style.display = 'none'; // Hide if no notes
         }
 
 
@@ -920,6 +932,8 @@ document.addEventListener('DOMContentLoaded', function () {
             item_tambahan: document.getElementById('item-tambahan-input').value,
             harga_tambahan: parseFloat(document.getElementById('harga-tambahan-input').value) || 0,
             harga_modal_tambahan: parseFloat(document.getElementById('harga-modal-tambahan-input').value) || 0,
+            daily_kitchen_note: document.getElementById('daily-kitchen-note')?.value || '',
+            daily_courier_note: document.getElementById('daily-courier-note')?.value || '',
             package_items: [],
         };
 

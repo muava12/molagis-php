@@ -372,9 +372,16 @@ class OrdersService
     {
         try {
             // 1. Fetch the main deliverydates record
+            $deliveryFields = [
+                'id', 'order_id', 'tanggal', 'kurir_id', 'ongkir',
+                'item_tambahan', 'harga_tambahan', 'harga_modal_tambahan',
+                'total_harga_perhari', 'total_modal_perhari', 'status',
+                'kitchen_note', 'courier_note' // Added new note fields
+            ];
             $deliveryDateQuery = sprintf(
-                '/rest/v1/deliverydates?id=eq.%d&select=*,orders(customer_id,notes)', // Select related order notes too
-                $deliveryId
+                '/rest/v1/deliverydates?id=eq.%d&select=%s,orders(customer_id,notes)',
+                $deliveryId,
+                implode(',', $deliveryFields)
             );
             $deliveryDateResponse = $this->supabaseClient->get($deliveryDateQuery, [], $accessToken);
 
@@ -477,17 +484,17 @@ class OrdersService
                 $paketInfo = $availablePakets[$item['paket_id']];
                 $jumlah = (int)$item['jumlah'];
                 $subtotalHarga = $paketInfo['harga_jual'] * $jumlah;
-                $subtotalModal = $paketInfo['harga_modal'] * $jumlah;
+                // $subtotalModal is NOT calculated here anymore (handled by trigger calculate_subtotal_modal).
 
-                $newTotalModalForDetails += $subtotalModal;
-                $newTotalHargaForDetails += $subtotalHarga;
+                // $newTotalModalForDetails and $newTotalHargaForDetails sums are no longer needed here
+                // as deliverydates totals are handled by triggers.
 
                 $detailPayload = [
                     'delivery_id' => $deliveryId, // This must link to the main deliverydates record
                     'paket_id' => $item['paket_id'],
                     'jumlah' => $jumlah,
-                    'subtotal_harga' => $subtotalHarga,
-                    'subtotal_modal' => $subtotalModal,
+                    'subtotal_harga' => $subtotalHarga, // Still calculated and sent
+                    // 'subtotal_modal' IS REMOVED FROM HERE
                     'catatan_dapur' => $item['catatan_dapur'] ?? null,
                     'catatan_kurir' => $item['catatan_kurir'] ?? null,
                 ];
@@ -555,8 +562,10 @@ class OrdersService
                 'item_tambahan' => $data['item_tambahan'] ?? null,
                 'harga_tambahan' => is_numeric($hargaTambahan) ? (float)$hargaTambahan : 0,
                 'harga_modal_tambahan' => is_numeric($hargaModalTambahan) ? (float)$hargaModalTambahan : 0,
-                'total_harga_perhari' => $newTotalHargaForDetails + (is_numeric($hargaTambahan) ? (float)$hargaTambahan : 0) + (is_numeric($ongkir) ? (float)$ongkir : 0),
-                'total_modal_perhari' => $newTotalModalForDetails + (is_numeric($hargaModalTambahan) ? (float)$hargaModalTambahan : 0),
+                'kitchen_note' => $data['daily_kitchen_note'] ?? null, // New field
+                'courier_note' => $data['daily_courier_note'] ?? null, // New field
+                // 'total_harga_perhari' IS REMOVED (handled by trigger update_total_harga_perhari)
+                // 'total_modal_perhari' IS REMOVED (assumed handled by trigger calculate_subtotal_modal on details, then summed by another trigger or by update_total_harga_perhari if it also does modal)
                 // 'status' => $data['status'] ?? null, // If status is part of the form
             ];
             $updateDeliveryQuery = '/rest/v1/deliverydates?id=eq.' . $deliveryId . '&select=order_id';
