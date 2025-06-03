@@ -1,4 +1,5 @@
 export function initThemeToggle() {
+    const bootstrap = window.tabler?.bootstrap;
     const themeToggle = document.getElementById('theme-toggle');
     const htmlElement = document.documentElement;
 
@@ -12,5 +13,11 @@ export function initThemeToggle() {
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
         htmlElement.setAttribute('data-bs-theme', newTheme);
         localStorage.setItem('theme', newTheme);
+
+        const tooltipInstance = bootstrap.Tooltip.getInstance(themeToggle);
+        if (tooltipInstance) {
+            tooltipInstance.hide();
+        }
+        themeToggle.blur(); // Add this line to remove focus
     });
 }

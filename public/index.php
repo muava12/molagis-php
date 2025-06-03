@@ -59,14 +59,23 @@ $containerBuilder->addDefinitions([
     CustomersController::class => fn($c) => new CustomersController(
         $c->get(CustomersService::class),
         $c->get(SupabaseService::class),
+        $c->get(SettingsService::class), // Added this line
         $c->get(Environment::class)
     ),
-    OrderService::class => fn($c) => new OrderService($c->get(SupabaseClient::class)),
-    OrderController::class => fn($c) => new OrderController(
+    OrderService::class => fn($c) => new OrderService($c->get(SupabaseClient::class)), // For single order input
+    OrderController::class => fn($c) => new OrderController( // For single order input
         $c->get(OrderService::class),
         $c->get(SupabaseService::class),
         $c->get(SettingsService::class),
         $c->get(Environment::class)
+    ),
+    // Definitions for the new Orders feature (plural)
+    \Molagis\Features\Orders\OrdersService::class => fn($c) => new \Molagis\Features\Orders\OrdersService($c->get(\Molagis\Shared\SupabaseClient::class)),
+    \Molagis\Features\Orders\OrdersController::class => fn($c) => new \Molagis\Features\Orders\OrdersController(
+        $c->get(\Molagis\Features\Orders\OrdersService::class),
+        $c->get(\Molagis\Features\Settings\SettingsService::class),
+        $c->get(\Molagis\Shared\SupabaseService::class),
+        $c->get(\Twig\Environment::class)
     ),
     Environment::class => fn() => new Environment(
         new FilesystemLoader([
@@ -76,7 +85,8 @@ $containerBuilder->addDefinitions([
             "{$basePath}/src/Features/Auth/templates",
             "{$basePath}/src/Features/Dashboard/templates",
             "{$basePath}/src/Features/Customers/templates",
-            "{$basePath}/src/Features/Order/templates",
+            "{$basePath}/src/Features/Order/templates", // Stays for input-order
+            "{$basePath}/src/Features/Orders/templates", // Added for order list
             "{$basePath}/src/Features/Settings/templates",
         ]),
         [
@@ -125,8 +135,12 @@ $routes = [
     ['POST', '/api/customers/add', [CustomersController::class, 'addCustomer'], [AuthMiddleware::class]],
     ['POST', '/api/customers/update', [CustomersController::class, 'updateCustomer'], [AuthMiddleware::class]],
     ['POST', '/api/customers/delete', [CustomersController::class, 'deleteCustomer'], [AuthMiddleware::class]],
-    ['GET', '/input-order', [OrderController::class, 'showOrder'], [AuthMiddleware::class]],
-    ['POST', '/api/order', [OrderController::class, 'handleOrder'], [AuthMiddleware::class]],
+    ['GET', '/input-order', [OrderController::class, 'showOrder'], [AuthMiddleware::class]], // Singular for input form
+    ['GET', '/orders', [\Molagis\Features\Orders\OrdersController::class, 'showOrdersPage'], [AuthMiddleware::class]], // Plural for list page
+    ['POST', '/api/order', [OrderController::class, 'handleOrder'], [AuthMiddleware::class]], // Singular for submitting new order
+    ['GET', '/api/orders/search/id', [\Molagis\Features\Orders\OrdersController::class, 'searchOrderByIdApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]], // API for Orders (plural)
+    ['GET', '/api/orders/search/date', [\Molagis\Features\Orders\OrdersController::class, 'getDeliveriesByDateApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]], // API for Orders (plural) by date
+    ['DELETE', '/api/delivery/{id:\d+}', [\Molagis\Features\Orders\OrdersController::class, 'deleteDeliveryDateApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]],
     ['GET', '/api/packages', [OrderController::class, 'getPackages'], [AuthMiddleware::class]],
     ['GET', '/settings', [SettingsController::class, 'showSettings'], [AuthMiddleware::class]],
     ['POST', '/api/settings/update', [SettingsController::class, 'updateSettings'], [AuthMiddleware::class]],
@@ -195,6 +209,10 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleOrder' => [$request],
                     'getPackages' => [$request],
                     'showOrder' => [$request],
+                    'showOrdersPage' => [$request],
+                    'searchOrderByIdApi' => [$request],
+                    'getDeliveriesByDateApi' => [$request],
+                    'deleteDeliveryDateApi' => [$request, $vars], // Added case, passing $vars
                     'showSettings' => [$request],
                     'updateSettings' => [$request],
                     default => []

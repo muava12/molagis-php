@@ -49,10 +49,21 @@
         {% include 'footer.html.twig' %}
       </div>
     </div>
+    {% include 'partials/toast.html.twig' %}
+    {% include 'partials/batch-delete-toast.html.twig' %}
     <script src="/js/tabler.min.js"></script>
+    <script src="/js/app/utils.js?v={{ 'now'|date('U') }}"></script>
     <script type="module" src="/js/app/index.js?v={{ 'now'|date('U') }}"></script>
     {% block javascripts %}
       {# JavaScript spesifik untuk halaman ini #}
+    <script src="/js/app/batch-delete.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof initializeBatchDeleteToast === 'function') {
+                initializeBatchDeleteToast();
+            }
+        });
+    </script>
     {% endblock %}
   </body>
 </html>

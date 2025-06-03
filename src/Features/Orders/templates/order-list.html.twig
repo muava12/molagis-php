@@ -1,0 +1,194 @@
+{% extends "base.html.twig" %}
+
+{% block title %}{{ title | default("Riwayat Pengiriman Pelanggan") }}{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <link rel="stylesheet" href="/css/app/awesomplete.css" />
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none">
+  <div class="container-xl">
+    <div class="row g-2 align-items-center">
+      <div class="col">
+        <h2 class="page-title">
+          {{ title | default("Riwayat Pengiriman Pelanggan") }}
+        </h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="container-xl">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Manajemen Pesanan</h3>
+        <div class="ms-auto">
+          <nav class="nav nav-segmented nav-sm" role="tablist" id="orders-view-tabs">
+              <button class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" type="button" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">
+                  <!-- SVG for List icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                    <path d="M9 6l11 0"></path>
+                    <path d="M9 12l11 0"></path>
+                    <path d="M9 18l11 0"></path>
+                    <path d="M5 6l0 .01"></path>
+                    <path d="M5 12l0 .01"></path>
+                    <path d="M5 18l0 .01"></path>
+                  </svg>
+                  By Name
+              </button>
+              <button class="nav-link {{ view == 'by_order_id' ? 'active' : '' }}" id="tab-by-order-id-button" data-bs-toggle="tab" data-bs-target="#pane-by-order-id" type="button" role="tab" aria-controls="pane-by-order-id" aria-selected="{{ view == 'by_order_id' ? 'true' : 'false' }}">
+                  <!-- SVG for Hash/Layout icon (using a generic one, replace if specific needed) -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                      <path d="M5 9l14 0" /><path d="M5 15l14 0" /><path d="M11 4l-4 16" /><path d="M17 4l-4 16" /></svg>
+                  By Order ID
+              </button>
+              <button class="nav-link {{ view == 'by_date' ? 'active' : '' }}" id="tab-by-date-button" data-bs-toggle="tab" data-bs-target="#pane-by-date" type="button" role="tab" aria-controls="pane-by-date" aria-selected="{{ view == 'by_date' ? 'true' : 'false' }}">
+                  <!-- SVG for Calendar icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                    <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path>
+                    <path d="M16 3v4"></path>
+                    <path d="M8 3v4"></path>
+                    <path d="M4 11h16"></path>
+                    <path d="M11 15h1"></path>
+                    <path d="M12 15v3"></path>
+                  </svg>
+                  By Date
+              </button>
+              {# Example of a disabled tab as in user's reference - adapt if needed, or remove if not applicable #}
+              {# <button class="nav-link disabled" role="tab" data-bs-toggle="tab" aria-selected="false" aria-disabled="true" tabindex="-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
+                  </svg>
+                  Other (Disabled)
+              </button> #}
+          </nav>
+        </div>
+      </div>
+      {# New Control Bar - Below the card-header with tabs, but before the card-body with tab-content #}
+      <div class="card-body border-bottom py-3">
+        <div class="d-flex"> {# Reverted to simple d-flex, as align-items-center is for the children that were moved #}
+          {# The items_per_page_select and pagination ul were here. They are now moved. #}
+          {# This div.text-muted was the container for pagination, now removed from here. #}
+          <div class="ms-auto d-flex align-items-center"> {# Search Area - aligned right #}
+
+            {# Form for "By Name" - initial style set by JS based on 'view' variable #}
+            <form method="GET" action="/orders" class="mb-0 me-2" id="form_search_by_name" style="display: {{ (view == 'by_name' or view is null or view == '') ? 'flex' : 'none' }};">
+              <input type="hidden" name="view" value="by_name">
+              <div class="row g-2">
+                <div class="col-auto">
+                  <label for="customer_search_orders" class="visually-hidden">Pelanggan</label>
+                  <input type="text" id="customer_search_orders" class="form-control" placeholder="Ketik nama pelanggan..." value="{{ selected_customer_name | default('') }}">
+                  <input type="hidden" name="customer_id" id="selected_customer_id_hidden" value="{{ selected_customer_id | default('') }}">
+                </div>
+                <div class="col-auto">
+                  <button type="submit" class="btn btn-primary">Cari</button>
+                </div>
+              </div>
+            </form>
+
+            {# Form for "By Order ID" - initial style set by JS based on 'view' variable #}
+            <form id="form_search_by_order_id" class="mb-0 me-2" style="display: {{ view == 'by_order_id' ? 'flex' : 'none' }};">
+              <input type="hidden" name="view" value="by_order_id">
+              <div class="row g-2">
+                <div class="col-auto">
+                  <label for="order_id_search_input" class="visually-hidden">Order ID</label>
+                  <input type="text" class="form-control" id="order_id_search_input" placeholder="Masukkan ID Pesanan..." value="{{ order_id_query_value | default('') }}">
+                </div>
+                <div class="col-auto">
+                  <button type="button" class="btn btn-primary" id="order_id_search_button">Cari Order</button>
+                </div>
+              </div>
+            </form>
+
+            {# Form for "By Date" - initial style set by JS based on 'view' variable #}
+            <form id="form_search_by_date" class="mb-0" style="display: {{ view == 'by_date' ? 'show' : 'none' }};">
+              <input type="hidden" name="view" value="by_date">
+              <div class="row g-2">
+                <div class="col-auto">
+                  <label for="delivery_date_search_input" class="visually-hidden">Tanggal Pengiriman</label>
+                  <input type="text" class="form-control" id="delivery_date_search_input" placeholder="Pilih tanggal...">
+                </div>
+                <div class="col-auto">
+                  <button type="button" class="btn btn-primary" id="delivery_date_search_button">Tampilkan</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="tab-content" id="orders-tab-content">
+          <div class="tab-pane fade {{ view == 'by_name' or view is null or view == '' ? 'show active' : '' }}" id="pane-by-name" role="tabpanel" aria-labelledby="tab-by-name-button">
+            <div id="orders-by-name-content-wrapper">
+                {% if selected_customer_id %}
+                    {# This content is now rendered by _orders_table_partial.html.twig #}
+                    {% include '_orders_table_partial.html.twig' %}
+                {% else %}
+                    {% if view == 'by_name' or view is null or view == '' %}
+                        <div class="alert alert-info" role="alert">
+                            Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+          </div>
+
+          <div class="tab-pane fade {{ view == 'by_order_id' ? 'show active' : '' }}" id="pane-by-order-id" role="tabpanel" aria-labelledby="tab-by-order-id-button">
+            {# Order ID search form was moved to control bar #}
+            <div id="order_id_search_results_container">
+              {# Search results or messages will be injected here by JavaScript #}
+              {% if not order_id_query_value and view == 'by_order_id' %}
+                <p class="text-muted">Masukkan ID Pesanan di atas untuk memulai pencarian.</p>
+              {% endif %}
+              {# Logic to display orders_by_id_result if it's populated by controller (e.g., on page load with query) #}
+              {% if order_id_query_value and orders_by_id_result is not empty %}
+                {% for order in orders_by_id_result %}
+                  {% if order %} {# Check if order data is not null #}
+                    <div class="card mt-3">
+                        <div class="card-header"><h3 class="card-title">Order Details (ID: {{ order.id }})</h3></div>
+                        <div class="card-body">
+                            <p><strong>Customer:</strong> {{ order.customers.nama | default('N/A') }}</p>
+                            <p><strong>Order Date:</strong> {{ order.tanggal_pesan | date("d M Y") }}</p>
+                            <p><strong>Total:</strong> {{ order.total_harga | number_format(0, ',', '.') }}</p>
+                            <p><strong>Payment Method:</strong> {{ order.metode_pembayaran | replace({'_': ' '}) | title }}</p>
+                            <p><strong>Notes:</strong> {{ order.notes | default('-') }}</p>
+                        </div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              {% elseif order_id_query_value and orders_by_id_result is empty and view == 'by_order_id' %}
+                 <p class="text-warning">Order dengan ID tersebut tidak ditemukan.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="tab-pane fade {{ view == 'by_date' ? 'show active' : '' }}" id="pane-by-date" role="tabpanel" aria-labelledby="tab-by-date-button">
+            {# Date search form was moved to control bar #}
+            <div id="delivery_date_search_results_container">
+              {# Search results or messages will be injected here by JavaScript #}
+              {% if view == 'by_date' %}
+                <p class="text-muted">Pilih tanggal di atas untuk melihat daftar pengiriman.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'confirmation-modal.html.twig' with {
+    'id': 'deleteDeliveryConfirmModal',
+    'title': 'Konfirmasi Hapus Pengiriman',
+    'message': 'Apakah Anda yakin ingin menghapus data pengiriman ini?',
+    'confirmText': 'Ya, Hapus'
+} %}
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script src="/js/awesomplete.min.js"></script>
+  <script type="module" src="/js/app/orders-page.js?v={{ 'now'|date('U') }}"></script>
+{% endblock %}
