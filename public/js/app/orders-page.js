@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const customerSearchInput = document.getElementById('customer_search_orders');
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = customerSearchInput ? customerSearchInput.closest('form') : null;
+    const bootstrap = window.tabler?.bootstrap;
 
     // --- Clear and unfocus customer search input if a customer is selected (page has reloaded with results) ---
     if (selectedCustomerIdHidden && selectedCustomerIdHidden.value && customerSearchInput) {
