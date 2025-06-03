@@ -1,9 +1,7 @@
 {% extends "base.html.twig" %}
+
 {% block title %}{{ title | default("Riwayat Pengiriman Pelanggan") }}{% endblock %}
-{% block stylesheets %}
-    <link rel="stylesheet" href="/css/awesomplete.min.css">
-    <link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
-{% endblock %}
+
 {% block content %}
 <div class="page-header d-print-none">
   <div class="container-xl">
@@ -205,6 +203,5 @@
 
 {% block javascripts %}
   {{ parent() }} {# To include any scripts from a parent block if layout nesting occurs #}
-  <script src="/js/awesomplete.min.js"></script>
   <script type="module" src="/js/app/orders-page.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

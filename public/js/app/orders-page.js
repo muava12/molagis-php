@@ -17,10 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                                               // return text.label.toLowerCase().includes(input.toLowerCase());
 
             },
-            item: function (text, input) {
-                // Standard item rendering
-                return Awesomplete.ITEM_MARK(text, input);
-            },
+            // The 'item' property is now removed
             // The list will be populated via an AJAX call
         });
 
