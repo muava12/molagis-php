@@ -3,6 +3,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = customerSearchInput ? customerSearchInput.closest('form') : null;
     const bootstrap = window.tabler?.bootstrap;
+    const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Moved higher for access
+
+    // Function to update the batch delete toast
+    function updateBatchDeleteToast() {
+        if (!contentWrapper || typeof window.batchDeleteToast === 'undefined') {
+            return; // Exit if wrapper or toast functions aren't available
+        }
+        const selectedCheckboxes = contentWrapper.querySelectorAll('.select-delivery-item:checked');
+        const selectedCount = selectedCheckboxes.length;
+
+        if (selectedCount > 0) {
+            window.batchDeleteToast.show(selectedCount);
+        } else {
+            window.batchDeleteToast.hide();
+        }
+    }
 
     // --- Clear and unfocus customer search input if a customer is selected (page has reloaded with results) ---
     if (selectedCustomerIdHidden && selectedCustomerIdHidden.value && customerSearchInput) {
@@ -36,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const html = await response.text();
 
-            const contentWrapper = document.getElementById('orders-by-name-content-wrapper');
+            // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Already defined above
             if (contentWrapper) {
                 contentWrapper.innerHTML = html;
 
@@ -45,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     selectAllCheckbox.checked = false;
                     selectAllCheckbox.indeterminate = false;
                 }
+                updateBatchDeleteToast(); // <--- ADD THIS
             } else {
                 console.error('Error: Target content wrapper #orders-by-name-content-wrapper for AJAX update not found.');
                 window.location.href = url;
@@ -334,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- "Select All" Checkbox Functionality ---
-    const contentWrapper = document.getElementById('orders-by-name-content-wrapper');
+    // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Already defined above
 
     if (contentWrapper) {
         contentWrapper.addEventListener('change', function(event) {
@@ -344,6 +361,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 itemCheckboxes.forEach(checkbox => {
                     checkbox.checked = isChecked;
                 });
+                updateBatchDeleteToast(); // <--- ADD THIS
             } else if (event.target.matches('.select-delivery-item')) {
                 const selectAllCheckbox = contentWrapper.querySelector('#select-all-deliveries');
                 if (selectAllCheckbox) {
@@ -362,6 +380,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         selectAllCheckbox.indeterminate = false;
                     }
                 }
+                updateBatchDeleteToast(); // <--- ADD THIS
             }
         });
     } else {
