@@ -492,6 +492,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Click listener for the external submit button to trigger form submission
+    const externalSubmitBtn = document.getElementById('submit-btn');
+    if (externalSubmitBtn) {
+        externalSubmitBtn.addEventListener('click', function() {
+            const editOrderFormToSubmit = document.getElementById('edit-form');
+            if (editOrderFormToSubmit) {
+                // Programmatically submit the form.
+                // requestSubmit() is the modern way and also triggers HTML5 validation if any.
+                if (typeof editOrderFormToSubmit.requestSubmit === 'function') {
+                    editOrderFormToSubmit.requestSubmit();
+                } else {
+                    // Fallback for older browsers or if requestSubmit isn't available for some reason
+                    // This will trigger the 'submit' event listener on the form.
+                    editOrderFormToSubmit.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            }
+        });
+    }
+
     // --- Unified "Select All" Checkbox Functionality via Event Delegation ---
     if (ordersTabContent) {
         ordersTabContent.addEventListener('change', function(event) {

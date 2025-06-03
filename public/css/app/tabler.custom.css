@@ -11,3 +11,17 @@
   /* --tblr-toast-spacing: calc(var(--tblr-page-padding) * 2); */
   --tblr-toast-spacing: 0px;
 }
+
+/* Ensure the modal body for the edit order modal can scroll */
+#editOrderModal .modal-body {
+  /* overflow-y: auto; */ /* This is usually handled by .modal-dialog-scrollable, but explicit for safety if needed */
+                           /* The main goal is to ensure no conflicting fixed height from custom CSS */
+}
+
+/* Ensure the package fields container within the edit modal doesn't have a fixed height or hidden overflow */
+/* that would prevent the modal-body itself from scrolling. */
+#editOrderModal #package-fields-container {
+  max-height: none; /* Override any potential max-height that might be set elsewhere */
+  overflow-y: visible; /* Ensure it doesn't try to scroll itself if it's not meant to */
+                       /* Or 'auto' if it *should* be the one scrolling, but modal-body is preferred by Bootstrap */
+}

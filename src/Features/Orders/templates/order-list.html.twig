@@ -249,12 +249,12 @@
               <textarea id="order-notes-display" class="form-control" readonly rows="2"></textarea>
           </div>
 
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" id="submit-btn" class="btn btn-primary">Simpan Perubahan</button>
-        </div>
-      </form>
+        </div> {# End of modal-body #}
+      </form> {# Form ends here, after modal-body #}
+      <div class="modal-footer"> {# Footer is OUTSIDE the form tag #}
+        <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" id="submit-btn" class="btn btn-primary">Simpan Perubahan</button> {# type="button" #}
+      </div>
     </div>
   </div>
 </div>
