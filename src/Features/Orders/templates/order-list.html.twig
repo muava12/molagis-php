@@ -185,6 +185,79 @@
     'message': 'Apakah Anda yakin ingin menghapus data pengiriman ini?',
     'confirmText': 'Ya, Hapus'
 } %}
+
+{# Edit Order Modal #}
+<div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"> {# modal-lg for wider, modal-dialog-scrollable if content might be long #}
+    <div class="modal-content">
+      <form id="edit-form">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editOrderModalTitle">Edit Order</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          {# Display area for general errors related to loading or saving #}
+          <div id="edit-modal-error-display" class="alert alert-danger" style="display: none;"></div>
+
+          <div class="mb-3">
+            <label for="delivery-date-input" class="form-label">Tanggal Delivery</label>
+            <input type="text" id="delivery-date-input" name="tanggal" class="form-control" placeholder="Pilih tanggal">
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="kurir-select" class="form-label">Kurir</label>
+              <select id="kurir-select" name="kurir_id" class="form-select"></select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="ongkir-input" class="form-label">Ongkir</label>
+              <input class="form-control" type="number" id="ongkir-input" name="ongkir" step="1000" min="0">
+            </div>
+          </div>
+
+          <h6 class="mt-4">Paket Item:</h6>
+          <div id="package-fields-container">
+            {# Package items will be dynamically inserted here by JavaScript #}
+          </div>
+          <button type="button" id="add-package-item-btn" class="btn btn-sm btn-outline-primary mb-3">Tambah Paket</button>
+
+          <h6 class="mt-4">Item Tambahan:</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="item-tambahan-input" class="form-label">Nama Item Tambahan</label>
+              <input class="form-control" type="text" id="item-tambahan-input" name="item_tambahan">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="harga-tambahan-input" class="form-label">Harga Item Tambahan</label>
+              <input class="form-control" type="number" id="harga-tambahan-input" name="harga_tambahan" step="500" min="0">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="harga-modal-tambahan-input" class="form-label">Modal Item Tambahan</label>
+            <input class="form-control" type="number" id="harga-modal-tambahan-input" name="harga_modal_tambahan" step="500" min="0">
+          </div>
+
+          {# Display for overall total, calculated by JS #}
+          <div class="mb-3 mt-4">
+            <label for="overall-total-display" class="form-label fw-bold">Perkiraan Total Harga Pengiriman Ini</label>
+            <input type="text" id="overall-total-display" class="form-control fs-5" readonly style="font-weight: bold;">
+          </div>
+
+          {# Optional: Display area for order-level notes if needed - this element should exist if JS tries to use it #}
+          <div class="mb-3" id="order-notes-container" style="display: none;"> {# Hidden by default, JS can show if notes exist #}
+              <label for="order-notes-display" class="form-label">Catatan Pesanan (Order)</label>
+              <textarea id="order-notes-display" class="form-control" readonly rows="2"></textarea>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" id="submit-btn" class="btn btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block javascripts %}
