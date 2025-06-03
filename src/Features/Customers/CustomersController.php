@@ -8,12 +8,14 @@ use Twig\Environment;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Molagis\Shared\SupabaseService;
+use Molagis\Features\Settings\SettingsService; // Added
 
 class CustomersController
 {
     public function __construct(
         private CustomersService $customersService,
         private SupabaseService $supabaseService,
+        private SettingsService $settingsService, // Added
         private Environment $twig
     ) {}
 
@@ -23,10 +25,14 @@ class CustomersController
         $accessToken = $_SESSION['user_token'] ?? null;
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
 
+        $businessNameResponse = $this->settingsService->getSettingByKey('business_name', $accessToken);
+        $businessName = $businessNameResponse['data'] ?? 'Molagis'; // Or your preferred default
+
         return $this->twig->render('customers.html.twig', [
             'title' => 'Customers Bro',
             'user_id' => $user['id'] ?? 'default-seed',
             'couriers' => $couriersResult['data'] ?? [],
+            'business_name' => $businessName, // Added
             'error' => $couriersResult['error'] ?? null,
         ]);
     }

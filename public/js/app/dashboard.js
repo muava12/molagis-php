@@ -5,7 +5,7 @@
  */
 import { renderErrorAlert, showToast, formatRupiah, formatPhoneNumber } from './utils.js';
 import { initAddCustomerModal } from './add-customer-modal.js';
-import { initialize as initOrder, fetchCustomers } from './order.js';
+import { initialize as initOrder, fetchCustomers, resetForm } from './order.js';
 import { parseISO, isValid, addDays, subDays } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 import { formatInTimeZone } from 'https://cdn.jsdelivr.net/npm/date-fns-tz@3.2.0/+esm';
 import { id } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale/+esm';
@@ -699,11 +699,8 @@ export function initDashboard() {
             fetchCustomers();
         });
         orderModal.addEventListener('hidden.bs.modal', () => {
-            console.log('Order modal hidden, resetting form');
-            const form = orderModal.querySelector('form');
-            if (form) {
-                form.reset();
-            }
+            console.log('Order modal hidden, calling custom resetForm');
+            resetForm(); // Call the imported resetForm function
         });
     }
 

@@ -349,6 +349,7 @@ function displayCustomerSuggestions(customers) {
         shippingCost.value = currentCustomerOngkir;
         shippingFastIcon.classList.toggle('d-none', parseFloat(shippingCost.value) !== currentCustomerOngkir);
         calculateTotalPayment();
+        awesomplete.close(); // Close the dropdown after selection
     });
 }
 
@@ -715,7 +716,12 @@ function displayConfirmationModal(order) {
     modal.show();
 
     // Event listener untuk tombol konfirmasi
-    const confirmBtn = document.getElementById('confirmOrder');
+    // Clone the button to remove existing event listeners
+    const old_element = document.getElementById("confirmOrder");
+    const new_element = old_element.cloneNode(true);
+    old_element.parentNode.replaceChild(new_element, old_element);
+    const confirmBtn = new_element; // Use this new_element for adding the event listener.
+
     const handler = async () => {
         try {
             confirmBtn.classList.add('btn-loading','disabled');
@@ -754,7 +760,6 @@ function displayConfirmationModal(order) {
             confirmBtn.classList.remove('btn-loading','disabled');
         }
     };
-    confirmBtn.removeEventListener('click', handler); // Hapus listener lama
     confirmBtn.addEventListener('click', handler);
 }
 
@@ -908,4 +913,4 @@ function setupEventListeners() {
     });
 }
 
-export { initialize, setupEventListeners, fetchHolidayDates, renderCalendar, fetchCustomers, fetchPackages, calculateTotalPayment, setupAddRemovePackageHandlers };
+export { initialize, setupEventListeners, fetchHolidayDates, renderCalendar, fetchCustomers, fetchPackages, calculateTotalPayment, setupAddRemovePackageHandlers, resetForm };

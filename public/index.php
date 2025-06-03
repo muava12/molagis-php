@@ -59,6 +59,7 @@ $containerBuilder->addDefinitions([
     CustomersController::class => fn($c) => new CustomersController(
         $c->get(CustomersService::class),
         $c->get(SupabaseService::class),
+        $c->get(SettingsService::class), // Added this line
         $c->get(Environment::class)
     ),
     OrderService::class => fn($c) => new OrderService($c->get(SupabaseClient::class)),
@@ -126,6 +127,7 @@ $routes = [
     ['POST', '/api/customers/update', [CustomersController::class, 'updateCustomer'], [AuthMiddleware::class]],
     ['POST', '/api/customers/delete', [CustomersController::class, 'deleteCustomer'], [AuthMiddleware::class]],
     ['GET', '/input-order', [OrderController::class, 'showOrder'], [AuthMiddleware::class]],
+    ['GET', '/orders', [OrderController::class, 'showOrdersPage'], [AuthMiddleware::class]],
     ['POST', '/api/order', [OrderController::class, 'handleOrder'], [AuthMiddleware::class]],
     ['GET', '/api/packages', [OrderController::class, 'getPackages'], [AuthMiddleware::class]],
     ['GET', '/settings', [SettingsController::class, 'showSettings'], [AuthMiddleware::class]],
@@ -195,6 +197,7 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleOrder' => [$request],
                     'getPackages' => [$request],
                     'showOrder' => [$request],
+                    'showOrdersPage' => [$request], // Added case
                     'showSettings' => [$request],
                     'updateSettings' => [$request],
                     default => []

@@ -48,6 +48,9 @@ class DashboardController
         $defaultShippingCostResponse = $this->settingsService->getSettingByKey('default_shipping_cost', $accessToken);
         $defaultShippingCost = $defaultShippingCostResponse['data'] ?? '5000';
 
+        $businessNameResponse = $this->settingsService->getSettingByKey('business_name', $accessToken);
+        $businessName = $businessNameResponse['data'] ?? 'Molagis'; // Or your preferred default
+
         // Format delivery_date menggunakan IntlDateFormatter
         $formatter = new \IntlDateFormatter(
             'id_ID', // Lokalisasi Indonesia
@@ -79,6 +82,7 @@ class DashboardController
             'active_couriers' => $couriersResult['data'] ?? [],
             'default_courier' => $defaultCourier,
             'default_shipping_cost' => $defaultShippingCost,
+            'business_name' => $businessName,
         ]);
     }
 

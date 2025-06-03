@@ -40,6 +40,9 @@ class OrderController
         $defaultShippingCostResponse = $this->settingsService->getSettingByKey('default_shipping_cost', $accessToken);
         $defaultShippingCost = $defaultShippingCostResponse['data'] ?? '5000'; // Fallback ke 5000 jika tidak ada
 
+        $businessNameResponse = $this->settingsService->getSettingByKey('business_name', $accessToken);
+        $businessName = $businessNameResponse['data'] ?? 'Molagis'; // Or your preferred default
+
         // Ambil data yang diperlukan untuk form (kurir aktif, paket)
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
         $packages = $this->orderService->getPackages($accessToken);
@@ -54,6 +57,7 @@ class OrderController
                 'couriers' => $couriersResult['data'] ?? [],
                 'default_courier' => $defaultCourier, // Kirim default_courier ke template
                 'default_shipping_cost' => $defaultShippingCost, // Kirim default_shipping_cost ke template
+                'business_name' => $businessName,
                 'error' => $couriersResult['error'] ?? null,
             ])
         );
@@ -168,5 +172,57 @@ class OrderController
             $response->getBody()->write(json_encode(['error' => 'Gagal mengambil data pelanggan.']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
+    }
+
+    /**
+     * Menampilkan halaman daftar pesanan.
+     * @param ServerRequestInterface $request Request object.
+     * @return Response Rendered HTML response.
+     */
+    public function showOrdersPage(ServerRequestInterface $request): Response
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new Response\RedirectResponse('/login');
+        }
+
+        $user = $request->getAttribute('user');
+        $userId = $user['id'] ?? 'default-seed';
+
+        $businessNameResponse = $this->settingsService->getSettingByKey('business_name', $accessToken);
+        $businessName = $businessNameResponse['data'] ?? 'Molagis';
+
+        // Fetch all customers for the dropdown
+        $allCustomers = $this->orderService->getCustomers($accessToken); // Assumes direct array return
+
+        // Get selected customer_id from query parameters
+        $queryParams = $request->getQueryParams();
+        $selectedCustomerId = isset($queryParams['customer_id']) ? (int)$queryParams['customer_id'] : null;
+
+        $customerDeliveries = [];
+        $deliveriesError = null;
+        if ($selectedCustomerId) {
+            $deliveriesResponse = $this->orderService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken);
+            $customerDeliveries = $deliveriesResponse['data'] ?? [];
+            $deliveriesError = $deliveriesResponse['error'] ?? null;
+        }
+
+        $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
+        
+        $response = new Response();
+        $response->getBody()->write(
+            $this->twig->render('order-list.html.twig', [
+                'title' => 'Riwayat Pengiriman Pelanggan',
+                'all_customers' => $allCustomers,
+                'selected_customer_id' => $selectedCustomerId,
+                'deliveries' => $customerDeliveries, // Changed from 'orders' to 'deliveries'
+                'business_name' => $businessName,
+                'couriers' => $couriersResult['data'] ?? [],
+                'user_id' => $userId,
+                'error' => $deliveriesError ?? $couriersResult['error'] ?? null // Consolidate errors
+            ])
+        );
+
+        return $response;
     }
 }
