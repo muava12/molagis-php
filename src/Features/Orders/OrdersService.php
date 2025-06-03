@@ -360,4 +360,243 @@ class OrdersService
             return ['success' => false, 'error' => 'An exception occurred during batch delete: ' . $e->getMessage(), 'status_code' => 500];
         }
     }
+
+    /**
+     * Fetches all necessary data for editing a specific delivery date.
+     *
+     * @param int $deliveryId The ID of the deliverydates record.
+     * @param string|null $accessToken User's access token.
+     * @return array Result array with 'success', 'data' or 'error', and 'status_code'.
+     */
+    public function getDeliveryDataForEdit(int $deliveryId, ?string $accessToken = null): array
+    {
+        try {
+            // 1. Fetch the main deliverydates record
+            $deliveryDateQuery = sprintf(
+                '/rest/v1/deliverydates?id=eq.%d&select=*,orders(customer_id,notes)', // Select related order notes too
+                $deliveryId
+            );
+            $deliveryDateResponse = $this->supabaseClient->get($deliveryDateQuery, [], $accessToken);
+
+            if (isset($deliveryDateResponse['error']) || empty($deliveryDateResponse['data'])) {
+                $errorMsg = isset($deliveryDateResponse['error']) ? (is_array($deliveryDateResponse['error']) ? json_encode($deliveryDateResponse['error']) : $deliveryDateResponse['error']) : 'Delivery date not found.';
+                error_log('Supabase error fetching deliverydate for edit: ' . $errorMsg);
+                return ['success' => false, 'error' => $errorMsg, 'status_code' => isset($deliveryDateResponse['error']) ? 500 : 404];
+            }
+            $deliveryData = $deliveryDateResponse['data'][0];
+
+            // 2. Fetch associated orderdetails with paket information
+            $orderDetailsQuery = sprintf(
+                '/rest/v1/orderdetails?delivery_id=eq.%d&select=*,paket(id,nama,harga_jual,harga_modal)',
+                $deliveryId
+            );
+            $orderDetailsResponse = $this->supabaseClient->get($orderDetailsQuery, [], $accessToken);
+
+            if (isset($orderDetailsResponse['error'])) {
+                $errorMsg = is_array($orderDetailsResponse['error']) ? json_encode($orderDetailsResponse['error']) : $orderDetailsResponse['error'];
+                error_log('Supabase error fetching orderdetails for edit: ' . $errorMsg);
+                return ['success' => false, 'error' => $errorMsg, 'status_code' => 500];
+            }
+            $deliveryData['details'] = $orderDetailsResponse['data'] ?? [];
+
+            // 3. Fetch list of all active couriers
+            $couriersResponse = $this->supabaseClient->get('/rest/v1/couriers?aktif=eq.true&select=id,nama', [], $accessToken);
+            if (isset($couriersResponse['error'])) {
+                // Log error but don't necessarily fail the whole request if couriers are optional for display
+                error_log('Supabase error fetching couriers for edit: ' . json_encode($couriersResponse['error']));
+                $deliveryData['available_couriers'] = [];
+            } else {
+                $deliveryData['available_couriers'] = $couriersResponse['data'] ?? [];
+            }
+
+            // 4. Fetch list of all pakets
+            $paketsResponse = $this->supabaseClient->get('/rest/v1/paket?select=id,nama,harga_jual,harga_modal,urutan&order=urutan.asc,nama.asc', [], $accessToken);
+            if (isset($paketsResponse['error'])) {
+                $errorMsg = is_array($paketsResponse['error']) ? json_encode($paketsResponse['error']) : $paketsResponse['error'];
+                error_log('Supabase error fetching pakets for edit: ' . $errorMsg);
+                return ['success' => false, 'error' => 'Failed to fetch package list: ' . $errorMsg, 'status_code' => 500];
+            }
+            $deliveryData['available_pakets'] = $paketsResponse['data'] ?? [];
+
+            return ['success' => true, 'data' => $deliveryData];
+
+        } catch (\Exception $e) {
+            error_log('Generic Exception in getDeliveryDataForEdit for ID ' . $deliveryId . ': ' . $e->getMessage());
+            return ['success' => false, 'error' => 'An exception occurred: ' . $e->getMessage(), 'status_code' => 500];
+        }
+    }
+
+    /**
+     * Updates delivery details, associated orderdetails, and potentially the parent order's total.
+     *
+     * @param int $deliveryId The ID of the deliverydates record to update.
+     * @param array $data The form data from the edit modal. Expected keys:
+     *                    'tanggal', 'kurir_id', 'ongkir', 'item_tambahan', 'harga_tambahan', 'harga_modal_tambahan',
+     *                    'package_items' => [ [ 'order_detail_id' (optional), 'paket_id', 'jumlah', 'catatan_dapur', 'catatan_kurir' ], ... ]
+     * @param string|null $accessToken User's access token.
+     * @return array Result array with 'success', 'message' or 'error', and 'status_code'.
+     */
+    public function updateDeliveryAndOrderDetails(int $deliveryId, array $data, ?string $accessToken = null): array
+    {
+        // Note: The Supabase PHP client might not directly expose traditional transaction controls (BEGIN, COMMIT, ROLLBACK)
+        // for multi-request operations. If atomicity is strictly required, this entire logic block might be better
+        // suited as a single RPC call to a database function (stored procedure) in Supabase.
+        // For now, operations are performed sequentially with error checking at each step.
+
+        try {
+            // 0. Fetch all available 'paket' data first to get prices and modal values
+            $paketsResponse = $this->supabaseClient->get('/rest/v1/paket?select=id,harga_jual,harga_modal', [], $accessToken);
+            if (isset($paketsResponse['error']) || empty($paketsResponse['data'])) {
+                // It's critical to have package data for calculations.
+                $errorMsg = 'Failed to fetch package data for price calculation. Error: ' . json_encode($paketsResponse['error'] ?? 'No package data found');
+                error_log($errorMsg); // Log the specific Supabase error if available
+                return ['success' => false, 'error' => 'Internal error: Could not load package information.', 'status_code' => 500];
+            }
+            $availablePakets = array_column($paketsResponse['data'], null, 'id'); // Index by paket_id
+
+            // 1. Handle Order Details (package_items)
+            $submittedPackageItems = $data['package_items'] ?? [];
+            $newTotalModalForDetails = 0;
+            $newTotalHargaForDetails = 0;
+
+            $processedOrderDetailIds = []; // Keep track of IDs processed from submission (both new and existing)
+
+            foreach ($submittedPackageItems as $item) {
+                if (empty($item['paket_id']) || !isset($item['jumlah']) || ((int)$item['jumlah'] <= 0) ) {
+                    error_log("Skipping package item with invalid paket_id or jumlah for delivery ID {$deliveryId}: " . json_encode($item));
+                    continue;
+                }
+                if(!isset($availablePakets[$item['paket_id']])) {
+                    error_log("Skipping package item with unknown paket_id {$item['paket_id']} for delivery ID {$deliveryId}: " . json_encode($item));
+                    // Potentially throw an exception here if strict consistency is required
+                    // For now, we skip, but this means the client sent an ID that's not in the DB (or not active)
+                    return ['success' => false, 'error' => "Paket dengan ID {$item['paket_id']} tidak ditemukan atau tidak aktif.", 'status_code' => 400];
+                }
+
+
+                $paketInfo = $availablePakets[$item['paket_id']];
+                $jumlah = (int)$item['jumlah'];
+                $subtotalHarga = $paketInfo['harga_jual'] * $jumlah;
+                $subtotalModal = $paketInfo['harga_modal'] * $jumlah;
+
+                $newTotalModalForDetails += $subtotalModal;
+                $newTotalHargaForDetails += $subtotalHarga;
+
+                $detailPayload = [
+                    'delivery_id' => $deliveryId, // This must link to the main deliverydates record
+                    'paket_id' => $item['paket_id'],
+                    'jumlah' => $jumlah,
+                    'subtotal_harga' => $subtotalHarga,
+                    'subtotal_modal' => $subtotalModal,
+                    'catatan_dapur' => $item['catatan_dapur'] ?? null,
+                    'catatan_kurir' => $item['catatan_kurir'] ?? null,
+                ];
+
+                // The order_id for orderdetails should come from the parent orders table,
+                // which is linked via deliverydates.order_id.
+                // We need to fetch the deliverydates record first to get its order_id if we need to set it here.
+                // However, orderdetails are linked by delivery_id. The order_id is implicit via delivery_id.
+                // Let's assume 'order_id' is NOT directly in 'orderdetails' table based on typical structure,
+                // but if it is, it needs to be fetched from the parent 'deliverydates' record's 'order_id'.
+
+                if (!empty($item['order_detail_id'])) { // Existing item
+                    $orderDetailId = (int)$item['order_detail_id'];
+                    $updateQuery = '/rest/v1/orderdetails?id=eq.' . $orderDetailId;
+                    $updateResponse = $this->supabaseClient->patch($updateQuery, $detailPayload, $accessToken);
+                    if (isset($updateResponse['error'])) throw new \Exception('Failed to update order detail ID ' . $orderDetailId . ': ' . json_encode($updateResponse['error']));
+                    $processedOrderDetailIds[] = $orderDetailId;
+                } else { // New item
+                    // For new items, ensure they are linked to the correct `orders` record if `order_id` is required on `orderdetails`.
+                    // This would typically mean fetching the `order_id` from the `deliverydates` record.
+                    // For now, assuming `order_id` is not directly on `orderdetails` or is set by DB trigger/policy based on `delivery_id`.
+                    $insertResponse = $this->supabaseClient->post('/rest/v1/orderdetails?select=id', $detailPayload, $accessToken);
+                    if (isset($insertResponse['error']) || empty($insertResponse['data'])) throw new \Exception('Failed to insert new order detail: ' . json_encode($insertResponse['error'] ?? 'No data returned after insert'));
+                    $processedOrderDetailIds[] = $insertResponse['data'][0]['id'];
+                }
+            }
+
+            // 2. Delete Order Details that were removed from the form
+            $currentDetailsQuery = '/rest/v1/orderdetails?delivery_id=eq.' . $deliveryId . '&select=id';
+            $currentDetailsResponse = $this->supabaseClient->get($currentDetailsQuery, [], $accessToken);
+            if (isset($currentDetailsResponse['error'])) throw new \Exception('Failed to fetch current order details for deletion comparison: ' . json_encode($currentDetailsResponse['error']));
+
+            $existingDbDetailIds = array_column($currentDetailsResponse['data'] ?? [], 'id');
+            $idsToDelete = array_diff($existingDbDetailIds, $processedOrderDetailIds);
+
+            if (!empty($idsToDelete)) {
+                $deleteQuery = '/rest/v1/orderdetails?id=in.(' . implode(',', $idsToDelete) . ')';
+                $deleteResponse = $this->supabaseClient->delete($deleteQuery, [], $accessToken);
+                // Check if deleteResponse indicates an error. Some clients might return true/false or specific status codes.
+                // If $deleteResponse is an array with an 'error' key:
+                if (is_array($deleteResponse) && isset($deleteResponse['error'])) {
+                     throw new \Exception('Failed to delete removed order details: ' . json_encode($deleteResponse['error']));
+                }
+                // If $deleteResponse is false (and not an error array, for clients that return boolean)
+                if ($deleteResponse === false) {
+                    throw new \Exception('Failed to delete removed order details (operation returned false).');
+                }
+                // If Guzzle response, check status code for 204. If not 204, it might be an issue.
+                if (is_object($deleteResponse) && method_exists($deleteResponse, 'getStatusCode') && $deleteResponse->getStatusCode() !== 204) {
+                     // Consider logging the response body if available
+                     throw new \Exception('Failed to delete removed order details (status: ' . $deleteResponse->getStatusCode() . ').');
+                }
+
+            }
+
+            // 3. Update the deliverydates record
+            $ongkir = $data['ongkir'] ?? 0;
+            $hargaTambahan = $data['harga_tambahan'] ?? 0;
+            $hargaModalTambahan = $data['harga_modal_tambahan'] ?? 0;
+
+            $deliveryUpdatePayload = [
+                'tanggal' => $data['tanggal'], // Ensure YYYY-MM-DD format
+                'kurir_id' => !empty($data['kurir_id']) ? (int)$data['kurir_id'] : null,
+                'ongkir' => is_numeric($ongkir) ? (float)$ongkir : 0,
+                'item_tambahan' => $data['item_tambahan'] ?? null,
+                'harga_tambahan' => is_numeric($hargaTambahan) ? (float)$hargaTambahan : 0,
+                'harga_modal_tambahan' => is_numeric($hargaModalTambahan) ? (float)$hargaModalTambahan : 0,
+                'total_harga_perhari' => $newTotalHargaForDetails + (is_numeric($hargaTambahan) ? (float)$hargaTambahan : 0) + (is_numeric($ongkir) ? (float)$ongkir : 0),
+                'total_modal_perhari' => $newTotalModalForDetails + (is_numeric($hargaModalTambahan) ? (float)$hargaModalTambahan : 0),
+                // 'status' => $data['status'] ?? null, // If status is part of the form
+            ];
+            $updateDeliveryQuery = '/rest/v1/deliverydates?id=eq.' . $deliveryId . '&select=order_id';
+            $deliveryUpdateResponse = $this->supabaseClient->patch($updateDeliveryQuery, $deliveryUpdatePayload, $accessToken);
+            if (isset($deliveryUpdateResponse['error']) || empty($deliveryUpdateResponse['data'])) {
+                throw new \Exception('Failed to update delivery date record: ' . json_encode($deliveryUpdateResponse['error'] ?? 'No data returned after delivery update'));
+            }
+            $orderId = $deliveryUpdateResponse['data'][0]['order_id'];
+
+
+            // 4. (Potentially) Update the parent orders.total_harga
+            if ($orderId) {
+                $allDeliveriesForOrderQuery = '/rest/v1/deliverydates?order_id=eq.' . $orderId . '&select=total_harga_perhari';
+                $allDeliveriesResponse = $this->supabaseClient->get($allDeliveriesForOrderQuery, [], $accessToken);
+
+                if (isset($allDeliveriesResponse['error'])) {
+                    error_log("Failed to fetch all delivery dates for order ID {$orderId} to update order total: " . json_encode($allDeliveriesResponse['error']));
+                } else {
+                    $newOrderTotalHarga = 0;
+                    foreach ($allDeliveriesResponse['data'] as $d) {
+                        $newOrderTotalHarga += ($d['total_harga_perhari'] ?? 0);
+                    }
+                    $updateOrderQuery = '/rest/v1/orders?id=eq.' . $orderId;
+                    $orderUpdateResponse = $this->supabaseClient->patch($updateOrderQuery, ['total_harga' => $newOrderTotalHarga], $accessToken);
+                    if (isset($orderUpdateResponse['error'])) {
+                        error_log("Failed to update total_harga for order ID {$orderId}: " . json_encode($orderUpdateResponse['error']));
+                    }
+                }
+            }
+
+            return ['success' => true, 'message' => 'Delivery details updated successfully.'];
+
+        } catch (\Exception $e) {
+            error_log('Error in updateDeliveryAndOrderDetails for delivery ID ' . $deliveryId . ': ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
+            // Provide a more generic error to the client for security, but log the details.
+            $clientErrorMessage = 'An internal error occurred while updating delivery details.';
+            if (str_contains($e->getMessage(), 'paket dengan ID')) { // Check if it's a known error type we want to propagate
+                $clientErrorMessage = $e->getMessage();
+            }
+            return ['success' => false, 'error' => $clientErrorMessage, 'status_code' => 500];
+        }
+    }
 }

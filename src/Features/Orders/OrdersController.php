@@ -296,4 +296,66 @@ class OrdersController
             ], $statusCode);
         }
     }
+
+    public function getDeliveryDetailsForEdit(ServerRequestInterface $request, array $args): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $deliveryId = isset($args['id']) ? (int)$args['id'] : 0;
+        if ($deliveryId <= 0) {
+            return new JsonResponse(['success' => false, 'message' => 'Invalid Delivery ID provided.'], 400);
+        }
+
+        // Use a method in OrdersService to fetch all required data
+        $serviceResponse = $this->ordersService->getDeliveryDataForEdit($deliveryId, $accessToken);
+
+        if (!$serviceResponse['success']) {
+            $statusCode = $serviceResponse['status_code'] ?? 500;
+            return new JsonResponse([
+                'success' => false,
+                'message' => $serviceResponse['error'] ?? 'Failed to fetch delivery details.'
+            ], $statusCode);
+        }
+
+        return new JsonResponse(['success' => true, 'data' => $serviceResponse['data']]);
+    }
+
+    public function updateDeliveryDetailsApi(ServerRequestInterface $request, array $args): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $deliveryId = isset($args['id']) ? (int)$args['id'] : 0;
+        if ($deliveryId <= 0) {
+            return new JsonResponse(['success' => false, 'message' => 'Invalid Delivery ID for update.'], 400);
+        }
+
+        $formData = json_decode($request->getBody()->getContents(), true);
+        if (empty($formData)) {
+            return new JsonResponse(['success' => false, 'message' => 'No data submitted or invalid format.'], 400);
+        }
+
+        // Basic validation (more detailed validation can be added in the service)
+        if (!isset($formData['tanggal']) || !isset($formData['package_items']) || !is_array($formData['package_items'])) {
+           return new JsonResponse(['success' => false, 'message' => 'Missing required fields (tanggal, package_items).'], 400);
+        }
+
+        // Pass deliveryId and formData to the service
+        $serviceResponse = $this->ordersService->updateDeliveryAndOrderDetails($deliveryId, $formData, $accessToken);
+
+        if ($serviceResponse['success']) {
+            return new JsonResponse(['success' => true, 'message' => $serviceResponse['message'] ?? 'Delivery details updated successfully.']);
+        } else {
+            $statusCode = $serviceResponse['status_code'] ?? 500;
+            return new JsonResponse([
+                'success' => false,
+                'message' => $serviceResponse['error'] ?? 'Failed to update delivery details.'
+            ], $statusCode);
+        }
+    }
 }

@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const byNameContainer = contentWrapper; // Alias for clarity in new logic
     const byDateContainer = document.getElementById('delivery_date_search_results_container');
     const ordersTabContent = document.getElementById('orders-tab-content'); // Parent for event delegation
+    let availablePaketsForModal = []; // To store available pakets for the modal context
 
     // Function to update the batch delete toast based on the active tab
     function updateBatchDeleteToast() {
@@ -586,4 +587,458 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     updateBatchDeleteToast(); // Update toast for the initially active tab
 
+
+    // --- Edit Order Modal Logic ---
+
+    // Helper function to add a package row to the modal
+    function addPackageRowToModal(availablePakets, detail = null) {
+        const packageFieldsContainer = document.getElementById('package-fields-container');
+        if (!packageFieldsContainer) {
+            console.error('Package fields container #package-fields-container not found in modal.');
+            return;
+        }
+
+        const detailId = detail ? detail.id : ''; // Store existing orderdetail.id if present
+        const selectedPaketId = detail ? detail.paket_id : (detail && detail.paket ? detail.paket.id : ''); // Ensure detail.paket.id is also checked
+        const jumlah = detail ? detail.jumlah : 1;
+        const catatanDapur = detail && detail.catatan_dapur ? detail.catatan_dapur : '';
+        const catatanKurir = detail && detail.catatan_kurir ? detail.catatan_kurir : '';
+
+        const packageRow = document.createElement('div');
+        packageRow.classList.add('package-item-row', 'mb-3', 'p-3', 'border', 'rounded'); // Added more padding and rounded corners
+        packageRow.setAttribute('data-orderdetail-id', detailId);
+
+        let paketOptionsHtml = '<option value="">Pilih Paket</option>';
+        availablePakets.forEach(paket => {
+            const isSelected = paket.id === selectedPaketId || (detail && detail.paket && paket.id === detail.paket.id);
+            paketOptionsHtml += `<option value="${paket.id}" data-harga-jual="${paket.harga_jual}" data-harga-modal="${paket.harga_modal}" ${isSelected ? 'selected' : ''}>${paket.nama} (Jual: ${Number(paket.harga_jual).toLocaleString('id-ID')}, Modal: ${Number(paket.harga_modal).toLocaleString('id-ID')})</option>`;
+        });
+
+        packageRow.innerHTML = `
+            <input type="hidden" class="order-detail-id" value="${detailId}"> <!-- Hidden input for existing detail ID -->
+            <div class="row g-3"> <!-- Increased gutter for better spacing -->
+                <div class="col-md-7 mb-2"> <!-- Adjusted column width -->
+                    <label class="form-label">Paket Makanan</label>
+                    <select class="form-select paket-select">${paketOptionsHtml}</select>
+                </div>
+                <div class="col-md-2 mb-2"> <!-- Adjusted column width -->
+                    <label class="form-label">Jumlah</label>
+                    <input class="form-control paket-jumlah" type="number" value="${jumlah}" min="1">
+                </div>
+                <div class="col-md-3 mb-2"> <!-- Subtotal display column -->
+                    <label class="form-label">Subtotal</label>
+                    <input type="text" class="form-control item-subtotal-display" readonly style="pointer-events: none; background-color: #e9ecef;">
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Catatan Dapur</label>
+                <textarea class="form-control paket-catatan-dapur" rows="1">${catatanDapur}</textarea>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Catatan Kurir</label>
+                <textarea class="form-control paket-catatan-kurir" rows="1">${catatanKurir}</textarea>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger remove-package-btn mt-2">Hapus Paket Ini</button>
+            <hr class="my-3 d-md-none"> <!-- Show hr only on smaller screens if rows stack -->
+        `;
+        packageFieldsContainer.appendChild(packageRow);
+    }
+
+    // Function to populate the modal with fetched data
+    function populateEditOrderModal(data) {
+        const deliveryData = data;
+        const orderDetails = data.details || [];
+        const availableCouriers = data.available_couriers || [];
+        availablePaketsForModal = data.available_pakets || []; // Store for "Add Package" button
+
+        const modalTitleElement = document.getElementById('editOrderModalTitle');
+        if (modalTitleElement) {
+            modalTitleElement.textContent = `Edit Pengiriman (ID: ${deliveryData.id}) Pesanan ID: ${deliveryData.order_id || 'N/A'}`;
+        }
+
+        const deliveryDateInput = document.getElementById('delivery-date-input');
+        if (deliveryDateInput) {
+            deliveryDateInput.value = deliveryData.tanggal;
+             if (window.flatpickr) { // Check if flatpickr is available
+                const fpInstance = deliveryDateInput._flatpickr;
+                if (fpInstance) {
+                    fpInstance.setDate(deliveryData.tanggal, true);
+                } else {
+                    // Initialize flatpickr if it wasn't initialized before for this specific input
+                    flatpickr(deliveryDateInput, { dateFormat: "Y-m-d", locale: "id" });
+                    deliveryDateInput._flatpickr.setDate(deliveryData.tanggal, true);
+                }
+            }
+        }
+
+
+        const ongkirInput = document.getElementById('ongkir-input');
+        if (ongkirInput) ongkirInput.value = deliveryData.ongkir || 0;
+
+        const itemTambahanInput = document.getElementById('item-tambahan-input');
+        if (itemTambahanInput) itemTambahanInput.value = deliveryData.item_tambahan || '';
+
+        const hargaTambahanInput = document.getElementById('harga-tambahan-input');
+        if (hargaTambahanInput) hargaTambahanInput.value = deliveryData.harga_tambahan || 0;
+
+        const hargaModalTambahanInput = document.getElementById('harga-modal-tambahan-input');
+        if (hargaModalTambahanInput) hargaModalTambahanInput.value = deliveryData.harga_modal_tambahan || 0;
+
+        // Order-level notes (display only, or make editable if form field exists)
+        const orderNotesDisplay = document.getElementById('order-notes-display'); // Example ID for a display area
+        if (orderNotesDisplay && deliveryData.orders && deliveryData.orders.notes) {
+            orderNotesDisplay.textContent = deliveryData.orders.notes;
+        } else if (orderNotesDisplay) {
+            orderNotesDisplay.textContent = 'Tidak ada catatan pesanan.';
+        }
+
+
+        const kurirSelect = document.getElementById('kurir-select');
+        if (kurirSelect) {
+            kurirSelect.innerHTML = '<option value="">Pilih Kurir</option>';
+            availableCouriers.forEach(courier => {
+                const option = new Option(courier.nama, courier.id);
+                option.selected = String(courier.id) === String(deliveryData.kurir_id); // Ensure type safe comparison
+                kurirSelect.add(option);
+            });
+            if (!deliveryData.kurir_id && kurirSelect.options.length > 0) {
+                kurirSelect.selectedIndex = 0;
+            }
+        }
+
+        const packageFieldsContainer = document.getElementById('package-fields-container');
+        if (packageFieldsContainer) {
+            packageFieldsContainer.innerHTML = '';
+            if (orderDetails.length === 0) {
+                // addPackageRowToModal(availablePaketsForModal, null); // Optionally add one blank row
+            } else {
+                orderDetails.forEach(detail => {
+                    addPackageRowToModal(availablePaketsForModal, detail);
+                });
+            }
+            // After populating all rows, update their individual subtotals and then the grand total
+            document.querySelectorAll('#package-fields-container .package-item-row').forEach(row => {
+                 if (row.querySelector('.paket-select')) { // Ensure it's a fully formed row
+                    updateItemSubtotalDisplay(row);
+                }
+            });
+            updateOverallTotalDisplay();
+        }
+    }
+
+    // Function to update individual item subtotal display
+    function updateItemSubtotalDisplay(packageRow) {
+        const paketSelect = packageRow.querySelector('.paket-select');
+        const jumlahInput = packageRow.querySelector('.paket-jumlah');
+        const subtotalDisplay = packageRow.querySelector('.item-subtotal-display');
+
+        if (!paketSelect || !jumlahInput || !subtotalDisplay) return;
+
+        const selectedOption = paketSelect.options[paketSelect.selectedIndex];
+        const hargaJual = parseFloat(selectedOption.dataset.hargaJual || 0);
+        const jumlah = parseInt(jumlahInput.value) || 0;
+        const subtotal = hargaJual * jumlah;
+
+        subtotalDisplay.value = subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    }
+
+    // Function to update the overall total display in the modal
+    function updateOverallTotalDisplay() {
+        const overallTotalDisplay = document.getElementById('overall-total-display');
+        if (!overallTotalDisplay) return;
+
+        let sumOfItemSubtotals = 0;
+        document.querySelectorAll('#package-fields-container .package-item-row').forEach(row => {
+            const paketSelect = row.querySelector('.paket-select');
+            const jumlahInput = row.querySelector('.paket-jumlah');
+            if (paketSelect && jumlahInput) {
+                const selectedOption = paketSelect.options[paketSelect.selectedIndex];
+                if (selectedOption && selectedOption.dataset.hargaJual) { // Ensure option is selected and has data
+                    const hargaJual = parseFloat(selectedOption.dataset.hargaJual);
+                    const jumlah = parseInt(jumlahInput.value) || 0;
+                    sumOfItemSubtotals += hargaJual * jumlah;
+                }
+            }
+        });
+
+        const ongkirInput = document.getElementById('ongkir-input');
+        const hargaTambahanInput = document.getElementById('harga-tambahan-input');
+
+        const ongkir = parseFloat(ongkirInput ? ongkirInput.value : 0) || 0;
+        const hargaTambahan = parseFloat(hargaTambahanInput ? hargaTambahanInput.value : 0) || 0;
+
+        const grandTotal = sumOfItemSubtotals + ongkir + hargaTambahan;
+        overallTotalDisplay.value = grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    }
+
+
+    // Function to open and fetch data for the Edit Order Modal
+    async function openEditOrderModal(deliveryId) {
+        const modalElement = document.getElementById('editOrderModal');
+        if (!modalElement) {
+            console.error('Edit Order Modal element #editOrderModal not found.');
+            if (window.showGlobalToast) window.showGlobalToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
+            return;
+        }
+
+        modalElement.setAttribute('data-current-delivery-id', deliveryId);
+
+        // Show loading state - e.g., disable form, show spinner
+        const formElement = modalElement.querySelector('#edit-form'); // Assuming form has id 'edit-form'
+        if (formElement) {
+            Array.from(formElement.elements).forEach(el => el.disabled = true);
+        }
+        // You might want to show a visual spinner here too.
+
+        try {
+            const response = await fetch(`/api/delivery-details/${deliveryId}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Gagal memuat detail pengiriman. Status: ' + response.status }));
+                throw new Error(errorData.message || 'Gagal memuat detail pengiriman.');
+            }
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                populateEditOrderModal(result.data);
+                const bootstrapModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                bootstrapModal.show();
+            } else {
+                throw new Error(result.message || 'Tidak dapat mengambil detail pengiriman.');
+            }
+        } catch (error) {
+            console.error('Error opening edit order modal:', error);
+            if (window.showGlobalToast) window.showGlobalToast('Error', error.message, 'error');
+        } finally {
+            // Hide loading state
+            if (formElement) {
+                Array.from(formElement.elements).forEach(el => el.disabled = false);
+            }
+        }
+    }
+
+    // Event listener for Edit buttons (delegated from ordersTabContent)
+    if (ordersTabContent) {
+        ordersTabContent.addEventListener('click', function(event) {
+            const editButton = event.target.closest('.edit-delivery-btn');
+            if (editButton) {
+                event.preventDefault();
+                const deliveryId = editButton.getAttribute('data-delivery-id');
+                if (deliveryId) {
+                    openEditOrderModal(deliveryId);
+                } else {
+                    console.error('Edit button clicked but data-delivery-id attribute is missing or empty.');
+                    if(window.showGlobalToast) window.showGlobalToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
+                }
+            }
+        });
+    }
+
+    // Initialize Flatpickr for the main delivery_date_search_input (if not already done)
+    // The modal's flatpickr is handled within populateEditOrderModal or should be initialized when modal HTML is loaded.
+    // This ensures that if the main page has a flatpickr input, it's also initialized.
+    const mainDeliveryDateInput = document.getElementById('delivery_date_search_input'); // This is for the "By Date" tab search
+    if (mainDeliveryDateInput && window.flatpickr && !mainDeliveryDateInput._flatpickr) {
+       flatpickr(mainDeliveryDateInput, { dateFormat: "Y-m-d", locale: "id" });
+    }
+
+    // It's good practice to initialize modal's flatpickr when the modal is first added to DOM or shown,
+    // but the current populateEditOrderModal handles re-setting the date or initializing if needed.
+    // If #delivery-date-input (modal's date input) exists on page load (e.g. not dynamically loaded with modal):
+    const modalDeliveryDateInput = document.getElementById('delivery-date-input');
+    if (modalDeliveryDateInput && window.flatpickr && !modalDeliveryDateInput._flatpickr) {
+        flatpickr(modalDeliveryDateInput, { dateFormat: "Y-m-d", locale: "id" });
+    }
+
+    // Event listeners for modal calculation fields
+    const packageFieldsContainer = document.getElementById('package-fields-container');
+    if (packageFieldsContainer) {
+        packageFieldsContainer.addEventListener('change', function(event) {
+            if (event.target.matches('.paket-select') || event.target.matches('.paket-jumlah')) {
+                const packageRow = event.target.closest('.package-item-row');
+                if (packageRow) {
+                    updateItemSubtotalDisplay(packageRow);
+                    updateOverallTotalDisplay();
+                }
+            }
+        });
+
+        packageFieldsContainer.addEventListener('click', function(event) {
+            if (event.target.matches('.remove-package-btn')) {
+                const packageRow = event.target.closest('.package-item-row');
+                if (packageRow) {
+                    packageRow.remove();
+                    updateOverallTotalDisplay();
+                }
+            }
+        });
+    }
+
+    const addPackageBtn = document.getElementById('add-package-item-btn');
+    if (addPackageBtn) {
+        addPackageBtn.addEventListener('click', function() {
+            addPackageRowToModal(availablePaketsForModal, null);
+            // New row's subtotal will be calculated if its quantity/paket changes.
+            // Or, explicitly update its subtotal if it defaults to values that should show one.
+            const newRows = document.querySelectorAll('#package-fields-container .package-item-row:last-child');
+            if(newRows.length > 0) updateItemSubtotalDisplay(newRows[0]);
+
+            updateOverallTotalDisplay();
+        });
+    }
+
+    const ongkirInputModal = document.getElementById('ongkir-input');
+    if (ongkirInputModal) ongkirInputModal.addEventListener('change', updateOverallTotalDisplay);
+
+    const hargaTambahanInputModal = document.getElementById('harga-tambahan-input');
+    if (hargaTambahanInputModal) hargaTambahanInputModal.addEventListener('change', updateOverallTotalDisplay);
+
+    // Function to gather data from the edit modal form
+    function gatherEditModalFormData() {
+        const data = {
+            tanggal: document.getElementById('delivery-date-input').value,
+            kurir_id: document.getElementById('kurir-select').value,
+            ongkir: parseFloat(document.getElementById('ongkir-input').value) || 0,
+            item_tambahan: document.getElementById('item-tambahan-input').value,
+            harga_tambahan: parseFloat(document.getElementById('harga-tambahan-input').value) || 0,
+            harga_modal_tambahan: parseFloat(document.getElementById('harga-modal-tambahan-input').value) || 0,
+            package_items: [],
+        };
+
+        document.querySelectorAll('#package-fields-container .package-item-row').forEach(row => {
+            const orderDetailIdInput = row.querySelector('.order-detail-id'); // Uses the hidden input
+            const orderDetailId = orderDetailIdInput ? orderDetailIdInput.value : null; // Get value from hidden input
+
+            const paketSelect = row.querySelector('.paket-select');
+            const jumlahInput = row.querySelector('.paket-jumlah');
+            const catatanDapurTextarea = row.querySelector('.paket-catatan-dapur');
+            const catatanKurirTextarea = row.querySelector('.paket-catatan-kurir');
+
+            if (paketSelect && paketSelect.value && jumlahInput && jumlahInput.value && parseInt(jumlahInput.value) > 0) {
+                data.package_items.push({
+                    order_detail_id: orderDetailId || null,
+                    paket_id: parseInt(paketSelect.value),
+                    jumlah: parseInt(jumlahInput.value),
+                    catatan_dapur: catatanDapurTextarea ? catatanDapurTextarea.value : '',
+                    catatan_kurir: catatanKurirTextarea ? catatanKurirTextarea.value : '',
+                });
+            }
+        });
+        return data;
+    }
+
+    // Function to refresh the main orders list view
+    function refreshOrdersView() {
+        const activePane = document.querySelector('.tab-pane.active');
+        if (!activePane) {
+            window.location.reload(); // Fallback
+            return;
+        }
+
+        if (activePane.id === 'pane-by-name') {
+            const customerSearchFormForRefresh = document.getElementById('form_search_by_name'); // Use specific ID
+            const selectedCustomerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
+
+            if (customerSearchFormForRefresh && typeof fetchAndUpdateOrdersView === 'function' && selectedCustomerId) {
+                const params = new URLSearchParams(window.location.search); // Preserve existing params like limit
+                params.set('view', 'by_name');
+                params.set('customer_id', selectedCustomerId);
+                // page will be preserved if in URL, or defaults to 1 if not set by pagination previously
+                if (!params.has('page')) params.set('page', '1');
+
+                fetchAndUpdateOrdersView(customerSearchFormForRefresh.action + '?' + params.toString());
+            } else {
+                 // If no customer selected or function not available, just reload.
+                window.location.reload();
+            }
+        } else if (activePane.id === 'pane-by-date') {
+            const deliveryDateSearchButtonForRefresh = document.getElementById('delivery_date_search_button');
+            if (deliveryDateSearchButtonForRefresh) {
+                deliveryDateSearchButtonForRefresh.click();
+            } else {
+                window.location.reload();
+            }
+        } else {
+            window.location.reload();
+        }
+    }
+
+    // Event listener for the Edit Order Modal form submission
+    const editOrderForm = document.getElementById('edit-form');
+    if (editOrderForm) {
+        editOrderForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const submitButton = document.getElementById('submit-btn'); // Ensure modal submit button has this ID
+            if (!submitButton) {
+                console.error('Submit button #submit-btn not found in edit modal.');
+                return;
+            }
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+            const modalElement = document.getElementById('editOrderModal');
+            const deliveryId = modalElement.getAttribute('data-current-delivery-id');
+
+            if (!deliveryId) {
+                console.error('Delivery ID not found on modal for submission.');
+                if(window.showGlobalToast) window.showGlobalToast('Error', 'Cannot save: Delivery ID missing.', 'error');
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+                return;
+            }
+
+            const formData = gatherEditModalFormData();
+
+            // Simple client-side validation: ensure at least one package item if that's a rule
+            // More complex validation (e.g., date format, required fields) can be added here or is expected from server.
+            if (formData.package_items.length === 0) {
+                 if(window.showGlobalToast) window.showGlobalToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
+                 const errorDisplayElement = document.getElementById('edit-modal-error-display');
+                 if (errorDisplayElement) {
+                    errorDisplayElement.textContent = 'Harap tambahkan minimal satu paket makanan.';
+                    errorDisplayElement.style.display = 'block';
+                 }
+                 submitButton.disabled = false;
+                 submitButton.innerHTML = originalButtonText;
+                 return;
+            }
+
+
+            try {
+                const response = await fetch(`/api/delivery-details/update/${deliveryId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                const result = await response.json();
+                const errorDisplayElement = document.getElementById('edit-modal-error-display'); // Get it once
+
+                if (response.ok && result.success) {
+                    if(window.showGlobalToast) window.showGlobalToast('Success', result.message || 'Order updated successfully!', 'success');
+                    const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+                    if (bootstrapModal) bootstrapModal.hide();
+                    if (errorDisplayElement) errorDisplayElement.style.display = 'none'; // Hide error on success
+                    refreshOrdersView();
+                } else {
+                    throw new Error(result.message || 'Failed to update order. Status: ' + response.status);
+                }
+            } catch (error) {
+                console.error('Error submitting edit order form:', error);
+                const errorDisplayElement = document.getElementById('edit-modal-error-display');
+                if (errorDisplayElement) {
+                    errorDisplayElement.textContent = error.message;
+                    errorDisplayElement.style.display = 'block';
+                } else if(window.showGlobalToast) {
+                    window.showGlobalToast('Error', error.message, 'error');
+                }
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        });
+    }
 });
