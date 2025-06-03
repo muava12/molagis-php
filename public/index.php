@@ -138,6 +138,7 @@ $routes = [
     ['GET', '/input-order', [OrderController::class, 'showOrder'], [AuthMiddleware::class]], // Singular for input form
     ['GET', '/orders', [\Molagis\Features\Orders\OrdersController::class, 'showOrdersPage'], [AuthMiddleware::class]], // Plural for list page
     ['POST', '/api/order', [OrderController::class, 'handleOrder'], [AuthMiddleware::class]], // Singular for submitting new order
+    ['GET', '/api/orders/search/id', [\Molagis\Features\Orders\OrdersController::class, 'searchOrderByIdApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]], // API for Orders (plural)
     ['GET', '/api/packages', [OrderController::class, 'getPackages'], [AuthMiddleware::class]],
     ['GET', '/settings', [SettingsController::class, 'showSettings'], [AuthMiddleware::class]],
     ['POST', '/api/settings/update', [SettingsController::class, 'updateSettings'], [AuthMiddleware::class]],
@@ -206,7 +207,8 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleOrder' => [$request],
                     'getPackages' => [$request],
                     'showOrder' => [$request],
-                    'showOrdersPage' => [$request], // Added case
+                    'showOrdersPage' => [$request], 
+                    'searchOrderByIdApi' => [$request], // Added case
                     'showSettings' => [$request],
                     'updateSettings' => [$request],
                     default => []

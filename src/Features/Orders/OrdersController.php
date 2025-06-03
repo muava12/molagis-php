@@ -7,6 +7,7 @@ use Molagis\Features\Settings\SettingsService;
 use Molagis\Shared\SupabaseService;
 use Psr\Http\Message\ServerRequestInterface;
 use Laminas\Diactoros\Response;
+use Laminas\Diactoros\Response\JsonResponse; // Added
 use Twig\Environment;
 // Note: InvalidArgumentException and RuntimeException are not used by showOrdersPage directly.
 
@@ -110,5 +111,38 @@ class OrdersController
         );
 
         return $response;
+    }
+
+    public function searchOrderByIdApi(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $queryParams = $request->getQueryParams();
+        $orderIdQuery = $queryParams['order_id_query'] ?? null;
+
+        if ($orderIdQuery === null || $orderIdQuery === '') {
+            return new JsonResponse(['success' => false, 'message' => 'Order ID query is required.'], 400);
+        }
+
+        if (!is_numeric($orderIdQuery)) {
+            return new JsonResponse(['success' => false, 'message' => 'Order ID must be numeric.'], 400);
+        }
+
+        $orderId = (int)$orderIdQuery;
+        $serviceResponse = $this->ordersService->getOrderByExactId($orderId, $accessToken);
+
+        if (isset($serviceResponse['data']) && $serviceResponse['data'] !== null) {
+            return new JsonResponse(['success' => true, 'order' => $serviceResponse['data']]);
+        } elseif (isset($serviceResponse['error']) && $serviceResponse['error'] === 'Order not found.') {
+            return new JsonResponse(['success' => false, 'message' => 'Order not found.'], 404); // Using 404 for not found
+        } elseif (isset($serviceResponse['error'])) {
+            return new JsonResponse(['success' => false, 'message' => $serviceResponse['error']], 500);
+        }
+        
+        // Should not be reached if service always returns 'data' or 'error'
+        return new JsonResponse(['success' => false, 'message' => 'An unexpected error occurred.'], 500);
     }
 }
