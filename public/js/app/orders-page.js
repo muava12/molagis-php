@@ -284,44 +284,87 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Save active tab to localStorage ---
     const tabButtons = document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]');
+
+    // Get References to Search Forms
+    const formSearchByName = document.getElementById('form_search_by_name');
+    const formSearchByOrderId = document.getElementById('form_search_by_order_id');
+    const formSearchByDate = document.getElementById('form_search_by_date');
+    const allSearchForms = [formSearchByName, formSearchByOrderId, formSearchByDate].filter(form => form !== null);
+
+    // Function to manage search form visibility
+    function updateSearchFormVisibility(activeTabTarget) {
+        allSearchForms.forEach(form => {
+            if (form) form.style.display = 'none'; // Hide all forms first
+        });
+
+        let formToShow = null;
+        if (activeTabTarget === '#pane-by-name' && formSearchByName) {
+            formToShow = formSearchByName;
+        } else if (activeTabTarget === '#pane-by-order-id' && formSearchByOrderId) {
+            formToShow = formSearchByOrderId;
+        } else if (activeTabTarget === '#pane-by-date' && formSearchByDate) {
+            formToShow = formSearchByDate;
+        }
+
+        if (formToShow) {
+            formToShow.style.display = 'flex'; // Use 'flex' as it's common for inline-ish forms in Tabler
+            console.log('Showing form for target:', activeTabTarget, formToShow);
+        } else {
+            console.warn('No specific search form to show for target:', activeTabTarget);
+        }
+    }
+
     tabButtons.forEach(tabButton => {
         tabButton.addEventListener('shown.bs.tab', function (event) {
-            // event.target is the newly activated tab button
-            const activeTabTarget = event.target.getAttribute('data-bs-target'); // e.g., "#pane-by-name"
+            const activeTabTarget = event.target.getAttribute('data-bs-target');
             if (activeTabTarget) {
                 localStorage.setItem('activeOrdersTab', activeTabTarget);
-                console.log('Active tab target saved:', activeTabTarget); // For debugging
+                console.log('Active tab target saved:', activeTabTarget);
+                updateSearchFormVisibility(activeTabTarget); // Call the new function
             }
         });
     });
 
     // --- Activate tab from localStorage if no view in URL ---
+    // Also handles initial search form visibility based on the active tab (either from URL or localStorage or default)
     const currentUrlParams = new URLSearchParams(window.location.search);
     const urlView = currentUrlParams.get('view');
+    let activeTabTargetOnLoad = null;
 
-    if (!urlView) { // Only apply localStorage if URL doesn't specify a view
+    if (urlView) {
+        console.log('View is set by URL parameter, localStorage tab preference ignored:', urlView);
+        if (urlView === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
+        else if (urlView === 'by_order_id') activeTabTargetOnLoad = '#pane-by-order-id';
+        else if (urlView === 'by_date') activeTabTargetOnLoad = '#pane-by-date';
+    } else {
         const savedTabTarget = localStorage.getItem('activeOrdersTab');
         if (savedTabTarget) {
-            // Find the tab button that corresponds to this target
             const tabButtonToActivate = document.querySelector(`#orders-view-tabs .nav-link[data-bs-target="${savedTabTarget}"]`);
             if (tabButtonToActivate) {
-                // Check if Bootstrap and Tab class are available
                 if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') {
-                    console.log('Activating tab from localStorage:', savedTabTarget); // For debugging
+                    console.log('Activating tab from localStorage:', savedTabTarget);
                     const tabInstance = bootstrap.Tab.getOrCreateInstance(tabButtonToActivate);
                     if (tabInstance) {
-                        tabInstance.show();
-                    } else {
-                        console.warn('Could not create or get tab instance for:', savedTabTarget);
-                    }
-                } else {
-                    console.warn('Bootstrap Tab API not available for activating tab from localStorage.');
-                }
-            } else {
-                console.warn('Saved tab button not found for target:', savedTabTarget); // For debugging
-            }
+                        tabInstance.show(); // This will trigger 'shown.bs.tab' and updateSearchFormVisibility
+                        activeTabTargetOnLoad = savedTabTarget; // Set for clarity, though 'shown.bs.tab' handles it
+                    } else { console.warn('Could not create or get tab instance for:', savedTabTarget); }
+                } else { console.warn('Bootstrap Tab API not available for activating tab from localStorage.'); }
+            } else { console.warn('Saved tab button not found for target:', savedTabTarget); }
         }
-    } else {
-        console.log('View is set by URL parameter, localStorage tab preference ignored:', urlView); // For debugging
+    }
+
+    // Ensure correct form is visible on initial load if not handled by 'shown.bs.tab' from localStorage activation
+    // or if it's the default tab determined by Twig (which already sets inline style).
+    // This explicit call ensures JS takes over from Twig's inline styles if needed.
+    if (activeTabTargetOnLoad) { // A tab was activated by URL or localStorage (via JS .show())
+         // The 'shown.bs.tab' listener would have called updateSearchFormVisibility.
+         // If it was activated by URL, Twig handled display. JS ensures it's correct if Twig missed.
+         // To be certain, especially if Twig's default display style for non-active tabs is not 'none'.
+        updateSearchFormVisibility(activeTabTargetOnLoad);
+    } else if (!urlView && !localStorage.getItem('activeOrdersTab')) {
+        // This is the true default case: no URL param, no localStorage.
+        // Twig should have set the 'by_name' tab and its form to be visible.
+        // Call updateSearchFormVisibility to ensure JS state matches.
+        updateSearchFormVisibility('#pane-by-name');
     }
 });

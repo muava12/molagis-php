@@ -64,11 +64,20 @@ class OrdersController
         $orderByIdError = null;
         $orderIdQueryValue = $queryParams['order_id_query'] ?? null;
 
+        // Initialize pagination variables with defaults
+        $page = 1;
+        $limit = 100; // Default items per page, also used by by_name view
+
         if ($view === 'by_name' || $view === '') { // Default view or explicitly by_name
             if ($selectedCustomerId) {
-                $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken);
+                $page = isset($queryParams['page']) ? (int)$queryParams['page'] : 1;
+                // $limit is already 100 as per default
+                $offset = ($page - 1) * $limit;
+
+                $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken, $limit, $offset);
                 $customerDeliveries = $deliveriesResponse['data'] ?? [];
                 $deliveriesError = $deliveriesResponse['error'] ?? null;
+                // TODO: Need to also fetch total count of orders for this customer to calculate total_pages for pagination UI
             }
         } elseif ($view === 'by_order_id') {
             if ($orderIdQueryValue && is_numeric($orderIdQueryValue)) {
@@ -102,7 +111,10 @@ class OrdersController
             'couriers' => $couriersResult['data'] ?? [],
             'user_id' => $userId,
             'view' => $view,
-            'error' => $finalError
+            'error' => $finalError,
+            'current_page' => $page,
+            'items_per_page' => $limit
+            // TODO: 'total_pages' => $totalPages (needs total item count)
         ];
 
         $response = new Response();

@@ -30,13 +30,20 @@ class OrdersService
      *
      * @param int $customerId ID pelanggan.
      * @param string|null $accessToken Token akses pengguna.
+     * @param int $limit Jumlah maksimal order utama yang diambil.
+     * @param int $offset Jumlah order utama yang dilewati.
      * @return array Hasil yang berisi 'data' (daftar pengiriman yang diratakan) atau 'error'.
      */
-    public function getDeliveriesByCustomerId(int $customerId, ?string $accessToken = null): array
+    public function getDeliveriesByCustomerId(int $customerId, ?string $accessToken = null, int $limit = 100, int $offset = 0): array
     {
+        $selectFields = 'id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))';
+
         $query = sprintf(
-            '/rest/v1/orders?customer_id=eq.%d&select=id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))&order=tanggal_pesan.desc',
-            $customerId
+            '/rest/v1/orders?customer_id=eq.%d&select=%s&order=tanggal_pesan.desc&limit=%d&offset=%d',
+            $customerId,
+            $selectFields,
+            $limit,
+            $offset
         );
 
         try {
