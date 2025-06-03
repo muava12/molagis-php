@@ -382,6 +382,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const tabContentForDelete = document.getElementById('orders-tab-content');
     if (tabContentForDelete && deleteConfirmModalInstance) {
         tabContentForDelete.addEventListener('click', function(event) {
+            console.log('Click detected on #orders-tab-content. Event target:', event.target);
             const deleteButton = event.target.closest('.delete-delivery-btn');
             if (deleteButton) {
                 event.preventDefault();
@@ -390,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (deleteConfirmModalMessage) {
                     deleteConfirmModalMessage.innerHTML = `Apakah Anda yakin ingin menghapus data pengiriman dengan ID: <strong>${deliveryIdToDelete}</strong>? Data yang sudah dihapus tidak dapat dikembalikan.`;
                 }
+                console.log('Attempting to show modal #deleteDeliveryConfirmModal. Instance:', deleteConfirmModalInstance);
                 deleteConfirmModalInstance.show();
             }
         });
