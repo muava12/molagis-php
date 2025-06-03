@@ -39,76 +39,112 @@ function initializeBatchDeleteToast() {
                 return;
             }
 
-            // Confirmation step
-            if (!window.confirm(`Are you sure you want to delete ${deliveryIdsToDelete.length} selected item(s)? This action cannot be undone.`)) {
-                return; // User cancelled
+            const confirmModalElement = document.getElementById('deleteDeliveryConfirmModal');
+            const confirmModalMessageElement = document.getElementById('deleteDeliveryConfirmModal-message');
+            const confirmModalConfirmBtn = document.getElementById('deleteDeliveryConfirmModal-confirm');
+
+            if (!confirmModalElement || !confirmModalMessageElement || !confirmModalConfirmBtn) {
+                console.error('Confirmation modal elements not found. Batch delete cannot proceed via modal. Falling back to window.confirm.');
+                // Fallback to window.confirm if modal elements are not found
+                if (!window.confirm(`Are you sure you want to delete ${deliveryIdsToDelete.length} selected item(s)? This action cannot be undone. (Modal not found)`)) {
+                    return; // User cancelled
+                }
+                // If user confirms via fallback, proceed with direct fetch (original logic)
+                console.log('Proceeding with deletion of delivery IDs (via fallback confirm):', deliveryIdsToDelete);
+                // Duplicating fetch logic here for fallback. Consider refactoring if this becomes complex.
+                fetch('/api/deliveries/batch', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify({ ids: deliveryIdsToDelete })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => { throw new Error(errData.message || `Error: ${response.status}`); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const successfullyDeletedIds = data.deleted_ids || deliveryIdsToDelete;
+                    successfullyDeletedIds.forEach(id => {
+                        document.querySelector(`#orders-by-name-content-wrapper .select-delivery-item[value="${id}"]`)?.closest('tr')?.remove();
+                    });
+                    const saCheckbox = document.querySelector('#orders-by-name-content-wrapper #select-all-deliveries');
+                    if (saCheckbox) { saCheckbox.checked = false; saCheckbox.indeterminate = false; }
+                    if (window.batchDeleteToast?.hide) window.batchDeleteToast.hide();
+                    if (window.showGlobalToast) window.showGlobalToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted.`, 'success');
+                    else alert(data.message || `${successfullyDeletedIds.length} item(s) deleted.`);
+                })
+                .catch(error => {
+                    if (window.showGlobalToast) window.showGlobalToast('Error', error.message || 'Batch delete failed.', 'error');
+                    else alert(error.message || 'Batch delete failed.');
+                });
+                return; // End of fallback logic
             }
 
-            console.log('Proceeding with deletion of delivery IDs:', deliveryIdsToDelete);
+            const batchDeleteConfirmModal = bootstrap.Modal.getInstance(confirmModalElement) || new bootstrap.Modal(confirmModalElement);
+            confirmModalMessageElement.innerHTML = `Apakah Anda yakin ingin menghapus <strong>${deliveryIdsToDelete.length}</strong> item terpilih? Tindakan ini tidak dapat dibatalkan.`;
+            batchDeleteConfirmModal.show();
 
-            // API call
-            fetch('/api/deliveries/batch', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    // Add any other necessary headers, like CSRF tokens if used by the backend
-                },
-                body: JSON.stringify({ ids: deliveryIdsToDelete })
-            })
-            .then(response => {
-                // Step 5 (Handle API response) will be detailed in the next plan step.
-                // For now, just log the response and process basic success/failure.
-                if (!response.ok) {
-                    return response.json().then(errData => {
-                        throw new Error(errData.message || `Error deleting items. Status: ${response.status}`);
-                    }).catch(() => { // Handle cases where response is not JSON or other errors
-                        throw new Error(`Error deleting items. Status: ${response.status} - ${response.statusText}`);
+            const handleConfirmClick = () => {
+                batchDeleteConfirmModal.hide();
+                console.log('Proceeding with deletion of delivery IDs:', deliveryIdsToDelete);
+                fetch('/api/deliveries/batch', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ ids: deliveryIdsToDelete })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || `Error deleting items. Status: ${response.status}`);
+                        }).catch(() => {
+                            throw new Error(`Error deleting items. Status: ${response.status} - ${response.statusText}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Batch delete successful:', data);
+                    const successfullyDeletedIds = data.deleted_ids || deliveryIdsToDelete;
+                    successfullyDeletedIds.forEach(id => {
+                        const rowToRemove = document.querySelector(`#orders-by-name-content-wrapper .select-delivery-item[value="${id}"]`)?.closest('tr');
+                        if (rowToRemove) {
+                            rowToRemove.remove();
+                        }
                     });
-                }
-                return response.json(); // Assuming backend sends a JSON response on success
-            })
-            .then(data => {
-                console.log('Batch delete successful:', data);
-
-                const successfullyDeletedIds = data.deleted_ids || deliveryIdsToDelete;
-
-                successfullyDeletedIds.forEach(id => {
-                    const rowToRemove = document.querySelector(`#orders-by-name-content-wrapper .select-delivery-item[value="${id}"]`)?.closest('tr');
-                    if (rowToRemove) {
-                        rowToRemove.remove();
+                    const selectAllCheckbox = document.querySelector('#orders-by-name-content-wrapper #select-all-deliveries');
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = false;
+                    }
+                    if (typeof window.batchDeleteToast !== 'undefined' && window.batchDeleteToast.hide) {
+                        window.batchDeleteToast.hide();
+                    }
+                    if (typeof window.showGlobalToast === 'function') {
+                        window.showGlobalToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`, 'success');
+                    } else {
+                        alert(data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during batch delete:', error);
+                    if (typeof window.showGlobalToast === 'function') {
+                        window.showGlobalToast('Error', error.message || 'An error occurred while deleting items.', 'error');
+                    } else {
+                        alert(error.message || 'An error occurred while deleting items.');
                     }
                 });
+            };
 
-                // After removing rows, reset the main "select all" checkbox in the table
-                const selectAllCheckbox = document.querySelector('#orders-by-name-content-wrapper #select-all-deliveries');
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.checked = false;
-                    selectAllCheckbox.indeterminate = false;
-                }
+            confirmModalConfirmBtn.addEventListener('click', handleConfirmClick, { once: true });
 
-                // Hide the batch delete toast (this toast)
-                if (typeof window.batchDeleteToast !== 'undefined' && window.batchDeleteToast.hide) {
-                    window.batchDeleteToast.hide();
-                }
-
-                // Show global success message
-                if (typeof window.showGlobalToast === 'function') {
-                    window.showGlobalToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`, 'success');
-                } else {
-                    alert(data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`);
-                }
-            })
-            .catch(error => {
-                console.error('Error during batch delete:', error);
-                // Example: Show a global error toast if available
-                if (typeof window.showGlobalToast === 'function') {
-                    window.showGlobalToast('Error', error.message || 'An error occurred while deleting items.', 'error');
-                } else {
-                    alert(error.message || 'An error occurred while deleting items.');
-                }
-                // Do not hide the batch delete toast on error, so user can retry or see selection.
-            });
+            const handleModalDismiss = () => {
+                confirmModalConfirmBtn.removeEventListener('click', handleConfirmClick);
+            };
+            confirmModalElement.addEventListener('hidden.bs.modal', handleModalDismiss, { once: true });
         });
     }
 

@@ -61,7 +61,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     selectAllCheckbox.checked = false;
                     selectAllCheckbox.indeterminate = false;
                 }
-                updateBatchDeleteToast(); // <--- ADD THIS
+                updateBatchDeleteToast();
+
+                // --- ADDED LOGIC START ---
+                // Use a full URL if 'url' is relative, to ensure URLSearchParams works correctly.
+                const absoluteUrl = new URL(url, window.location.origin);
+                const currentUrlParams = new URLSearchParams(absoluteUrl.search);
+                const currentView = currentUrlParams.get('view');
+
+                if (currentView === 'by_name') {
+                    // customerSearchInput is defined in the outer scope
+                    if (customerSearchInput) {
+                        customerSearchInput.value = '';
+                        customerSearchInput.blur();
+                        // console.log('Customer search input cleared and blurred after AJAX update for by_name view.');
+                    }
+                }
+                // --- ADDED LOGIC END ---
             } else {
                 console.error('Error: Target content wrapper #orders-by-name-content-wrapper for AJAX update not found.');
                 window.location.href = url;
