@@ -52,25 +52,54 @@
               <li class="page-item active"><a class="page-link" href="#">1</a></li>
               <li class="page-item"><a class="page-link" href="#">›</a></li>
             </ul> -->
-            <ul class="pagination m-0">
-              <li class="page-item disabled">
-                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
-                    <path d="M15 6l-6 6l6 6"></path>
-                  </svg>
-                </a>
-              </li>
-              <li class="page-item"><a class="page-link" href="#">1</a></li>
-              <li class="page-item active"><a class="page-link" href="#">2</a></li>
-              <li class="page-item"><a class="page-link" href="#">3</a></li>
-              <li class="page-item">
-                <a class="page-link" href="#">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
-                    <path d="M9 6l6 6l-6 6"></path>
-                  </svg>
-                </a>
-              </li>
-            </ul>
+            {% if view == 'by_name' and selected_customer_id and total_pages is defined and total_pages > 0 %}
+              <ul class="pagination m-0">
+                {# Previous Button ("<") #}
+                <li class="page-item {{ current_page == 1 ? 'disabled' : '' }}">
+                  <a class="page-link" href="{{ current_page == 1 ? '#' : ('/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ (current_page - 1)) }}" {{ current_page == 1 ? 'tabindex="-1" aria-disabled="true"' : '' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                      <path d="M15 6l-6 6l6 6"></path>
+                    </svg>
+                  </a>
+                </li>
+
+                {# Page Numbers #}
+                {% for i in 1..total_pages %}
+                  <li class="page-item {{ i == current_page ? 'active' : '' }}" {{ i == current_page ? 'aria-current="page"' : '' }}>
+                    <a class="page-link" href="{{ '/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ i }}">{{ i }}</a>
+                  </li>
+                {% endfor %}
+
+                {# Next Button (">") #}
+                <li class="page-item {{ current_page == total_pages ? 'disabled' : '' }}">
+                  <a class="page-link" href="{{ current_page == total_pages ? '#' : ('/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ (current_page + 1)) }}" {{ current_page == total_pages ? 'tabindex="-1" aria-disabled="true"' : '' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                      <path d="M9 6l6 6l-6 6"></path>
+                    </svg>
+                  </a>
+                </li>
+              </ul>
+            {% else %}
+              {# Fallback or empty state for pagination if conditions are not met (e.g. no customer selected, or not 'by_name' view, or total_pages is 0) #}
+              {# This renders a disabled-looking pagination control. #}
+              <ul class="pagination m-0">
+                <li class="page-item disabled">
+                  <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+                      <path d="M15 6l-6 6l6 6"></path>
+                    </svg>
+                  </a>
+                </li>
+                <li class="page-item disabled"><a class="page-link" href="#">1</a></li>
+                <li class="page-item disabled">
+                  <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+                      <path d="M9 6l6 6l-6 6"></path>
+                    </svg>
+                  </a>
+                </li>
+              </ul>
+            {% endif %}
           </div>
           <div class="ms-auto d-flex align-items-center"> {# Search Area - aligned right #}
 

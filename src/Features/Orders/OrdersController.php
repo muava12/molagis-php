@@ -67,6 +67,7 @@ class OrdersController
         // Initialize pagination variables with defaults
         $page = 1;
         $limit = 100; // Default items per page, also used by by_name view
+        $totalPages = 1; // Default total pages
 
         if ($view === 'by_name' || $view === '') { // Default view or explicitly by_name
             if ($selectedCustomerId) {
@@ -77,7 +78,26 @@ class OrdersController
                 $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken, $limit, $offset);
                 $customerDeliveries = $deliveriesResponse['data'] ?? [];
                 $deliveriesError = $deliveriesResponse['error'] ?? null;
-                // TODO: Need to also fetch total count of orders for this customer to calculate total_pages for pagination UI
+
+                $totalCount = 0;
+                $countResponse = $this->ordersService->getDeliveriesCountByCustomerId($selectedCustomerId, $accessToken);
+
+                if (isset($countResponse['count']) && $countResponse['error'] === null) {
+                    $totalCount = $countResponse['count'];
+                } else {
+                    // Optionally log $countResponse['error'] if it's not null
+                    if (isset($countResponse['error'])) {
+                        error_log("Error fetching deliveries count for customer $selectedCustomerId: " . $countResponse['error']);
+                        // You might want to add this error to $deliveriesError or a new error variable for the template
+                    }
+                    $totalCount = 0; // Ensure totalCount is 0 if there was an error or count is not set
+                }
+
+                if ($limit > 0 && $totalCount > 0) {
+                    $totalPages = (int)ceil($totalCount / $limit);
+                } else {
+                    $totalPages = 1; // Default to 1 page if no items or limit is somehow zero
+                }
             }
         } elseif ($view === 'by_order_id') {
             if ($orderIdQueryValue && is_numeric($orderIdQueryValue)) {
@@ -113,8 +133,8 @@ class OrdersController
             'view' => $view,
             'error' => $finalError,
             'current_page' => $page,
-            'items_per_page' => $limit
-            // TODO: 'total_pages' => $totalPages (needs total item count)
+            'items_per_page' => $limit,
+            'total_pages' => $totalPages
         ];
 
         $response = new Response();

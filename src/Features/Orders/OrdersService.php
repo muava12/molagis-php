@@ -232,4 +232,62 @@ class OrdersService
             return ['success' => false, 'error' => 'An exception occurred: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Mengambil jumlah total pengiriman untuk pelanggan tertentu.
+     *
+     * @param int $customerId ID pelanggan.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'count' atau 'error'.
+     */
+    public function getDeliveriesCountByCustomerId(int $customerId, ?string $accessToken = null): array
+    {
+        try {
+            $response = $this->supabaseClient
+                ->getClient($accessToken)
+                ->from('delivery_dates') // Assuming delivery_dates has customer_id
+                ->select('count', ['count' => 'exact'])
+                ->eq('customer_id', $customerId)
+                ->execute();
+
+            if (method_exists($response, 'getError') && $response->getError()) {
+                $error = $response->getError();
+                $errorMessage = $error['message'] ?? 'Unknown error fetching count.';
+                // Log the error details if possible
+                // error_log('Supabase getDeliveriesCountByCustomerId error: ' . json_encode($error));
+                return ['count' => 0, 'error' => $errorMessage];
+            }
+
+            $data = json_decode($response->getBody()->getContents(), true);
+            // The count is typically the first (and only) item in the data array for count queries.
+            // And it's an object with a 'count' property.
+            // However, PostgREST for count=exact returns the count directly as the body if successful (not an array).
+            // The PHP client might wrap this. Let's check PostgREST exact count response structure.
+            // If it's just a number in the body:
+            // $count = (int) $response->getBody()->getContents();
+            // If it's like [{"count": N}]:
+            // $count = $data[0]['count'] ?? 0;
+            // The Supabase PHP client execute() method for PostgrestBuilder returns a ResponseInterface.
+            // Let's assume the count is directly available or in a known structure.
+            // The PostgREST documentation states: "exact count: The server will respond with the count as the response body."
+            // So, $response->getBody()->getContents() should be the count itself.
+
+            // The ->execute() method from Supabase PHP client returns a GuzzleHttp\Psr7\Response.
+            // We need to get the body and decode it.
+            // For exact count, Supabase/PostgREST returns the count as plain text in the body.
+            $count = (int) $response->getBody()->getContents();
+
+            return ['count' => $count, 'error' => null];
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $responseBody = $e->getResponse() ? $e->getResponse()->getBody()->getContents() : $e->getMessage();
+            error_log('Guzzle ClientException in getDeliveriesCountByCustomerId for customer ID ' . $customerId . ': ' . $responseBody);
+            $decodedBody = json_decode($responseBody, true);
+            $errorMessage = $decodedBody['message'] ?? $decodedBody['error'] ?? 'Failed to fetch count due to client error.';
+            return ['count' => 0, 'error' => $errorMessage];
+        } catch (\Exception $e) {
+            error_log('Exception in getDeliveriesCountByCustomerId for customer ID ' . $customerId . ': ' . $e->getMessage());
+            return ['count' => 0, 'error' => 'Exception occurred: ' . $e->getMessage()];
+        }
+    }
 }
