@@ -240,54 +240,44 @@ class OrdersService
      * @param string|null $accessToken Token akses pengguna.
      * @return array Hasil yang berisi 'count' atau 'error'.
      */
-    public function getDeliveriesCountByCustomerId(int $customerId, ?string $accessToken = null): array
+    public function getDeliveriesCountByCustomerId(int $customerId, ?string $accessToken): array
     {
-        try {
-            $response = $this->supabaseClient
-                ->getClient($accessToken)
-                ->from('delivery_dates') // Assuming delivery_dates has customer_id
-                ->select('count', ['count' => 'exact'])
-                ->eq('customer_id', $customerId)
-                ->execute();
+        if (!$accessToken) {
+            return ['count' => 0, 'error' => 'Authentication required.'];
+        }
 
-            if (method_exists($response, 'getError') && $response->getError()) {
-                $error = $response->getError();
-                $errorMessage = $error['message'] ?? 'Unknown error fetching count.';
-                // Log the error details if possible
-                // error_log('Supabase getDeliveriesCountByCustomerId error: ' . json_encode($error));
-                return ['count' => 0, 'error' => $errorMessage];
+        try {
+            // Construct the endpoint for Supabase REST API
+            // This assumes 'delivery_dates' is the table and 'customer_id' is the column.
+            // The 'select=count' will make Supabase return just the count.
+            $endpoint = "/rest/v1/delivery_dates?select=count&customer_id=eq.{$customerId}";
+
+            // Make the GET request using the custom SupabaseClient
+            $response = $this->supabaseClient->get($endpoint, [], $accessToken);
+
+            // Check for errors from the SupabaseClient
+            if ($response['error']) {
+                error_log("Supabase error in getDeliveriesCountByCustomerId: " . $response['error']);
+                return ['count' => 0, 'error' => $response['error']];
             }
 
-            $data = json_decode($response->getBody()->getContents(), true);
-            // The count is typically the first (and only) item in the data array for count queries.
-            // And it's an object with a 'count' property.
-            // However, PostgREST for count=exact returns the count directly as the body if successful (not an array).
-            // The PHP client might wrap this. Let's check PostgREST exact count response structure.
-            // If it's just a number in the body:
-            // $count = (int) $response->getBody()->getContents();
-            // If it's like [{"count": N}]:
-            // $count = $data[0]['count'] ?? 0;
-            // The Supabase PHP client execute() method for PostgrestBuilder returns a ResponseInterface.
-            // Let's assume the count is directly available or in a known structure.
-            // The PostgREST documentation states: "exact count: The server will respond with the count as the response body."
-            // So, $response->getBody()->getContents() should be the count itself.
-
-            // The ->execute() method from Supabase PHP client returns a GuzzleHttp\Psr7\Response.
-            // We need to get the body and decode it.
-            // For exact count, Supabase/PostgREST returns the count as plain text in the body.
-            $count = (int) $response->getBody()->getContents();
-
-            return ['count' => $count, 'error' => null];
-
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            $responseBody = $e->getResponse() ? $e->getResponse()->getBody()->getContents() : $e->getMessage();
-            error_log('Guzzle ClientException in getDeliveriesCountByCustomerId for customer ID ' . $customerId . ': ' . $responseBody);
-            $decodedBody = json_decode($responseBody, true);
-            $errorMessage = $decodedBody['message'] ?? $decodedBody['error'] ?? 'Failed to fetch count due to client error.';
-            return ['count' => 0, 'error' => $errorMessage];
+            // Extract the count
+            // Supabase with `select=count` returns an array with a single object like: [{"count": 123}]
+            if (isset($response['data'][0]['count'])) {
+                return ['count' => (int)$response['data'][0]['count'], 'error' => null];
+            } else {
+                // This case might occur if the customer_id doesn't exist, Supabase might return an empty array
+                // or if the response format is unexpected.
+                // If customer_id not found leads to empty data array, count is 0.
+                if (empty($response['data'])) {
+                    return ['count' => 0, 'error' => null]; // No records found means count is 0
+                }
+                error_log("Unexpected response format in getDeliveriesCountByCustomerId: " . json_encode($response['data']));
+                return ['count' => 0, 'error' => 'Unexpected response format when fetching count.'];
+            }
         } catch (\Exception $e) {
-            error_log('Exception in getDeliveriesCountByCustomerId for customer ID ' . $customerId . ': ' . $e->getMessage());
-            return ['count' => 0, 'error' => 'Exception occurred: ' . $e->getMessage()];
+            error_log("Generic exception in getDeliveriesCountByCustomerId: " . $e->getMessage());
+            return ['count' => 0, 'error' => 'An unexpected error occurred while fetching delivery count.'];
         }
     }
 }
