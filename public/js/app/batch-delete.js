@@ -1,6 +1,6 @@
 // public/js/app/batch-delete.js
 
-export function initializeBatchDeleteToast() {
+function initializeBatchDeleteToast() {
     const toastElement = document.getElementById('batch-delete-toast');
     if (!toastElement) {
         // If the toast element isn't on the page, don't do anything.
