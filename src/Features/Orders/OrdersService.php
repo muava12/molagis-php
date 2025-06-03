@@ -483,7 +483,7 @@ class OrdersService
 
                 $paketInfo = $availablePakets[$item['paket_id']];
                 $jumlah = (int)$item['jumlah'];
-                $subtotalHarga = $paketInfo['harga_jual'] * $jumlah;
+                // $subtotalHarga = $paketInfo['harga_jual'] * $jumlah; // REMOVED - Handled by DB trigger
                 // $subtotalModal is NOT calculated here anymore (handled by trigger calculate_subtotal_modal).
 
                 // $newTotalModalForDetails and $newTotalHargaForDetails sums are no longer needed here
@@ -493,8 +493,8 @@ class OrdersService
                     'delivery_id' => $deliveryId, // This must link to the main deliverydates record
                     'paket_id' => $item['paket_id'],
                     'jumlah' => $jumlah,
-                    'subtotal_harga' => $subtotalHarga, // Still calculated and sent
-                    // 'subtotal_modal' IS REMOVED FROM HERE
+                    // 'subtotal_harga' IS REMOVED - Handled by DB trigger
+                    // 'subtotal_modal' IS ALREADY REMOVED
                     'catatan_dapur' => $item['catatan_dapur'] ?? null,
                     'catatan_kurir' => $item['catatan_kurir'] ?? null,
                 ];
