@@ -142,4 +142,132 @@ document.addEventListener('DOMContentLoaded', function () {
         // This indicates that the HTML elements for the "By Order ID" tab might not be set up yet.
         // console.warn('Elements for "By Order ID" tab not fully found. HTML structure might be pending.');
     }
+
+    // --- For "By Date" Tab ---
+    const deliveryDateSearchInput = document.getElementById('delivery_date_search_input');
+    const deliveryDateSearchButton = document.getElementById('delivery_date_search_button');
+    const deliveryDateSearchResultsContainer = document.getElementById('delivery_date_search_results_container');
+
+    if (deliveryDateSearchInput) {
+        if (typeof flatpickr !== "undefined") {
+            if (flatpickr.l10ns && flatpickr.l10ns.id) { // Check if Indonesian locale is loaded
+                flatpickr.localize(flatpickr.l10ns.id);
+            }
+            flatpickr(deliveryDateSearchInput, {
+                dateFormat: "Y-m-d",
+                locale: "id", // Will use Indonesian if loaded, otherwise defaults
+                // altInput: true, // Optionally show a human-friendly format
+                // altFormat: "j F Y",
+            });
+        } else {
+            console.warn('Flatpickr not available. Date input will be text only.');
+        }
+    }
+
+    function renderDeliveriesTable(deliveries, container) {
+        if (!deliveries || deliveries.length === 0) {
+            container.innerHTML = '<p class="text-muted">No deliveries to display for this date.</p>';
+            return;
+        }
+    
+        let tableHtml = '<div class="table-responsive"><table class="table table-vcenter mt-3">';
+        tableHtml += `<thead><tr>
+            <th>Customer</th>
+            <th>Order ID</th>
+            <th>Delivery Date</th>
+            <th>Status</th>
+            <th>Courier</th>
+            <th>Items</th>
+            <th>Total (Day)</th>
+            </tr></thead><tbody>`;
+    
+        deliveries.forEach(delivery => {
+            const customerName = delivery.orders && delivery.orders.customers ? delivery.orders.customers.nama : 'N/A';
+            const orderId = delivery.orders ? delivery.orders.id : 'N/A';
+            const deliveryDate = delivery.tanggal ? new Date(delivery.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+            
+            let statusHtml = delivery.status || 'N/A';
+            if (delivery.status) {
+                const statusLower = delivery.status.toLowerCase();
+                let badgeClass = 'secondary';
+                if (statusLower === 'completed') badgeClass = 'success';
+                else if (statusLower === 'pending') badgeClass = 'warning';
+                else if (statusLower === 'canceled' || statusLower === 'cancelled') badgeClass = 'danger';
+                else if (statusLower === 'in-progress' || statusLower === 'in_progress') badgeClass = 'info';
+                statusHtml = `<span class="badge bg-${badgeClass} me-1"></span> ${delivery.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+            }
+
+            const totalPerHari = delivery.total_harga_perhari ? Number(delivery.total_harga_perhari).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A';
+            const courierName = delivery.couriers ? delivery.couriers.nama : 'N/A';
+    
+            let itemsHtml = '<ul class="list-unstyled mb-0 small">';
+            if (delivery.orderdetails && delivery.orderdetails.length > 0) {
+                delivery.orderdetails.forEach(detail => {
+                    const packageName = detail.paket && detail.paket.nama ? detail.paket.nama : 'N/A';
+                    itemsHtml += `<li>${packageName} (Qty: ${detail.jumlah || 0})`;
+                    if (detail.catatan_dapur) itemsHtml += `<br><em>Dapur: ${detail.catatan_dapur}</em>`;
+                    if (detail.catatan_kurir) itemsHtml += `<br><em>Kurir: ${detail.catatan_kurir}</em>`;
+                    itemsHtml += `</li>`;
+                });
+            }
+            if (delivery.item_tambahan) {
+                itemsHtml += `<li>${delivery.item_tambahan} (Tambahan: Rp ${Number(delivery.harga_tambahan || 0).toLocaleString('id-ID')})</li>`;
+            }
+            if (itemsHtml === '<ul class="list-unstyled mb-0 small">') itemsHtml = 'N/A'; else itemsHtml += '</ul>';
+    
+            tableHtml += `<tr>
+                <td>${customerName}</td>
+                <td>${orderId}</td>
+                <td>${deliveryDate}</td>
+                <td>${statusHtml}</td>
+                <td>${courierName}</td>
+                <td>${itemsHtml}</td>
+                <td>${totalPerHari}</td>
+                </tr>`;
+        });
+    
+        tableHtml += '</tbody></table></div>';
+        container.innerHTML = tableHtml;
+    }
+
+    if (deliveryDateSearchButton && deliveryDateSearchInput && deliveryDateSearchResultsContainer) {
+        deliveryDateSearchButton.addEventListener('click', function() {
+            const selectedDate = deliveryDateSearchInput.value;
+            deliveryDateSearchResultsContainer.innerHTML = '<p class="text-center">Loading...</p>';
+
+            if (!selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+                deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Please select a valid date in YYYY-MM-DD format.</p>';
+                return;
+            }
+
+            fetch(`/api/orders/search/date?date=${encodeURIComponent(selectedDate)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || `HTTP error ${response.status}`);
+                        }).catch(() => {
+                            throw new Error(`HTTP error ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.deliveries) { // Check for data.deliveries presence
+                        if (data.deliveries.length > 0) {
+                            renderDeliveriesTable(data.deliveries, deliveryDateSearchResultsContainer);
+                        } else {
+                             deliveryDateSearchResultsContainer.innerHTML = `<p class="text-muted text-center">${data.message || 'No deliveries found for this date.'}</p>`;
+                        }
+                    } else {
+                        deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'Error fetching data.'}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching deliveries by date:', error);
+                    deliveryDateSearchResultsContainer.innerHTML = `<p class="text-danger text-center">Error: ${error.message}</p>`;
+                });
+        });
+    } else {
+        // console.warn('Elements for "By Date" tab not fully found. HTML structure might be pending.');
+    }
 });

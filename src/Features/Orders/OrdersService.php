@@ -121,4 +121,40 @@ class OrdersService
             return ['data' => null, 'error' => 'Exception occurred while fetching order by ID: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Mengambil semua data pengiriman untuk tanggal tertentu.
+     *
+     * @param string $date Tanggal dalam format "YYYY-MM-DD".
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (daftar objek deliverydate) atau 'error'.
+     */
+    public function getDeliveriesByDate(string $date, ?string $accessToken = null): array
+    {
+        $selectFields = 'id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,' .
+                        'orders!inner(id,tanggal_pesan,metode_pembayaran,notes,customers!inner(id,nama)),' .
+                        'couriers(id,nama),' . // Left join for couriers
+                        'orderdetails!inner(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket!inner(id,nama))';
+        
+        $query = sprintf(
+            '/rest/v1/deliverydates?tanggal=eq.%s&select=%s&order=orders.customers.nama.asc,orders.id.asc',
+            $date,
+            $selectFields
+        );
+
+        try {
+            $response = $this->supabaseClient->get($query, [], $accessToken);
+
+            if (isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
+                error_log('Supabase getDeliveriesByDate error: ' . $errorMessage);
+                return ['data' => [], 'error' => $errorMessage];
+            }
+
+            return ['data' => $response['data'] ?? [], 'error' => null];
+        } catch (\Exception $e) {
+            error_log('Exception in getDeliveriesByDate: ' . $e->getMessage());
+            return ['data' => [], 'error' => 'Exception occurred while fetching deliveries by date: ' . $e->getMessage()];
+        }
+    }
 }

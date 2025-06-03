@@ -145,4 +145,35 @@ class OrdersController
         // Should not be reached if service always returns 'data' or 'error'
         return new JsonResponse(['success' => false, 'message' => 'An unexpected error occurred.'], 500);
     }
+
+    public function getDeliveriesByDateApi(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $queryParams = $request->getQueryParams();
+        $date = $queryParams['date'] ?? null;
+
+        if (empty($date)) {
+            return new JsonResponse(['success' => false, 'message' => 'Date parameter is required.'], 400);
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return new JsonResponse(['success' => false, 'message' => 'Date parameter must be in YYYY-MM-DD format.'], 400);
+        }
+
+        $serviceResponse = $this->ordersService->getDeliveriesByDate($date, $accessToken);
+
+        if (isset($serviceResponse['error'])) {
+            return new JsonResponse(['success' => false, 'message' => $serviceResponse['error']], 500);
+        }
+
+        if (empty($serviceResponse['data'])) {
+            return new JsonResponse(['success' => true, 'deliveries' => [], 'message' => 'No deliveries found for this date.']);
+        }
+
+        return new JsonResponse(['success' => true, 'deliveries' => $serviceResponse['data']]);
+    }
 }

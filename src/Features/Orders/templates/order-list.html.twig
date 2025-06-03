@@ -160,7 +160,27 @@
           </div>
 
           <div class="tab-pane fade {{ view == 'by_date' ? 'show active' : '' }}" id="pane-by-date" role="tabpanel" aria-labelledby="tab-by-date-button">
-            <p class="text-center p-5">Content for By Date - Coming Soon</p>  {# Placeholder, will be a card with form and table #}
+            <div class="card">
+              <div class="card-body">
+                <form id="form-search-delivery-date" class="mb-3"> {# Form tag for structure #}
+                  <div class="row g-2">
+                    <div class="col-md-4">
+                      <label for="delivery_date_search_input" class="form-label">Tanggal Pengiriman</label>
+                      <input type="text" class="form-control" id="delivery_date_search_input" placeholder="Pilih tanggal...">
+                    </div>
+                    <div class="col-md-auto d-flex align-items-end">
+                      <button type="button" class="btn btn-primary" id="delivery_date_search_button">Tampilkan</button>
+                    </div>
+                  </div>
+                </form>
+                <div id="delivery_date_search_results_container">
+                  {# Search results or messages will be injected here by JavaScript #}
+                  {% if view == 'by_date' %} {# Only show initial prompt if this tab is active #}
+                    <p class="text-muted">Pilih tanggal untuk melihat daftar pengiriman.</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
