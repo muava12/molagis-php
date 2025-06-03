@@ -1,4 +1,5 @@
 export function initThemeToggle() {
+    const bootstrap = window.tabler?.bootstrap;
     const themeToggle = document.getElementById('theme-toggle');
     const htmlElement = document.documentElement;
 
