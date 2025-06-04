@@ -157,6 +157,45 @@ class OrderService
         return (int) $response['data']['order_id'];
     }
 
+    /**
+     * Mengambil daftar pesanan terbaru dari Supabase.
+     *
+     * @param int $limit Jumlah maksimal item yang diambil.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (daftar pesanan) atau 'error'.
+     */
+    public function getRecentOrders(int $limit = 5, ?string $accessToken = null): array
+    {
+        $query = sprintf(
+            '/rest/v1/orders?select=id,total_harga,customers!inner(id,nama)&order=tanggal_pesan.desc&limit=%d',
+            $limit
+        );
+
+        try {
+            $response = $this->supabaseClient->get($query, [], $accessToken);
+
+            if (isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
+                error_log('Supabase getRecentOrders error: ' . $errorMessage);
+                return ['data' => [], 'error' => $errorMessage];
+            }
+
+            $fetchedData = $response['data'] ?? [];
+            $processedData = array_map(function ($order) {
+                return [
+                    'order_id' => $order['id'],
+                    'total_harga' => $order['total_harga'],
+                    'customer_name' => $order['customers']['nama'] ?? 'N/A', // Handle if customer somehow is null despite inner join
+                ];
+            }, $fetchedData);
+
+            return ['data' => $processedData, 'error' => null];
+        } catch (\Exception $e) {
+            error_log('Exception in getRecentOrders: ' . $e->getMessage());
+            return ['data' => [], 'error' => 'Exception occurred while fetching recent orders: ' . $e->getMessage()];
+        }
+    }
+
     // Fungsi getHolidays tetap sama seperti sebelumnya
     public function getHolidays(int $year): array
     {

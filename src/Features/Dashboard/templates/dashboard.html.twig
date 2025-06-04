@@ -98,7 +98,7 @@
 					{% endif %}
 				</div>
 				<div
-					class="row row-deck row-cards">
+					class="row row-cards"> {# Removed row-deck #}
 					<!-- Card Daftar Pengantaran -->
 					<div class="col-lg-6">
 						<div class="card">
@@ -184,12 +184,54 @@
 							</div>
 						</div>
 					</div>
-					<!-- Card Statistik -->
-					<div class="col-12">
+					<!-- Card Informasi Terbaru (Recent Orders & Statistics) -->
+					<div class="col-lg-6">
 						<div class="card">
-							<div class="card-body">
-								<h3 class="card-title">Statistik</h3>
-								<p>Selamat datang di dashboard Molagis. Pilih menu di navbar untuk mengelola pelanggan, pesanan, atau pengiriman.</p>
+							<div class="card-header">
+								<h3 class="card-title">Informasi Terbaru</h3>
+							</div>
+							<div class="card-body p-2"> {# Changed card-body to card-body p-2 #}
+								<div class="mb-3"> {# Section for Recent Orders - Changed mb-4 to mb-3 #}
+									<h4 class="mb-2">5 Pesanan Terakhir</h4>
+									{% if recent_orders is defined and recent_orders is not empty %}
+										<ul class="list-group list-group-flush">
+											{% for order in recent_orders %}
+												<li class="list-group-item d-flex justify-content-between align-items-center py-2"> {# Added py-2 #}
+													<span>
+														{{ order.customer_name|default('Tanpa Nama') }} <span class="small text-muted">| ID: {{ order.order_id }}</span>
+													</span>
+													<span class="badge bg-primary-lt rounded-pill"> {# Changed bg-primary to bg-primary-lt #}
+														Rp.{{ order.total_harga|number_format(0, ',', '.') }}
+													</span>
+												</li>
+											{% endfor %}
+										</ul>
+									{% else %}
+										<p class="text-muted">Belum ada pesanan terbaru.</p>
+									{% endif %}
+								</div>
+
+								<div> {# Section for Statistics #}
+									<h4 class="mb-2">Statistik Hari Ini</h4>
+									{% if dashboard_statistics is defined %}
+										<ul class="list-group list-group-flush">
+											<li class="list-group-item d-flex justify-content-between align-items-center py-2"> {# Added py-2 #}
+												Total Pesanan:
+												<span class="badge bg-secondary-lt rounded-pill">{{ dashboard_statistics.total_orders_today|default(0) }}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between align-items-center py-2"> {# Added py-2 #}
+												Total Pendapatan:
+												<span class="badge bg-success-lt rounded-pill">Rp.{{ dashboard_statistics.total_revenue_today|number_format(0, ',', '.') }}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between align-items-center py-2"> {# Added py-2 #}
+												Pengantaran Tertunda:
+												<span class="badge bg-warning-lt rounded-pill">{{ dashboard_statistics.pending_deliveries_today|default(0) }}</span>
+											</li>
+										</ul>
+									{% else %}
+										<p class="text-muted">Statistik tidak tersedia.</p>
+									{% endif %}
+								</div>
 							</div>
 						</div>
 					</div>

@@ -9,6 +9,7 @@ use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Molagis\Shared\SupabaseService;
 use Molagis\Features\Settings\SettingsService;
+use Molagis\Features\Order\OrderService; // Added OrderService import
 
 /**
  * Controller untuk mengelola halaman dan endpoint dashboard.
@@ -19,6 +20,7 @@ class DashboardController
         private DashboardService $dashboardService,
         private SupabaseService $supabaseService,
         private SettingsService $settingsService,
+        private OrderService $orderService, // Added OrderService property
         private Environment $twig,
     ) {}
 
@@ -35,21 +37,70 @@ class DashboardController
         $date = new \DateTime('now', new \DateTimeZone('Asia/Makassar'));
         $currentDate = $date->format('Y-m-d');
 
+        // Initialize view data array
+        $viewData = [
+            'title' => 'Dashboard Molagis',
+            'user_id' => $user['id'] ?? 'default-seed',
+            'error' => null, // Initialize error string
+        ];
+
         // Ambil data pengantaran untuk tanggal saat ini
         $deliveriesResult = $this->dashboardService->getDeliveriesAndUpdateStatus($currentDate, null, null, $accessToken);
+        $viewData['deliveries'] = $deliveriesResult['data'] ?? [];
+        $viewData['total_deliveries'] = $deliveriesResult['total'] ?? 0;
+        $viewData['current_date'] = $deliveriesResult['delivery_date'] ?? $currentDate;
+        $viewData['timezone'] = $deliveriesResult['timezone'] ?? 'Asia/Makassar';
+        if (!empty($deliveriesResult['error'])) {
+            $viewData['error'] = ($viewData['error'] ? $viewData['error'] . " | " : "") . "Kesalahan saat memuat data pengiriman: " . $deliveriesResult['error'];
+        }
 
         // Ambil daftar kurir aktif
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
+        $viewData['couriers'] = $couriersResult['data'] ?? [];
+        $viewData['active_couriers'] = $couriersResult['data'] ?? []; // Alias for compatibility
+        if (!empty($couriersResult['error'])) {
+            $viewData['error'] = ($viewData['error'] ? $viewData['error'] . " | " : "") . "Kesalahan saat memuat data kurir: " . $couriersResult['error'];
+        }
 
-        // Ambil pengaturan default_courier dan default_shipping_cost
+        // Ambil pengaturan
         $defaultCourierResponse = $this->settingsService->getSettingByKey('default_courier', $accessToken);
-        $defaultCourier = $defaultCourierResponse['data'] ?? null;
+        $viewData['default_courier'] = $defaultCourierResponse['data'] ?? null;
+        if (!empty($defaultCourierResponse['error'])) {
+             error_log("Error fetching default_courier setting: " . $defaultCourierResponse['error']);
+             // Non-critical, just log
+        }
 
         $defaultShippingCostResponse = $this->settingsService->getSettingByKey('default_shipping_cost', $accessToken);
-        $defaultShippingCost = $defaultShippingCostResponse['data'] ?? '5000';
+        $viewData['default_shipping_cost'] = $defaultShippingCostResponse['data'] ?? '5000';
+        if (!empty($defaultShippingCostResponse['error'])) {
+             error_log("Error fetching default_shipping_cost setting: " . $defaultShippingCostResponse['error']);
+             // Non-critical, just log
+        }
 
         $businessNameResponse = $this->settingsService->getSettingByKey('business_name', $accessToken);
-        $businessName = $businessNameResponse['data'] ?? 'Molagis'; // Or your preferred default
+        $viewData['business_name'] = $businessNameResponse['data'] ?? 'Molagis';
+        if (!empty($businessNameResponse['error'])) {
+            error_log("Error fetching business_name setting: " . $businessNameResponse['error']);
+            // Non-critical, just log
+        }
+
+        // Fetch Recent Orders
+        $recentOrdersResult = $this->orderService->getRecentOrders(5, $accessToken);
+        $viewData['recent_orders'] = $recentOrdersResult['data'] ?? [];
+        $recentOrdersError = $recentOrdersResult['error'] ?? null;
+        if ($recentOrdersError) {
+            error_log("Error fetching recent orders: " . $recentOrdersError);
+            $viewData['error'] = ($viewData['error'] ? $viewData['error'] . " | " : "") . "Gagal memuat data pesanan terakhir.";
+        }
+
+        // Fetch Dashboard Statistics
+        $dashboardStatisticsResult = $this->dashboardService->getDashboardStatistics($accessToken);
+        $viewData['dashboard_statistics'] = $dashboardStatisticsResult['data'] ?? ['total_orders_today' => 0, 'total_revenue_today' => 0, 'pending_deliveries_today' => 0];
+        $statisticsError = $dashboardStatisticsResult['error'] ?? null;
+        if ($statisticsError) {
+            error_log("Error fetching dashboard statistics: " . $statisticsError);
+            $viewData['error'] = ($viewData['error'] ? $viewData['error'] . " | " : "") . "Gagal memuat data statistik.";
+        }
 
         // Format delivery_date menggunakan IntlDateFormatter
         $formatter = new \IntlDateFormatter(
@@ -61,29 +112,26 @@ class DashboardController
             'EEEE, dd MMMM yyyy' // Format: Rabu, 14 Mei 2025
         );
 
-        $deliveryDate = $deliveriesResult['delivery_date'] ?? $currentDate;
+        $deliveryDate = $viewData['current_date']; // Use date from $viewData
         try {
             $formattedDate = $formatter->format(new \DateTime($deliveryDate, new \DateTimeZone('Asia/Makassar')));
         } catch (\Exception $e) {
             error_log('Error formatting date in showDashboard: ' . $e->getMessage());
+            // Fallback to current date if $deliveryDate is invalid for some reason
             $formattedDate = $formatter->format(new \DateTime('now', new \DateTimeZone('Asia/Makassar')));
         }
+        $viewData['date_subtitle'] = $formattedDate; // Add formatted date to viewData
 
-        return $this->twig->render('dashboard.html.twig', [
-            'title' => 'Dashboard Molagis',
-            'couriers' => $couriersResult['data'] ?? [],
-            'deliveries' => $deliveriesResult['data'] ?? [],
-            'total_deliveries' => $deliveriesResult['total'] ?? 0,
-            'current_date' => $deliveryDate,
-            'date_subtitle' => $formattedDate, // Kirim tanggal yang diformat ke Twig
-            'timezone' => $deliveriesResult['timezone'] ?? 'Asia/Makassar',
-            'error' => $couriersResult['error'] ?? $deliveriesResult['error'] ?? null,
-            'user_id' => $user['id'] ?? 'default-seed',
-            'active_couriers' => $couriersResult['data'] ?? [],
-            'default_courier' => $defaultCourier,
-            'default_shipping_cost' => $defaultShippingCost,
-            'business_name' => $businessName,
-        ]);
+        // Ensure error is a string and trimmed
+        if (is_array($viewData['error'])) { // Should not happen based on logic above, but as safeguard
+            $viewData['error'] = implode(" | ", array_filter($viewData['error']));
+        }
+        $viewData['error'] = trim((string) $viewData['error']);
+        if (empty($viewData['error'])) {
+            $viewData['error'] = null; // Set to null if empty string after trim
+        }
+
+        return $this->twig->render('dashboard.html.twig', $viewData);
     }
 
     /**
