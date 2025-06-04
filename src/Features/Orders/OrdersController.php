@@ -392,4 +392,60 @@ class OrdersController
             ], 500); // Internal Server Error
         }
     }
+
+    // Renamed from handleUpdateDailyOrderViaPhp
+    public function updateDailyOrder(ServerRequestInterface $request, array $args): Response
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new Response\JsonResponse([
+                'success' => false,
+                'message' => 'Autentikasi diperlukan. Silakan login kembali.'
+            ], 401);
+        }
+
+        $deliveryIdStr = $args['deliveryId'] ?? null;
+        if (!$deliveryIdStr || !is_numeric($deliveryIdStr)) {
+            return new Response\JsonResponse(['success' => false, 'message' => 'Delivery ID tidak valid atau hilang.'], 400);
+        }
+        $deliveryId = (int)$deliveryIdStr;
+
+        $requestData = $request->getParsedBody();
+        if (empty($requestData)) {
+            $rawBody = (string) $request->getBody();
+            if (!empty($rawBody) && $requestData === null) { // Check if body was non-empty but parsing failed
+                error_log("[updateDailyOrder] Failed to parse JSON body for delivery ID: " . $deliveryId . ". Raw body: " . substr($rawBody, 0, 500));
+                return new Response\JsonResponse(['success' => false, 'message' => 'Request body tidak valid JSON.'], 400);
+            }
+            return new Response\JsonResponse(['success' => false, 'message' => 'Request data tidak boleh kosong.'], 400);
+        }
+
+        try {
+            // Call the service method that handles the broader update logic including RPC and parent order total update
+            $serviceResult = $this->ordersService->updateDeliveryAndOrderDetails($deliveryId, $requestData, $accessToken);
+
+            if ($serviceResult['success']) {
+                return new Response\JsonResponse([
+                    'success' => true,
+                    'message' => $serviceResult['message'] ?? 'Pesanan berhasil diperbarui.'
+                ]); // HTTP 200 OK implicitly
+            } else {
+                // Log controller-level context. The service method should have already logged specifics.
+                error_log('OrdersService::updateDeliveryAndOrderDetails failed for delivery_id ' . $deliveryId . '. Service error: ' . ($serviceResult['error'] ?? 'Unknown service error'));
+                return new Response\JsonResponse([
+                    'success' => false,
+                    'message' => $serviceResult['error'] ?? 'Terjadi kesalahan saat memproses permintaan.'
+                ], $serviceResult['status_code'] ?? 500);
+            }
+
+        } catch (\Throwable $e) {
+            // This catch block is for unexpected errors in the controller logic itself,
+            // or if the service method throws an exception not caught internally (though it should catch Throwables).
+            error_log('Exception in OrdersController::updateDailyOrder for delivery_id ' . $deliveryId . ': ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
+            return new Response\JsonResponse([
+                'success' => false,
+                'message' => 'Kesalahan internal server: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
