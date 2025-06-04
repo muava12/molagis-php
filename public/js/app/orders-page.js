@@ -690,58 +690,93 @@ document.addEventListener('DOMContentLoaded', function () {
     if (ordersTabContent) {
         ordersTabContent.addEventListener('change', function(event) {
             const target = event.target;
-            let currentTableContainer = null;
-            let selectAllCheckboxInstance = null; // Renamed to avoid conflict with selectAllCheckbox var if any
+            let currentTableContainer = null; // This is for the main view's table (non-grouped or by-date)
+            let globalSelectAllCheckbox = null; // The select-all for the current main view
 
-            // Determine current container and corresponding "select all" checkbox
-            if (target.closest('#orders-by-name-content-wrapper')) {
-                currentTableContainer = byNameContainer;
-                selectAllCheckboxInstance = currentTableContainer?.querySelector('#select-all-deliveries');
-            } else if (target.closest('#delivery_date_search_results_container')) {
-                currentTableContainer = byDateContainer;
-                selectAllCheckboxInstance = currentTableContainer?.querySelector('#select-all-deliveries-by-date');
-            }
+            // --- START: New/Modified Logic for Scoped Selection ---
+            const accordionItemScope = target.closest('.accordion-item');
 
-            if (!currentTableContainer) {
-                // If the change event is not within a known container, exit.
-                // This can happen if other form elements within ordersTabContent trigger change events.
-                return;
-            }
+            if (target.matches('.select-delivery-group-master')) {
+                // Clicked on a master checkbox within an accordion group
+                const parentAccordionItem = target.closest('.accordion-item');
+                if (parentAccordionItem) {
+                    const itemsInGroup = parentAccordionItem.querySelectorAll('.select-delivery-item');
+                    const isChecked = target.checked;
+                    itemsInGroup.forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                    });
+                }
+            } else if (target.matches('.select-delivery-item') && accordionItemScope) {
+                // Clicked on an individual item within an accordion group
+                const itemsInGroup = accordionItemScope.querySelectorAll('.select-delivery-item');
+                const groupMasterCheckbox = accordionItemScope.querySelector('.select-delivery-group-master');
 
-            const itemCheckboxes = currentTableContainer.querySelectorAll('.select-delivery-item');
+                if (groupMasterCheckbox) {
+                    const allCheckedInGroup = Array.from(itemsInGroup).every(checkbox => checkbox.checked);
+                    const someCheckedInGroup = Array.from(itemsInGroup).some(checkbox => checkbox.checked);
 
-            if (target.matches('#select-all-deliveries, #select-all-deliveries-by-date')) {
-                // Handle "Select All" checkbox click
-                const isChecked = target.checked;
-                itemCheckboxes.forEach(checkbox => {
-                    checkbox.checked = isChecked;
-                });
-            } else if (target.matches('.select-delivery-item')) {
-                // Handle individual item checkbox click
-                if (selectAllCheckboxInstance) {
-                    const allChecked = Array.from(itemCheckboxes).every(checkbox => checkbox.checked);
-                    const someChecked = Array.from(itemCheckboxes).some(checkbox => checkbox.checked);
-
-                    if (allChecked && itemCheckboxes.length > 0) {
-                        selectAllCheckboxInstance.checked = true;
-                        selectAllCheckboxInstance.indeterminate = false;
-                    } else if (someChecked) {
-                        selectAllCheckboxInstance.checked = false;
-                        selectAllCheckboxInstance.indeterminate = true;
+                    if (allCheckedInGroup && itemsInGroup.length > 0) {
+                        groupMasterCheckbox.checked = true;
+                        groupMasterCheckbox.indeterminate = false;
+                    } else if (someCheckedInGroup) {
+                        groupMasterCheckbox.checked = false;
+                        groupMasterCheckbox.indeterminate = true;
                     } else {
-                        selectAllCheckboxInstance.checked = false;
-                        selectAllCheckboxInstance.indeterminate = false;
+                        groupMasterCheckbox.checked = false;
+                        groupMasterCheckbox.indeterminate = false;
                     }
                 }
             }
+            // --- END: New/Modified Logic for Scoped Selection ---
+
+            // --- Existing Logic for Global Select All (non-grouped or by-date view) ---
+            if (target.closest('#orders-by-name-content-wrapper')) {
+                currentTableContainer = byNameContainer; // byNameContainer is #orders-by-name-content-wrapper
+                if (currentTableContainer) { // Ensure it's not null
+                    globalSelectAllCheckbox = currentTableContainer.querySelector('#select-all-deliveries');
+                }
+            } else if (target.closest('#delivery_date_search_results_container')) {
+                currentTableContainer = byDateContainer;
+                if (currentTableContainer) { // Ensure it's not null
+                     globalSelectAllCheckbox = currentTableContainer.querySelector('#select-all-deliveries-by-date');
+                }
+            }
+
+            if (currentTableContainer) { // Proceed only if we have a valid main container context
+                const itemCheckboxesInContainer = currentTableContainer.querySelectorAll('.select-delivery-item');
+
+                if (target === globalSelectAllCheckbox) { // Check if the event target *is* the globalSelectAllCheckbox
+                    const isChecked = target.checked;
+                    itemCheckboxesInContainer.forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                    });
+                } else if (target.matches('.select-delivery-item') && !accordionItemScope) {
+                    // Handle individual item checkbox click ONLY IF NOT INSIDE an accordion item
+                    if (globalSelectAllCheckbox) {
+                        const allChecked = Array.from(itemCheckboxesInContainer).every(checkbox => checkbox.checked);
+                        const someChecked = Array.from(itemCheckboxesInContainer).some(checkbox => checkbox.checked);
+
+                        if (allChecked && itemCheckboxesInContainer.length > 0) {
+                            globalSelectAllCheckbox.checked = true;
+                            globalSelectAllCheckbox.indeterminate = false;
+                        } else if (someChecked) {
+                            globalSelectAllCheckbox.checked = false;
+                            globalSelectAllCheckbox.indeterminate = true;
+                        } else {
+                            globalSelectAllCheckbox.checked = false;
+                            globalSelectAllCheckbox.indeterminate = false;
+                        }
+                    }
+                }
+            }
+            // --- End of Existing/Modified Global Select All ---
 
             // After any relevant checkbox change, update the toast.
-            // This will correctly count from the active tab due to updateBatchDeleteToast's internal logic.
-            if (target.matches('#select-all-deliveries, #select-all-deliveries-by-date, .select-delivery-item')) {
+            if (target.matches('#select-all-deliveries, #select-all-deliveries-by-date, .select-delivery-item, .select-delivery-group-master')) {
                  updateBatchDeleteToast();
             }
         });
-        // Initial call to set toast state when page loads (e.g. if there are pre-selected items from server-side rendering, though not current case)
+        // Initial call to set toast state when page loads
         // updateBatchDeleteToast(); // This might be better called after initial content load for each tab if applicable
     } else {
         console.warn("Main tab content area ('orders-tab-content') not found. Checkbox functionality might be affected.");
