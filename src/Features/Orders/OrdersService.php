@@ -80,9 +80,9 @@ class OrdersService
                         }
                     }
                 }
-                // Sort all deliveries by delivery_tanggal ascending
+                // Sort all deliveries by delivery_tanggal descending
                 usort($allDeliveries, function($a, $b) {
-                    return strcmp($a['delivery_tanggal'], $b['delivery_tanggal']);
+                    return strcmp($b['delivery_tanggal'], $a['delivery_tanggal']);
                 });
             }
             return ['data' => $allDeliveries, 'error' => null];
@@ -90,6 +90,79 @@ class OrdersService
         } catch (\Exception $e) {
             error_log('Exception in getDeliveriesByCustomerId: ' . $e->getMessage());
             return ['data' => [], 'error' => 'Exception occurred while fetching customer deliveries: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Mengambil jumlah total pesanan (orders) untuk pelanggan tertentu.
+     *
+     * @param int $customerId ID pelanggan.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'count' atau 'error'.
+     */
+    public function getOrdersCountByCustomerId(int $customerId, ?string $accessToken): array
+    {
+        if (!$accessToken) {
+            // Consistent with getDeliveriesCountByCustomerId, but consider if this check is always needed
+            // If service methods are always called after auth, this might be redundant.
+            // For now, keeping it for consistency.
+            return ['count' => 0, 'error' => 'Authentication required.'];
+        }
+
+        try {
+            // Construct the endpoint for Supabase REST API to count orders for a specific customer.
+            // We need to use `Prefer: count=exact` header for Supabase to return only the count.
+            $endpoint = sprintf('/rest/v1/orders?customer_id=eq.%d', $customerId);
+
+            // Options for SupabaseClient: specify that we want only the count.
+            // The exact way to do this depends on the SupabaseClient implementation.
+            // Assuming it supports passing headers or specific options for count.
+            // A common way is to use the 'Prefer' header.
+            $options = [
+                'headers' => [
+                    'Prefer' => 'count=exact'
+                ]
+            ];
+
+            // Make the GET request using the SupabaseClient.
+            // The response, when 'Prefer: count=exact' is used, might not be in ['data'].
+            // It's often in the 'Content-Range' header or a specific part of the response body.
+            // Let's assume the client is set up to parse this or Supabase returns it in a specific way.
+            // If the client's GET method doesn't directly support getting count from headers,
+            // we might need to fetch a minimal set of data and count it, or use a specific count method if available.
+
+            // Alternative: If 'Prefer: count=exact' directly returns count in 'data' or a 'count' field by the client:
+            // $response = $this->supabaseClient->get($endpoint . '&select=id', [], $accessToken); // Select minimal field
+            // if ($response['error']) { ... }
+            // return ['count' => count($response['data']), 'error' => null];
+            // This alternative is less efficient as it fetches data.
+
+            // Let's try to rely on a Supabase feature for direct count.
+            // The Supabase PHP client might have a specific way to handle counts.
+            // The `get` method of the generic SupabaseClient used here might return the full response object
+            // when headers are passed, allowing us to inspect `Content-Range`.
+
+            // Simpler approach if `Prefer: count=exact` is not easily usable with current client `get` for count extraction:
+            // Fetch only IDs and count them. This is less efficient but simpler to implement with a generic GET.
+            $queryForCount = sprintf('/rest/v1/orders?customer_id=eq.%d&select=id', $customerId);
+            $response = $this->supabaseClient->get($queryForCount, [], $accessToken);
+
+            if (isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
+                error_log("Supabase error in getOrdersCountByCustomerId for customer $customerId: " . $errorMessage);
+                return ['count' => 0, 'error' => $errorMessage];
+            }
+
+            if (isset($response['data']) && is_array($response['data'])) {
+                return ['count' => count($response['data']), 'error' => null];
+            } else {
+                error_log("Unexpected response data structure in getOrdersCountByCustomerId for customer $customerId: " . json_encode($response));
+                return ['count' => 0, 'error' => 'Unexpected data structure when fetching orders count.'];
+            }
+
+        } catch (\Exception $e) {
+            error_log("Generic exception in getOrdersCountByCustomerId for customer $customerId: " . $e->getMessage());
+            return ['count' => 0, 'error' => 'An unexpected error occurred while fetching orders count.'];
         }
     }
 
@@ -560,4 +633,57 @@ class OrdersService
     }
     }
     // The updateDailyOrderRpc method was here and is now removed.
+
+    /**
+     * Mengambil data pesanan yang dikelompokkan berdasarkan pelanggan, dengan tanggal pengiriman yang terstruktur.
+     *
+     * @param int $customerId ID pelanggan.
+     * @param string|null $accessToken Token akses pengguna.
+     * @param int $limit Jumlah maksimal order utama yang diambil.
+     * @param int $offset Jumlah order utama yang dilewati.
+     * @return array Hasil yang berisi 'data' (daftar pesanan terstruktur) atau 'error'.
+     */
+    public function getGroupedDeliveriesByCustomerId(int $customerId, ?string $accessToken = null, int $limit = 100, int $offset = 0): array
+    {
+        // Fetch orders with their delivery dates.
+        // Request delivery dates to be ordered by tanggal.desc directly in the query.
+        $selectFields = 'id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates!inner(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)),order=tanggal.desc)';
+
+        $query = sprintf(
+            '/rest/v1/orders?customer_id=eq.%d&select=%s&order=tanggal_pesan.desc&limit=%d&offset=%d',
+            $customerId,
+            $selectFields,
+            $limit,
+            $offset
+        );
+
+        try {
+            $response = $this->supabaseClient->get($query, [], $accessToken);
+
+            if (isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
+                error_log('Supabase getGroupedDeliveriesByCustomerId error: ' . $errorMessage);
+                return ['data' => [], 'error' => $errorMessage];
+            }
+
+            // The data should already be structured with orders containing their delivery_dates.
+            // The delivery_dates within each order should already be sorted by tanggal.desc due to the select query.
+            // If Supabase's nested ordering `deliverydates(...order=tanggal.desc)` doesn't work as expected,
+            // you would need to iterate here and sort them manually in PHP:
+            // foreach ($response['data'] as &$order) {
+            //     if (isset($order['deliverydates']) && is_array($order['deliverydates'])) {
+            //         usort($order['deliverydates'], function($a, $b) {
+            //             return strcmp($b['tanggal'], $a['tanggal']); // Sort descending
+            //         });
+            //     }
+            // }
+            // unset($order); // Important to unset the reference
+
+            return ['data' => $response['data'] ?? [], 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in getGroupedDeliveriesByCustomerId: ' . $e->getMessage());
+            return ['data' => [], 'error' => 'Exception occurred while fetching grouped customer deliveries: ' . $e->getMessage()];
+        }
+    }
 }
