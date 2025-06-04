@@ -97,8 +97,58 @@
 
 									<!-- Paket Tab -->
 									<div class="tab-pane fade" id="paket-tab" role="tabpanel" aria-labelledby="paket-nav">
-										<h2 class="mb-4">Paket</h2>
-										<p>Pengaturan Paket belum tersedia.</p>
+										<div class="d-flex justify-content-between align-items-center mb-3">
+											<h2 class="mb-0">Manajemen Paket</h2>
+											<button type="button" class="btn btn-primary" id="addPaketBtn">
+												Tambah Paket Baru
+											</button>
+										</div>
+
+										{% if paket_error %}
+											<div class="alert alert-danger" role="alert">
+												Gagal memuat daftar paket: {{ paket_error }}
+											</div>
+										{% endif %}
+										<div id="paketOperationalError" class="alert alert-danger" role="alert" style="display: none;"></div>
+
+
+										<div class="table-responsive">
+											<table class="table table-vcenter card-table table-striped" id="paketTable">
+												<thead>
+													<tr>
+														<th>Nama Paket</th>
+														<th>Deskripsi</th>
+														<th>Harga Modal (Rp)</th>
+														<th>Harga Jual (Rp)</th>
+														<th>Urutan</th>
+														<th class="w-1">Aksi</th>
+													</tr>
+												</thead>
+												<tbody id="paketTableBody">
+													{% if pakets is defined and pakets|length > 0 %}
+														{% for paket in pakets %}
+															<tr data-id="{{ paket.id }}">
+																<td>{{ paket.nama }}</td>
+																<td>{{ paket.deskripsi | default('-') }}</td>
+																<td>{{ paket.harga_modal | number_format(0, ',', '.') }}</td>
+																<td>{{ paket.harga_jual | number_format(0, ',', '.') }}</td>
+																<td>{{ paket.urutan | default('-') }}</td>
+																<td>
+																	<div class="btn-list flex-nowrap">
+																		<button class="btn btn-sm btn-outline-secondary editPaketBtn" data-id="{{ paket.id }}">Edit</button>
+																		<button class="btn btn-sm btn-outline-danger deletePaketBtn" data-id="{{ paket.id }}">Hapus</button>
+																	</div>
+																</td>
+															</tr>
+														{% endfor %}
+													{% else %}
+														<tr>
+															<td colspan="6" class="text-center">Belum ada paket yang ditambahkan.</td>
+														</tr>
+													{% endif %}
+												</tbody>
+											</table>
+										</div>
 									</div>
 
 									<!-- Tagihan & Faktur Tab -->
@@ -127,6 +177,67 @@
 		</div>
 	</div>
 	<!-- END PAGE BODY -->
+
+	<!-- Toast Container -->
+	<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+		<div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+			<div class="toast-header">
+				<strong class="me-auto" id="toastTitle">Notification</strong>
+				<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+			</div>
+			<div class="toast-body" id="toastBody">
+				<!-- Message will be inserted here -->
+			</div>
+		</div>
+	</div>
+
+	<!-- END PAGE BODY -->
+
+	<!-- Paket Modal -->
+	<div class="modal fade" id="paketModal" tabindex="-1" aria-labelledby="paketModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<form id="paketForm">
+					<div class="modal-header">
+						<h5 class="modal-title" id="paketModalLabel">Tambah Paket Baru</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<input type="hidden" id="paketId" name="id">
+						<div id="paketFormError" class="alert alert-danger" style="display: none;" role="alert"></div>
+						<div class="mb-3">
+							<label for="paketNama" class="form-label">Nama Paket <span class="text-danger">*</span></label>
+							<input type="text" class="form-control" id="paketNama" name="nama" required>
+						</div>
+						<div class="mb-3">
+							<label for="paketDeskripsi" class="form-label">Deskripsi</label>
+							<textarea class="form-control" id="paketDeskripsi" name="deskripsi" rows="3"></textarea>
+						</div>
+						<div class="row">
+							<div class="col-md-6 mb-3">
+								<label for="paketHargaModal" class="form-label">Harga Modal (Rp) <span class="text-danger">*</span></label>
+								<input type="number" class="form-control" id="paketHargaModal" name="harga_modal" required step="any">
+							</div>
+							<div class="col-md-6 mb-3">
+								<label for="paketHargaJual" class="form-label">Harga Jual (Rp) <span class="text-danger">*</span></label>
+								<input type="number" class="form-control" id="paketHargaJual" name="harga_jual" required step="any">
+							</div>
+						</div>
+						<div class="mb-3">
+							<label for="paketUrutan" class="form-label">Urutan (Opsional)</label>
+							<input type="number" class="form-control" id="paketUrutan" name="urutan" placeholder="Biarkan kosong untuk urutan otomatis/terakhir">
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+						<button type="submit" class="btn btn-primary" id="savePaketBtn">Simpan Paket</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<!-- END Paket Modal -->
+
 
 	<!-- Toast Container -->
 	<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
@@ -205,6 +316,259 @@
 	        saveButton.disabled = false;
 	        saveButton.innerHTML = originalButtonText;
 	    }
+	});
+
+	// Paket Management్యా JavaScript
+	document.addEventListener('DOMContentLoaded', () => {
+		const paketModalElement = document.getElementById('paketModal');
+		if (!paketModalElement) {
+			console.error("Paket modal element not found!");
+			return;
+		}
+		const paketModal = new bootstrap.Modal(paketModalElement);
+		const paketForm = document.getElementById('paketForm');
+		const paketTableBody = document.getElementById('paketTableBody');
+		const addPaketBtn = document.getElementById('addPaketBtn');
+		const paketFormError = document.getElementById('paketFormError');
+		const paketOperationalError = document.getElementById('paketOperationalError');
+
+		function displayPaketOpError(message) {
+			if (paketOperationalError) {
+				paketOperationalError.textContent = message;
+				paketOperationalError.style.display = message ? 'block' : 'none';
+			}
+		}
+
+		function displayPaketFormError(message) {
+			if (paketFormError) {
+				paketFormError.textContent = message;
+				paketFormError.style.display = message ? 'block' : 'none';
+			}
+		}
+
+		function renderPaketRow(paket) {
+			const row = document.createElement('tr');
+			row.setAttribute('data-id', paket.id);
+			row.innerHTML = `
+				<td>${paket.nama}</td>
+				<td>${paket.deskripsi || '-'}</td>
+				<td>${new Intl.NumberFormat('id-ID').format(paket.harga_modal)}</td>
+				<td>${new Intl.NumberFormat('id-ID').format(paket.harga_jual)}</td>
+				<td>${paket.urutan !== null && paket.urutan !== undefined ? paket.urutan : '-'}</td>
+				<td>
+					<div class="btn-list flex-nowrap">
+						<button class="btn btn-sm btn-outline-secondary editPaketBtn" data-id="${paket.id}">Edit</button>
+						<button class="btn btn-sm btn-outline-danger deletePaketBtn" data-id="${paket.id}">Hapus</button>
+					</div>
+				</td>
+			`;
+			return row;
+		}
+
+		async function refreshPaketTable() {
+			displayPaketOpError(''); // Clear previous errors
+			try {
+				const response = await fetch('/api/pakets', {
+					headers: { 'X-Requested-With': 'XMLHttpRequest' }
+				});
+				if (!response.ok) {
+					const errorData = await response.json().catch(() => ({ message: 'Gagal memuat daftar paket.' }));
+					throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+				}
+				const result = await response.json();
+				if (result.success && Array.isArray(result.data)) {
+					paketTableBody.innerHTML = ''; // Clear existing rows
+					if (result.data.length === 0) {
+						paketTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Belum ada paket yang ditambahkan.</td></tr>';
+					} else {
+						result.data.forEach(paket => {
+							paketTableBody.appendChild(renderPaketRow(paket));
+						});
+					}
+				} else {
+					throw new Error(result.message || 'Format respons tidak sesuai saat memuat paket.');
+				}
+			} catch (error) {
+				console.error('Error refreshing paket table:', error);
+				showToast(`Error memuat paket: ${error.message}`, 'error');
+				displayPaketOpError(`Error memuat paket: ${error.message}`);
+			}
+		}
+
+		async function handleEditPaket(paketId) {
+			displayPaketFormError('');
+			try {
+				const response = await fetch(`/api/paket/${paketId}`, {
+					headers: { 'X-Requested-With': 'XMLHttpRequest' }
+				});
+				if (!response.ok) {
+					const errorData = await response.json().catch(() => ({ message: 'Gagal memuat data paket.' }));
+					throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+				}
+				const result = await response.json();
+				if (result.success && result.data) {
+					document.getElementById('paketId').value = result.data.id;
+					document.getElementById('paketNama').value = result.data.nama;
+					document.getElementById('paketDeskripsi').value = result.data.deskripsi || '';
+					document.getElementById('paketHargaModal').value = result.data.harga_modal;
+					document.getElementById('paketHargaJual').value = result.data.harga_jual;
+					document.getElementById('paketUrutan').value = result.data.urutan !== null ? result.data.urutan : '';
+					document.getElementById('paketModalLabel').textContent = 'Edit Paket';
+					paketModal.show();
+				} else {
+					throw new Error(result.message || 'Paket tidak ditemukan atau format data salah.');
+				}
+			} catch (error) {
+				console.error('Error fetching paket for edit:', error);
+				showToast(`Error: ${error.message}`, 'error');
+			}
+		}
+
+		async function handleDeletePaket(paketId, rowElement) {
+			if (!confirm('Apakah Anda yakin ingin menghapus paket ini?')) {
+				return;
+			}
+			try {
+				const response = await fetch(`/api/paket/${paketId}/delete`, {
+					method: 'DELETE',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' }
+				});
+				const result = await response.json();
+				if (result.success) {
+					showToast('Paket berhasil dihapus', 'success');
+					if (rowElement) {
+						rowElement.remove();
+						if (paketTableBody.rows.length === 0) {
+							paketTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Belum ada paket yang ditambahkan.</td></tr>';
+						}
+					} else {
+						refreshPaketTable(); // Fallback if rowElement is not passed
+					}
+				} else {
+					throw new Error(result.message || 'Gagal menghapus paket.');
+				}
+			} catch (error) {
+				console.error('Error deleting paket:', error);
+				showToast(`Error: ${error.message}`, 'error');
+			}
+		}
+
+		if (addPaketBtn) {
+			addPaketBtn.addEventListener('click', () => {
+				displayPaketFormError('');
+				paketForm.reset();
+				document.getElementById('paketId').value = ''; // Ensure ID is cleared
+				document.getElementById('paketModalLabel').textContent = 'Tambah Paket Baru';
+				paketModal.show();
+			});
+		}
+
+		if (paketForm) {
+			paketForm.addEventListener('submit', async (e) => {
+				e.preventDefault();
+				displayPaketFormError('');
+				const paketId = document.getElementById('paketId').value;
+				const isEdit = !!paketId;
+				const url = isEdit ? `/api/paket/${paketId}/update` : '/api/paket/add';
+				const method = 'POST'; // Using POST for both create and update as per SlimPHP typical setup for form data
+
+				const formData = new FormData(paketForm);
+				const data = Object.fromEntries(formData.entries());
+
+				// Ensure numeric values are correctly formatted if necessary, or let backend handle type coercion
+				data.harga_modal = parseFloat(data.harga_modal) || 0;
+				data.harga_jual = parseFloat(data.harga_jual) || 0;
+				if (data.urutan === '' || data.urutan === undefined) {
+                    // Send null if urutan is empty, so backend can handle it as null
+                    data.urutan = null;
+                } else {
+                    data.urutan = parseInt(data.urutan, 10);
+                }
+
+
+				const savePaketBtn = document.getElementById('savePaketBtn');
+				const originalButtonText = savePaketBtn.innerHTML;
+				savePaketBtn.disabled = true;
+				savePaketBtn.innerHTML = 'Menyimpan... <span class="spinner-border spinner-border-sm"></span>';
+
+				try {
+					const response = await fetch(url, {
+						method: method,
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Requested-With': 'XMLHttpRequest'
+						},
+						body: JSON.stringify(data)
+					});
+					const result = await response.json();
+					if (result.success) {
+						paketModal.hide();
+						showToast(result.message || (isEdit ? 'Paket berhasil diperbarui' : 'Paket berhasil ditambahkan'), 'success');
+						// Check if the 'Paket' tab is active before refreshing
+                        // This avoids unnecessary refreshes if another tab is active
+                        // However, for simplicity and immediate feedback, always refresh if on settings page.
+                        // If settings page itself is complex, consider more targeted updates.
+                        const currentPakets = {{ pakets|json_encode|raw }};
+                        if (currentPakets.length === 0 && !isEdit) { // If table was empty and added new
+                             refreshPaketTable(); // Full refresh needed
+                        } else if (isEdit) {
+                            // Update existing row directly or full refresh
+                            const rowToUpdate = paketTableBody.querySelector(`tr[data-id="${paketId}"]`);
+                            if(rowToUpdate && result.data) {
+                                const newRow = renderPaketRow(result.data);
+                                rowToUpdate.parentNode.replaceChild(newRow, rowToUpdate);
+                            } else {
+                                refreshPaketTable();
+                            }
+                        } else if (!isEdit && result.data) { // Adding new
+                             // Remove "empty" row if it exists
+                            const emptyRow = paketTableBody.querySelector('td[colspan="6"]');
+                            if (emptyRow) emptyRow.parentElement.remove();
+                            paketTableBody.appendChild(renderPaketRow(result.data));
+                        } else {
+                           refreshPaketTable(); // Fallback full refresh
+                        }
+
+					} else {
+						displayPaketFormError(result.message || 'Terjadi kesalahan.');
+						// No toast here, error is in modal
+					}
+				} catch (error) {
+					console.error('Error submitting paket form:', error);
+					displayPaketFormError('Tidak dapat terhubung ke server. Silakan coba lagi.');
+					// No toast here, error is in modal
+				} finally {
+					savePaketBtn.disabled = false;
+					savePaketBtn.innerHTML = originalButtonText;
+				}
+			});
+		}
+
+		if (paketTableBody) {
+			paketTableBody.addEventListener('click', (e) => {
+				if (e.target.classList.contains('editPaketBtn')) {
+					const paketId = e.target.dataset.id;
+					handleEditPaket(paketId);
+				} else if (e.target.classList.contains('deletePaketBtn')) {
+					const paketId = e.target.dataset.id;
+					const rowElement = e.target.closest('tr');
+					handleDeletePaket(paketId, rowElement);
+				}
+			});
+            // Initial rendering if pakets are passed directly and not empty (handled by Twig)
+            // If relying purely on JS for initial load (e.g. if 'pakets' var not available to JS directly for comparison)
+            // then call refreshPaketTable() here if the tab is active.
+            // For now, Twig handles initial render. This JS is for dynamic updates.
+		}
+
+        // If the Paket tab is active on page load, and initial rendering was done by Twig,
+        // ensure action listeners are attached.
+        // However, the event delegation on paketTableBody handles dynamically added rows too.
+        // So, direct call to attachPaketActionListeners might be redundant IF initial render is empty
+        // and then populated by refreshPaketTable().
+        // Given Twig renders initial rows, listeners should be active due to event delegation.
+        // console.log("Paket management JS initialized.");
+
 	});
 	</script>
 {% endblock %}
