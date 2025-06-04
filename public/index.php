@@ -56,10 +56,11 @@ $containerBuilder->addDefinitions([
     ),
     DashboardService::class => fn($c) => new DashboardService($c->get(SupabaseClient::class)),
     DashboardController::class => fn($c) => new DashboardController(
-        $c->get(DashboardService::class),
-        $c->get(SupabaseService::class),
-        $c->get(SettingsService::class),
-        $c->get(Environment::class)
+        $c->get(DashboardService::class),   // 1st
+        $c->get(SupabaseService::class),    // 2nd
+        $c->get(SettingsService::class),    // 3rd
+        $c->get(OrderService::class),       // 4th - Corrected: Add OrderService
+        $c->get(Environment::class)         // 5th - Corrected: Twig Environment is now 5th
     ),
     CustomersService::class => fn($c) => new CustomersService($c->get(SupabaseClient::class)),
     CustomersController::class => fn($c) => new CustomersController(
