@@ -24,9 +24,9 @@
   <div class="container-xl">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Manajemen Pesanan{% if selected_customer_name and selected_customer_name is not empty %} - {{ selected_customer_name }}{% endif %}</h3>
+        <h3 class="card-title">{% if selected_customer_name and selected_customer_name is not empty %}{{ selected_customer_name }}{% else %}Manajemen Pesanan{% endif %}</h3>
         <div class="ms-auto">
-          <nav class="nav nav-segmented nav-sm" role="tablist" id="orders-view-tabs">
+          <nav class="nav nav-segmented" role="tablist" id="orders-view-tabs">
               <button class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" type="button" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">
                   <!-- SVG for List icon -->
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
@@ -38,12 +38,6 @@
                     <path d="M5 18l0 .01"></path>
                   </svg>
                   By Name
-              </button>
-              <button class="nav-link {{ view == 'by_order_id' ? 'active' : '' }}" id="tab-by-order-id-button" data-bs-toggle="tab" data-bs-target="#pane-by-order-id" type="button" role="tab" aria-controls="pane-by-order-id" aria-selected="{{ view == 'by_order_id' ? 'true' : 'false' }}">
-                  <!-- SVG for Hash/Layout icon (using a generic one, replace if specific needed) -->
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
-                      <path d="M5 9l14 0" /><path d="M5 15l14 0" /><path d="M11 4l-4 16" /><path d="M17 4l-4 16" /></svg>
-                  By Order ID
               </button>
               <button class="nav-link {{ view == 'by_date' ? 'active' : '' }}" id="tab-by-date-button" data-bs-toggle="tab" data-bs-target="#pane-by-date" type="button" role="tab" aria-controls="pane-by-date" aria-selected="{{ view == 'by_date' ? 'true' : 'false' }}">
                   <!-- SVG for Calendar icon -->
