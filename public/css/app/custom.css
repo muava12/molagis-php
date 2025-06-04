@@ -254,8 +254,8 @@
 }
 
 .empty-state-card svg {
-    max-width: 100px;
-    max-height: 100px;
+    max-width: 250px;
+    max-height: 250px;
     margin-bottom: 1rem; /* Consistent with Tabler's .mb-4 if needed, or adjust */
 }
 
