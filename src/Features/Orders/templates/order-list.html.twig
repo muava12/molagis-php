@@ -154,10 +154,9 @@
             <div id="order_id_search_results_container">
               {# Search results or messages will be injected here by JavaScript #}
               {% if not order_id_query_value and view == 'by_order_id' %}
-                <p class="text-muted">Masukkan ID Pesanan di atas untuk memulai pencarian.</p>
-              {% endif %}
-              {# Logic to display orders_by_id_result if it's populated by controller (e.g., on page load with query) #}
-              {% if order_id_query_value and orders_by_id_result is not empty %}
+      <p class="text-muted py-5 text-center">Masukkan ID Pesanan di atas untuk memulai pencarian.</p> {# Added some padding and centering for consistency #}
+    {% elseif order_id_query_value and orders_by_id_result is not empty %}
+      {# This is the case where results are found and displayed #}
                 {% for order in orders_by_id_result %}
                   {% if order %} {# Check if order data is not null #}
                     <div class="card mt-3">
@@ -172,19 +171,30 @@
                     </div>
                   {% endif %}
                 {% endfor %}
-              {% elseif order_id_query_value and orders_by_id_result is empty and view == 'by_order_id' %}
-                 <p class="text-warning">Order dengan ID tersebut tidak ditemukan.</p>
+    {% elseif order_id_query_value and (orders_by_id_result is empty or orders_by_id_result is null) and view == 'by_order_id' %}
+      {# This is the case where a search was made (order_id_query_value exists) but no results were found #}
+      <div class="empty-state-card text-center py-5"> {# Use common class for styling #}
+          {% include 'svg/bird.svg.twig' %}
+          <p class="mt-3">Pencarian tidak menemukan data.</p>
+      </div>
               {% endif %}
+    {# Note: JavaScript might also inject content or messages here, especially if the search happens client-side after page load.
+       The above Twig logic handles server-rendered states. #}
             </div>
           </div>
 
           <div class="tab-pane fade {{ view == 'by_date' ? 'show active' : '' }}" id="pane-by-date" role="tabpanel" aria-labelledby="tab-by-date-button">
             {# Date search form was moved to control bar #}
             <div id="delivery_date_search_results_container">
-              {# Search results or messages will be injected here by JavaScript #}
+    {# Search results or messages will be injected here by JavaScript.
+       This is the initial state if the view is 'by_date' and JS hasn't loaded data yet. #}
               {% if view == 'by_date' %}
-                <p class="text-muted">Pilih tanggal di atas untuk melihat daftar pengiriman.</p>
+      <div class="empty-state-card text-center py-5"> {# Use common class for styling #}
+          {% include 'svg/bird.svg.twig' %}
+          <p class="mt-3">Pilih tanggal di atas untuk melihat daftar pengiriman.</p>
+      </div>
               {% endif %}
+    {# JavaScript will replace this content or hide it when it fetches and displays actual data or a specific "no results for this date" message. #}
             </div>
           </div>
         </div>
