@@ -18,6 +18,145 @@ class DashboardService
     }
 
     /**
+     * Mengambil statistik dashboard utama.
+     *
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (statistik) atau 'error'.
+     */
+    public function getDashboardStatistics(?string $accessToken = null): array
+    {
+        $statistics = [
+            'total_orders_today' => 0,
+            'total_revenue_today' => 0.0,
+            'pending_deliveries_today' => 0,
+        ];
+        $overallError = null;
+
+        try {
+            $tz = new \DateTimeZone('Asia/Makassar');
+            $todayStart = new \DateTime('now', $tz);
+            $todayStart->setTime(0, 0, 0);
+            $todayEnd = new \DateTime('now', $tz);
+            $todayEnd->setTime(23, 59, 59, 999999);
+
+            $todayStartFormatted = $todayStart->format('Y-m-d\TH:i:s.v\Z');
+            $todayEndFormatted = $todayEnd->format('Y-m-d\TH:i:s.v\Z');
+            // Supabase often expects ISO8601 with Z or timezone offset
+            // For PostgREST, it's often better to use .toISOString() equivalent or ensure UTC if not specifying timezone in query
+            // Let's use a simpler date cast if supported by Supabase/PostgreSQL through PostgREST
+             $todayDate = $todayStart->format('Y-m-d');
+
+
+            // 1. Fetch Total Orders Today
+            try {
+                $queryOrdersToday = sprintf(
+                    '/rest/v1/orders?tanggal_pesan=gte.%s&tanggal_pesan=lte.%s',
+                    $todayStartFormatted,
+                    $todayEndFormatted
+                );
+                $responseOrdersToday = $this->client->get($queryOrdersToday, [
+                    'headers' => ['Prefer' => 'count=exact']
+                ], $accessToken);
+
+                if ($responseOrdersToday['error']) {
+                    error_log('Supabase getDashboardStatistics (total_orders_today) error: ' . json_encode($responseOrdersToday['error']));
+                    // Keep default 0, $overallError might be set if this is critical
+                } else {
+                    // The count is usually in Content-Range header or a dedicated field if API is structured for it
+                    // Supabase/PostgREST returns count in Content-Range header: items 0-0/COUNT
+                    $contentRange = $responseOrdersToday['headers']['Content-Range'][0] ?? null;
+                    if ($contentRange && preg_match('/\/(\d+)$/', $contentRange, $matches)) {
+                        $statistics['total_orders_today'] = (int) $matches[1];
+                    } else {
+                         // Fallback if header is not as expected, or if the count is in the body (less common for count=exact)
+                         // This might happen if the response body directly contains the count or if it's an empty array with count in meta
+                         // For count=exact, body is usually empty. If it's an array of items, count them.
+                        if(is_array($responseOrdersToday['data'])) {
+                             $statistics['total_orders_today'] = count($responseOrdersToday['data']);
+                        } else {
+                             error_log('Supabase getDashboardStatistics (total_orders_today) count not found in headers or data.');
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                error_log('Exception in getDashboardStatistics (total_orders_today): ' . $e->getMessage());
+                // $overallError = "Error fetching total orders today."; // Optionally set overall error
+            }
+
+            // 2. Fetch Total Revenue Today
+            try {
+                $queryRevenueToday = sprintf(
+                    '/rest/v1/orders?select=total_harga&tanggal_pesan=gte.%s&tanggal_pesan=lte.%s',
+                    $todayStartFormatted,
+                    $todayEndFormatted
+                );
+                $responseRevenueToday = $this->client->get($queryRevenueToday, [], $accessToken);
+
+                if ($responseRevenueToday['error']) {
+                    error_log('Supabase getDashboardStatistics (total_revenue_today) error: ' . json_encode($responseRevenueToday['error']));
+                } else {
+                    $totalRevenue = 0.0;
+                    if (!empty($responseRevenueToday['data'])) {
+                        foreach ($responseRevenueToday['data'] as $order) {
+                            $totalRevenue += (float) ($order['total_harga'] ?? 0);
+                        }
+                    }
+                    $statistics['total_revenue_today'] = $totalRevenue;
+                }
+            } catch (\Exception $e) {
+                error_log('Exception in getDashboardStatistics (total_revenue_today): ' . $e->getMessage());
+                // $overallError = "Error fetching total revenue today.";
+            }
+
+            // 3. Fetch Pending Deliveries Today
+            // Using DATE(tanggal) = CURRENT_DATE equivalent for Supabase.
+            // Assuming 'tanggal' in deliverydates is a date or timestamp field.
+            // We will filter for status not 'completed' and not 'canceled'.
+            try {
+                // Supabase date filter: column=eq.YYYY-MM-DD
+                $queryPendingDeliveries = sprintf(
+                    '/rest/v1/deliverydates?tanggal=eq.%s&status=not.in.(completed,canceled)',
+                     $todayDate // Use YYYY-MM-DD format for date column
+                );
+                $responsePendingDeliveries = $this->client->get($queryPendingDeliveries, [
+                    'headers' => ['Prefer' => 'count=exact']
+                ], $accessToken);
+
+                if ($responsePendingDeliveries['error']) {
+                    error_log('Supabase getDashboardStatistics (pending_deliveries_today) error: ' . json_encode($responsePendingDeliveries['error']));
+                } else {
+                    $contentRange = $responsePendingDeliveries['headers']['Content-Range'][0] ?? null;
+                    if ($contentRange && preg_match('/\/(\d+)$/', $contentRange, $matches)) {
+                        $statistics['pending_deliveries_today'] = (int) $matches[1];
+                    } else {
+                        if(is_array($responsePendingDeliveries['data'])) {
+                             $statistics['pending_deliveries_today'] = count($responsePendingDeliveries['data']);
+                        } else {
+                            error_log('Supabase getDashboardStatistics (pending_deliveries_today) count not found in headers or data.');
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                error_log('Exception in getDashboardStatistics (pending_deliveries_today): ' . $e->getMessage());
+                // $overallError = "Error fetching pending deliveries today.";
+            }
+
+        } catch (\Exception $e) {
+            // Catch broad exceptions, like DateTimeZone issues
+            error_log('General Exception in getDashboardStatistics: ' . $e->getMessage());
+            $overallError = 'An unexpected error occurred while fetching dashboard statistics.';
+            // Ensure statistics are default if a very early error occurs (e.g. DateTimeZone)
+             $statistics = [
+                'total_orders_today' => 0,
+                'total_revenue_today' => 0.0,
+                'pending_deliveries_today' => 0,
+            ];
+        }
+
+        return ['data' => $statistics, 'error' => $overallError];
+    }
+
+    /**
      * Mengambil data pengantaran sekaligus memperbarui status berdasarkan tanggal.
      *
      * @param string $date Format YYYY-MM-DD

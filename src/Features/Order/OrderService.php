@@ -157,6 +157,55 @@ class OrderService
         return (int) $response['data']['order_id'];
     }
 
+    /**
+     * Mengambil daftar pesanan terbaru dari Supabase.
+     *
+     * @param int $limit Jumlah maksimal item yang diambil.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (daftar pesanan) atau 'error'.
+     */
+    public function getRecentOrders(int $limit = 5, ?string $accessToken = null): array
+    {
+        $query = sprintf(
+            '/rest/v1/orders?select=id:order_id,total_harga,customers(nama:customer_name)&order=tanggal_pesan.desc&limit=%d',
+            $limit
+        );
+
+        try {
+            $response = $this->supabaseClient->get($query, [], $accessToken);
+
+            if (isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
+                error_log('Supabase getRecentOrders error: ' . $errorMessage);
+                return ['data' => [], 'error' => $errorMessage];
+            }
+
+            // Ensure 'customers' is correctly transformed or handled if null
+            $fetchedData = array_map(function ($order) {
+                // If customers relation is null (e.g., due to a left join not finding a match, though default is inner)
+                // or if the alias customer_name is directly available.
+                // Supabase typically flattens this if the relation is singular and aliased.
+                // If 'customers' is an object/array and 'customer_name' is inside it:
+                if (isset($order['customers']) && is_array($order['customers']) && isset($order['customers']['customer_name'])) {
+                    $order['customer_name'] = $order['customers']['customer_name'];
+                    unset($order['customers']); // Clean up the nested structure
+                } elseif (isset($order['customer_name'])) {
+                    // If customer_name is already at the top level due to select alias, do nothing extra.
+                } else {
+                    // Handle cases where customer might be unexpectedly missing
+                    $order['customer_name'] = 'N/A';
+                }
+                return $order;
+            }, $response['data'] ?? []);
+
+
+            return ['data' => $fetchedData, 'error' => null];
+        } catch (\Exception $e) {
+            error_log('Exception in getRecentOrders: ' . $e->getMessage());
+            return ['data' => [], 'error' => 'Exception occurred while fetching recent orders: ' . $e->getMessage()];
+        }
+    }
+
     // Fungsi getHolidays tetap sama seperti sebelumnya
     public function getHolidays(int $year): array
     {
