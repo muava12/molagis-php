@@ -399,12 +399,12 @@ class OrdersController
         $accessToken = $_SESSION['user_token'] ?? null;
         if (!$accessToken) {
             return new Response\JsonResponse([
-                'success' => false,
+                'success' => false, 
                 'message' => 'Autentikasi diperlukan. Silakan login kembali.'
             ], 401);
         }
 
-        $deliveryIdStr = $args['deliveryId'] ?? null;
+        $deliveryIdStr = $args['id'] ?? null; // Corrected to 'id' to match route placeholder {id:\d+}
         if (!$deliveryIdStr || !is_numeric($deliveryIdStr)) {
             return new Response\JsonResponse(['success' => false, 'message' => 'Delivery ID tidak valid atau hilang.'], 400);
         }
@@ -438,13 +438,13 @@ class OrdersController
                 ], $serviceResult['status_code'] ?? 500);
             }
 
-        } catch (\Throwable $e) {
+        } catch (\Throwable $e) { 
             // This catch block is for unexpected errors in the controller logic itself,
             // or if the service method throws an exception not caught internally (though it should catch Throwables).
             error_log('Exception in OrdersController::updateDailyOrder for delivery_id ' . $deliveryId . ': ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
             return new Response\JsonResponse([
-                'success' => false,
-                'message' => 'Kesalahan internal server: ' . $e->getMessage()
+                'success' => false, 
+                'message' => 'Kesalahan internal server: ' . $e->getMessage() 
             ], 500);
         }
     }
