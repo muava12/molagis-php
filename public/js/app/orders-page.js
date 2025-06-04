@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // To switch to full reload for this form:
             // customerSearchForm.submit(); // This would be used instead of fetchAndUpdateOrdersView
             // For now, keeping AJAX as per existing structure, but ensuring params are correctly built for it.
-            const customerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
+            // const customerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
             const baseUrl = customerSearchForm.action || (window.location.origin + '/orders');
             const params = new URLSearchParams();
             params.set('view', 'by_name');
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // const formSearchByName = document.getElementById('form_search_by_name'); // Already defined as customerSearchForm
     const formSearchByOrderId = document.getElementById('form_search_by_order_id');
     const formSearchByDate = document.getElementById('form_search_by_date');
-    // const allSearchForms = [customerSearchForm, formSearchByOrderId, formSearchByDate].filter(form => form !== null);
+    const allSearchForms = [customerSearchForm, formSearchByOrderId, formSearchByDate].filter(form => form !== null);
 
     function updateSearchFormVisibility(activeTabTarget) {
         allSearchForms.forEach(form => {
