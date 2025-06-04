@@ -113,3 +113,29 @@ export function renderErrorAlert(message, containerId = 'error-container') {
     //     bsAlert.close();
     // }, 10000);
 }
+
+export function formatRupiah(amount, prefix = 'Rp. ') {
+    if (amount === null || amount === undefined || isNaN(Number(amount))) {
+        // Return empty or a placeholder if amount is not a valid number
+        return prefix + '0'; // Or return '', or prefix + '-'
+    }
+    // Round to nearest integer, then convert to string.
+    const numberString = String(Math.round(Number(amount)));
+
+    const split = numberString.split(','); // Not typical for raw numbers, but handles if passed with comma
+    const sisa = split[0].length % 3;
+    let rupiah = split[0].substr(0, sisa);
+    const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+    if (ribuan) {
+        const separator = sisa ? '.' : '';
+        rupiah += separator + ribuan.join('.');
+    }
+
+    // Handle decimal part if it exists (e.g., from "12345,67")
+    // For typical currency, we usually don't have comma decimals from backend for rupiah like this
+    // but if needed, this could be extended. For now, assuming integer or float to be rounded.
+    // rupiah = split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
+
+    return prefix + rupiah;
+}
