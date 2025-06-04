@@ -199,13 +199,6 @@
   color: var(--tblr-body-color);
 }
 
-/* .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 4px;
-}
-*/
 .badge-close-btn {
   transition: color 0.2s;
 }
@@ -254,8 +247,10 @@
 }
 
 .empty-state-card svg {
-    max-width: 250px;
-    max-height: 250px;
+    width: 250px;
+    height: 250px;
+    /* max-width: 250px;
+    max-height: 250px; */
     margin-bottom: 1rem; /* Consistent with Tabler's .mb-4 if needed, or adjust */
 }
 
