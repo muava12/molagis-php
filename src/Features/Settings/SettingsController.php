@@ -53,36 +53,44 @@ class SettingsController
     public function updateSettings(ServerRequestInterface $request): JsonResponse
     {
         $accessToken = $_SESSION['user_token'] ?? null;
-        $data = $request->getParsedBody();
+        $parsedBody = $request->getParsedBody();
         $errors = [];
+        $updatedKeys = [];
 
         try {
-            // Handle public_profile_visible separately
-            $publicProfileVisibleValue = isset($data['public_profile_visible']) ? 'true' : 'false';
-            $response = $this->settingsService->updateSetting('public_profile_visible', $publicProfileVisibleValue, $accessToken);
-            if ($response['error']) {
-                $errors['public_profile_visible'] = $response['error'];
-            }
-            // Unset to avoid double processing if it was present in $data
-            unset($data['public_profile_visible']);
-
-            foreach ($data as $key => $value) {
+            foreach ($parsedBody as $key => $value) {
                 // Ensure value is a string, as Supabase might expect string values for JSONB or text fields
                 $stringValue = is_array($value) ? json_encode($value) : (string) $value;
                 $response = $this->settingsService->updateSetting($key, $stringValue, $accessToken);
                 if ($response['error']) {
                     $errors[$key] = $response['error'];
+                } else {
+                    $updatedKeys[] = $key;
+                }
+            }
+
+            // If public_profile_visible was not in the submitted data, it means the checkbox was unchecked.
+            if (!in_array('public_profile_visible', $updatedKeys) && !isset($parsedBody['public_profile_visible'])) {
+                $response = $this->settingsService->updateSetting('public_profile_visible', 'false', $accessToken);
+                if ($response['error']) {
+                    $errors['public_profile_visible'] = "Gagal memperbarui visibilitas profil publik: " . $response['error'];
                 }
             }
 
             if (!empty($errors)) {
                 $errorMessages = [];
                 foreach ($errors as $key => $message) {
-                    $errorMessages[] = "Gagal memperbarui {$key}: {$message}";
+                    // Use the message directly if it's already descriptive (like the one from public_profile_visible error)
+                    // Otherwise, formulate a generic one.
+                    if (strpos($message, "Gagal memperbarui {$key}") === false && $key !== 'public_profile_visible') {
+                         $errorMessages[] = "Gagal memperbarui {$key}: {$message}";
+                    } else {
+                        $errorMessages[] = $message;
+                    }
                 }
                 return new JsonResponse([
                     'success' => false,
-                    'message' => implode(', ', $errorMessages)
+                    'message' => implode('; ', $errorMessages)
                 ], 400);
             }
 

@@ -117,7 +117,7 @@
 							<div class="card-footer bg-transparent mt-auto">
 								<div class="btn-list justify-content-end">
 									<a href="/dashboard" class="btn btn-1">Batal</a>
-									<button type="submit" form="settings-form" class="btn btn-primary btn-2">Simpan</button>
+									<button type="submit" form="settings-form" class="btn btn-primary btn-2" id="save-settings-btn">Simpan</button>
 								</div>
 							</div>
 						</form>
@@ -128,12 +128,59 @@
 	</div>
 	<!-- END PAGE BODY -->
 
+	<!-- Toast Container -->
+	<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+		<div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+			<div class="toast-header">
+				<strong class="me-auto" id="toastTitle">Notification</strong>
+				<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+			</div>
+			<div class="toast-body" id="toastBody">
+				<!-- Message will be inserted here -->
+			</div>
+		</div>
+	</div>
+
 	<script>
+	function showToast(message, type = 'success') {
+		const toastElement = document.getElementById('liveToast');
+		const toastTitleElement = document.getElementById('toastTitle');
+		const toastBodyElement = document.getElementById('toastBody');
+
+		if (!toastElement || !toastTitleElement || !toastBodyElement) {
+			console.error('Toast elements not found. Falling back to alert.');
+			alert(message); // Fallback if toast HTML is missing
+			return;
+		}
+
+		toastTitleElement.textContent = type === 'success' ? 'Berhasil' : 'Gagal';
+		toastBodyElement.textContent = message;
+
+		// Reset classes if you are changing backgrounds based on type
+		// For default Bootstrap styling, this might not be needed or might be handled differently.
+		// toastElement.classList.remove('bg-success', 'bg-danger', 'text-white');
+		// if (type === 'success') {
+		//     toastElement.classList.add('bg-success', 'text-white');
+		// } else if (type === 'error') {
+		//     toastElement.classList.add('bg-danger', 'text-white');
+		// }
+		// Note: Standard Bootstrap toasts don't typically color the whole toast background via these classes.
+		// Header color might be more common if customization is desired beyond default.
+
+		const toast = new bootstrap.Toast(toastElement);
+		toast.show();
+	}
+
 	document.getElementById('settings-form').addEventListener('submit', async (e) => {
 	    e.preventDefault();
 	    const form = e.target;
 	    const formData = new FormData(form);
 	    const data = Object.fromEntries(formData);
+
+	    const saveButton = document.getElementById('save-settings-btn');
+	    const originalButtonText = saveButton.innerHTML;
+	    saveButton.disabled = true;
+	    saveButton.innerHTML = 'Menyimpan... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 	
 	    try {
 	        const response = await fetch(form.action, {
@@ -147,13 +194,16 @@
 	        const result = await response.json();
 	
 	        if (result.success) {
-	            alert('Pengaturan berhasil disimpan');
+	            showToast('Pengaturan berhasil disimpan', 'success');
 	        } else {
-	            alert('Gagal menyimpan pengaturan: ' + result.message);
+	            showToast('Gagal menyimpan pengaturan: ' + (result.message || 'Tidak ada pesan error spesifik.'), 'error');
 	        }
 	    } catch (error) {
 	        console.error('Error submitting settings:', error);
-	        alert('Terjadi kesalahan saat menyimpan pengaturan');
+	        showToast('Terjadi kesalahan saat menyimpan pengaturan. Silakan coba lagi.', 'error');
+	    } finally {
+	        saveButton.disabled = false;
+	        saveButton.innerHTML = originalButtonText;
 	    }
 	});
 	</script>
