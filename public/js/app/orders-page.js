@@ -15,25 +15,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const groupingSelect = document.getElementById('grouping_select');
     const itemsPerPageSelect = document.getElementById('items_per_page_select');
 
-    function displayEmptyState(containerElement, message, messageClass = 'text-muted') {
-        const template = document.getElementById('emptyStateTemplate');
-        if (!template || !containerElement) {
-            console.error('Empty state template or container not found.');
-            if (containerElement) containerElement.innerHTML = `<p class="${messageClass}">${message}</p>`; // Fallback
-            return;
-        }
-        const clone = template.cloneNode(true);
-        clone.removeAttribute('id'); // Remove ID from clone
-        clone.style.display = ''; // Make it visible
-
-        const messageEl = clone.querySelector('.empty-state-message');
-        if (messageEl) {
-            messageEl.textContent = message;
-            messageEl.className = `empty-state-message ${messageClass}`; // Apply custom class for message
-        }
-        containerElement.innerHTML = ''; // Clear previous content
-        containerElement.appendChild(clone);
-    }
 
     // Function to update the batch delete toast based on the active tab
     function updateBatchDeleteToast() {
@@ -337,12 +318,12 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                         `;
                     } else {
-                        displayEmptyState(orderIdSearchResultsContainer, data.message || 'Order tidak ditemukan atau terjadi kesalahan.', 'text-warning');
+                        orderIdSearchResultsContainer.innerHTML = `<p class="text-warning">${data.message || 'Order not found or error fetching data.'}</p>`;
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching order by ID:', error);
-                    displayEmptyState(orderIdSearchResultsContainer, `Error: ${error.message}`, 'text-danger');
+                    orderIdSearchResultsContainer.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
                 });
         });
     }
@@ -390,24 +371,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success && data.deliveries) {
+                        let html = '<table class="table table-vcenter card-table table-selectable">';
+                        html += `
+                            <thead>
+                                <tr>
+                                    <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
+                                    <th>Tanggal</th>
+                                    <th>Customer</th>
+                                    <th>Order ID</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                        <tbody>`;
+
                         if (data.deliveries.length === 0) {
-                            displayEmptyState(deliveryDateSearchResultsContainer, data.message || 'Tidak ada pengiriman yang ditemukan untuk tanggal ini.', 'text-center text-muted');
+                            html += '<tr><td colspan="8" class="text-center">No deliveries found for this date.</td></tr>';
                         } else {
-                            let html = '<table class="table table-vcenter card-table table-selectable">';
-                            html += `
-                                <thead>
-                                    <tr>
-                                        <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
-                                        <th>Tanggal</th>
-                                        <th>Customer</th>
-                                        <th>Order ID</th>
-                                        <th>Items</th>
-                                        <th>Total</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                            <tbody>`;
                             data.deliveries.forEach(delivery => {
                                 let itemsHtml = '';
                                 if (delivery.orderdetails && delivery.orderdetails.length > 0) {
@@ -449,14 +431,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                         html += '</tbody></table>';
                         deliveryDateSearchResultsContainer.innerHTML = html;
-                        }
-                    } else { // Handles data.success === false or data.deliveries is undefined/null
-                        displayEmptyState(deliveryDateSearchResultsContainer, data.message || 'Gagal mengambil data pengiriman.', 'text-warning text-center');
+                    } else {
+                        deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching deliveries by date:', error);
-                    displayEmptyState(deliveryDateSearchResultsContainer, `Error: ${error.message}`, 'text-danger text-center');
+                    deliveryDateSearchResultsContainer.innerHTML = `<p class="text-danger text-center">Error: ${error.message}</p>`;
                 });
         });
     }
