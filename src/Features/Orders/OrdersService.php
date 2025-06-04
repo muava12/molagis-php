@@ -250,7 +250,7 @@ class OrdersService
             // Construct the endpoint for Supabase REST API
             // This assumes 'delivery_dates' is the table and 'customer_id' is the column.
             // The 'select=count' will make Supabase return just the count.
-            $endpoint = "/rest/v1/delivery_dates?select=count&customer_id=eq.{$customerId}";
+            $endpoint = "/rest/v1/deliverydates?select=*,orders!inner(customer_id)&orders.customer_id=eq.{$customerId}";
 
             // Make the GET request using the custom SupabaseClient
             $response = $this->supabaseClient->get($endpoint, [], $accessToken);
@@ -261,19 +261,15 @@ class OrdersService
                 return ['count' => 0, 'error' => $response['error']];
             }
 
-            // Extract the count
-            // Supabase with `select=count` returns an array with a single object like: [{"count": 123}]
-            if (isset($response['data'][0]['count'])) {
-                return ['count' => (int)$response['data'][0]['count'], 'error' => null];
+            // The response['data'] will be an array of deliverydate records.
+            // The count of these records is the number of deliveries for the customer.
+            if (isset($response['data']) && is_array($response['data'])) {
+                return ['count' => count($response['data']), 'error' => null];
             } else {
-                // This case might occur if the customer_id doesn't exist, Supabase might return an empty array
-                // or if the response format is unexpected.
-                // If customer_id not found leads to empty data array, count is 0.
-                if (empty($response['data'])) {
-                    return ['count' => 0, 'error' => null]; // No records found means count is 0
-                }
-                error_log("Unexpected response format in getDeliveriesCountByCustomerId: " . json_encode($response['data']));
-                return ['count' => 0, 'error' => 'Unexpected response format when fetching count.'];
+                // This case should ideally not be reached if SupabaseClient normalizes errors.
+                // If $response['data'] is not an array or not set, but no error was flagged.
+                error_log("Unexpected response data structure in getDeliveriesCountByCustomerId: " . json_encode($response));
+                return ['count' => 0, 'error' => 'Unexpected data structure when fetching count.'];
             }
         } catch (\Exception $e) {
             error_log("Generic exception in getDeliveriesCountByCustomerId: " . $e->getMessage());
