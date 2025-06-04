@@ -20,77 +20,107 @@
 					<div class="col-12 col-md-3 border-end">
 						<div class="card-body">
 							<h4 class="subheader">Pengaturan Bisnis</h4>
-							<div class="list-group list-group-transparent">
-								<a href="/settings" class="list-group-item list-group-item-action d-flex align-items-center active">Akun Saya</a>
-								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Notifikasi Saya</a>
-								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Aplikasi Terhubung</a>
-								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Paket</a>
-								<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">Tagihan & Faktur</a>
+							<div class="list-group list-group-transparent" id="settings-tabs">
+								<a href="#akun-saya-tab" class="list-group-item list-group-item-action d-flex align-items-center active" data-bs-toggle="tab">Akun Saya</a>
+								<a href="#notifikasi-saya-tab" class="list-group-item list-group-item-action d-flex align-items-center" data-bs-toggle="tab">Notifikasi Saya</a>
+								<a href="#visibilitas-akses-tab" class="list-group-item list-group-item-action d-flex align-items-center" data-bs-toggle="tab">Visibilitas & Akses</a>
+								<a href="#paket-tab" class="list-group-item list-group-item-action d-flex align-items-center" data-bs-toggle="tab">Paket</a>
+								<a href="#tagihan-tab" class="list-group-item list-group-item-action d-flex align-items-center" data-bs-toggle="tab">Tagihan & Faktur</a>
 							</div>
 							<h4 class="subheader mt-4">Pengalaman</h4>
 							<div class="list-group list-group-transparent">
-								<a href="#" class="list-group-item list-group-item-action">Beri Umpan Balik</a>
+								<a href="#umpan-balik-tab" class="list-group-item list-group-item-action" data-bs-toggle="tab">Beri Umpan Balik</a>
 							</div>
 						</div>
 					</div>
 					<div class="col-12 col-md-9 d-flex flex-column">
-						<div class="card-body">
-							<h2 class="mb-4">Akun Saya</h2>
-							{% if error %}
-								<div class="alert alert-danger" role="alert">
-									{{ error }}
-								</div>
-							{% endif %}
-							<form id="settings-form" action="/api/settings/update" method="post">
-								<h3 class="card-title">Profil Bisnis</h3>
-								<div class="row g-3">
-									<div class="col-md">
-										<div class="form-label">Nama Bisnis</div>
-										<input type="text" name="business_name" class="form-control" value="{{ business_name }}">
+						<form id="settings-form" action="/api/settings/update" method="post" class="d-flex flex-column flex-grow-1">
+							<div class="card-body flex-grow-1">
+								{% if error %}
+									<div class="alert alert-danger" role="alert">
+										{{ error }}
 									</div>
-									<div class="col-md">
-										<div class="form-label">Kurir Default</div>
-										<select name="default_courier" class="form-select">
-											<option value="">Pilih Kurir</option>
-											{% for courier in active_couriers %}
-												<option value="{{ courier.id }}" {{ courier.id == default_courier ? 'selected' : '' }}>{{ courier.nama }}</option>
-											{% endfor %}
-										</select>
-									</div>
-									<div class="col-md">
-										<div class="form-label">Ongkir Default (Rp)</div>
-										<input type="number" name="default_shipping_cost" class="form-control" value="{{ default_shipping_cost }}">
-									</div>
-								</div>
-								<h3 class="card-title mt-4">Email Notifikasi</h3>
-								<p class="card-subtitle">Email ini akan digunakan untuk menerima notifikasi sistem.</p>
-								<div>
-									<div class="row g-2">
-										<div class="col-auto">
-											<input type="email" name="notification_email" class="form-control w-auto" value="{{ notification_email }}">
-										</div>
-										<div class="col-auto">
-											<button type="button" class="btn btn-1">Ubah</button>
+								{% endif %}
+								<div class="tab-content" id="settings-tab-content">
+									<!-- Akun Saya Tab -->
+									<div class="tab-pane fade show active" id="akun-saya-tab" role="tabpanel" aria-labelledby="akun-saya-nav">
+										<h2 class="mb-4">Akun Saya</h2>
+										<h3 class="card-title">Profil Bisnis</h3>
+										<div class="row g-3">
+											<div class="col-md">
+												<div class="form-label">Nama Bisnis</div>
+												<input type="text" name="business_name" class="form-control" value="{{ settingsMap.business_name | default('') }}">
+											</div>
+											<div class="col-md">
+												<div class="form-label">Kurir Default</div>
+												<select name="default_courier" class="form-select">
+													<option value="">Pilih Kurir</option>
+													{% for courier in active_couriers %}
+														<option value="{{ courier.id }}" {{ courier.id == settingsMap.default_courier ? 'selected' : '' }}>{{ courier.nama }}</option>
+													{% endfor %}
+												</select>
+											</div>
+											<div class="col-md">
+												<div class="form-label">Ongkir Default (Rp)</div>
+												<input type="number" name="default_shipping_cost" class="form-control" value="{{ settingsMap.default_shipping_cost | default('5000') }}">
+											</div>
 										</div>
 									</div>
+
+									<!-- Notifikasi Saya Tab -->
+									<div class="tab-pane fade" id="notifikasi-saya-tab" role="tabpanel" aria-labelledby="notifikasi-saya-nav">
+										<h2 class="mb-4">Notifikasi Saya</h2>
+										<h3 class="card-title">Email Notifikasi</h3>
+										<p class="card-subtitle">Email ini akan digunakan untuk menerima notifikasi sistem.</p>
+										<div>
+											<div class="row g-2">
+												<div class="col-auto">
+													<input type="email" name="notification_email" class="form-control w-auto" value="{{ settingsMap.notification_email | default(userEmail) }}">
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Visibilitas & Akses Tab -->
+									<div class="tab-pane fade" id="visibilitas-akses-tab" role="tabpanel" aria-labelledby="visibilitas-akses-nav">
+										<h2 class="mb-4">Visibilitas & Akses</h2>
+										<h3 class="card-title">Visibilitas Profil Publik</h3>
+										<p class="card-subtitle">Mengaktifkan profil publik memungkinkan orang lain di jaringan melihat bisnis Anda.</p>
+										<div>
+											<label class="form-check form-switch form-switch-lg">
+												<input class="form-check-input" type="checkbox" name="public_profile_visible" {{ settingsMap.public_profile_visible == 'true' ? 'checked' : '' }}>
+												<span class="form-check-label form-check-label-on">Anda saat ini terlihat</span>
+												<span class="form-check-label form-check-label-off">Anda saat ini tidak terlihat</span>
+											</label>
+										</div>
+									</div>
+
+									<!-- Paket Tab -->
+									<div class="tab-pane fade" id="paket-tab" role="tabpanel" aria-labelledby="paket-nav">
+										<h2 class="mb-4">Paket</h2>
+										<p>Pengaturan Paket belum tersedia.</p>
+									</div>
+
+									<!-- Tagihan & Faktur Tab -->
+									<div class="tab-pane fade" id="tagihan-tab" role="tabpanel" aria-labelledby="tagihan-nav">
+										<h2 class="mb-4">Tagihan & Faktur</h2>
+										<p>Pengaturan Tagihan & Faktur belum tersedia.</p>
+									</div>
+
+									<!-- Beri Umpan Balik Tab -->
+									<div class="tab-pane fade" id="umpan-balik-tab" role="tabpanel" aria-labelledby="umpan-balik-nav">
+										<h2 class="mb-4">Beri Umpan Balik</h2>
+										<p>Fitur Beri Umpan Balik belum tersedia.</p>
+									</div>
 								</div>
-								<h3 class="card-title mt-4">Visibilitas Profil Publik</h3>
-								<p class="card-subtitle">Mengaktifkan profil publik memungkinkan orang lain di jaringan melihat bisnis Anda.</p>
-								<div>
-									<label class="form-check form-switch form-switch-lg">
-										<input class="form-check-input" type="checkbox" name="public_profile_visible" {{ public_profile_visible ? 'checked' : '' }}>
-										<span class="form-check-label form-check-label-on">Anda saat ini terlihat</span>
-										<span class="form-check-label form-check-label-off">Anda saat ini tidak terlihat</span>
-									</label>
-								</div>
-							</form>
-						</div>
-						<div class="card-footer bg-transparent mt-auto">
-							<div class="btn-list justify-content-end">
-								<a href="/dashboard" class="btn btn-1">Batal</a>
-								<button type="submit" form="settings-form" class="btn btn-primary btn-2">Simpan</button>
 							</div>
-						</div>
+							<div class="card-footer bg-transparent mt-auto">
+								<div class="btn-list justify-content-end">
+									<a href="/dashboard" class="btn btn-1">Batal</a>
+									<button type="submit" form="settings-form" class="btn btn-primary btn-2">Simpan</button>
+								</div>
+							</div>
+						</form>
 					</div>
 				</div>
 			</div>
@@ -98,7 +128,7 @@
 	</div>
 	<!-- END PAGE BODY -->
 
-	 <script>
+	<script>
 	document.getElementById('settings-form').addEventListener('submit', async (e) => {
 	    e.preventDefault();
 	    const form = e.target;

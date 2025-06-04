@@ -41,11 +41,8 @@ class SettingsController
             $this->twig->render('settings.html.twig', [
                 'title' => 'Pengaturan',
                 'active_couriers' => $couriers,
-                'default_courier' => $settingsMap['default_courier'] ?? '',
-                'business_name' => $settingsMap['business_name'] ?? '',
-                'default_shipping_cost' => $settingsMap['default_shipping_cost'] ?? '5000',
-                'notification_email' => $settingsMap['notification_email'] ?? $userEmail,
-                'public_profile_visible' => filter_var($settingsMap['public_profile_visible'] ?? 'false', FILTER_VALIDATE_BOOLEAN),
+                'settingsMap' => $settingsMap,
+                'userEmail' => $userEmail, // Pass userEmail separately as it might be used as a default
                 'error' => $settingsResponse['error'] ?? null,
             ])
         );
@@ -57,26 +54,36 @@ class SettingsController
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $data = $request->getParsedBody();
+        $errors = [];
 
         try {
-            $updates = [
-                'default_courier' => $data['default_courier'] ?? null,
-                'business_name' => $data['business_name'] ?? null,
-                'default_shipping_cost' => $data['default_shipping_cost'] ?? null,
-                'notification_email' => $data['notification_email'] ?? null,
-                'public_profile_visible' => isset($data['public_profile_visible']) ? 'true' : 'false',
-            ];
+            // Handle public_profile_visible separately
+            $publicProfileVisibleValue = isset($data['public_profile_visible']) ? 'true' : 'false';
+            $response = $this->settingsService->updateSetting('public_profile_visible', $publicProfileVisibleValue, $accessToken);
+            if ($response['error']) {
+                $errors['public_profile_visible'] = $response['error'];
+            }
+            // Unset to avoid double processing if it was present in $data
+            unset($data['public_profile_visible']);
 
-            foreach ($updates as $key => $value) {
-                if ($value !== null) {
-                    $response = $this->settingsService->updateSetting($key, $value, $accessToken);
-                    if ($response['error']) {
-                        return new JsonResponse([
-                            'success' => false,
-                            'message' => "Gagal memperbarui {$key}: " . $response['error']
-                        ], 400);
-                    }
+            foreach ($data as $key => $value) {
+                // Ensure value is a string, as Supabase might expect string values for JSONB or text fields
+                $stringValue = is_array($value) ? json_encode($value) : (string) $value;
+                $response = $this->settingsService->updateSetting($key, $stringValue, $accessToken);
+                if ($response['error']) {
+                    $errors[$key] = $response['error'];
                 }
+            }
+
+            if (!empty($errors)) {
+                $errorMessages = [];
+                foreach ($errors as $key => $message) {
+                    $errorMessages[] = "Gagal memperbarui {$key}: {$message}";
+                }
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => implode(', ', $errorMessages)
+                ], 400);
             }
 
             return new JsonResponse([
