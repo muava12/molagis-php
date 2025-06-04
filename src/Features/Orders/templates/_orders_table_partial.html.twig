@@ -1,5 +1,5 @@
 {% if selected_customer_id %}
-    <h3 class="card-title mt-4 mb-2">Pesanan - <strong>{{ selected_customer_name | default('Pelanggan Terpilih') }}</strong></h3>
+    <h3 class="card-title mt-4 mb-2">Rincian Pesanan</h3>
 
     {% if current_grouping == 'order_id' %}
         {% if grouped_deliveries is not empty %}
