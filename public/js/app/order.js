@@ -13,7 +13,7 @@ import {
     isSameMonth,
 } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 import { id } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale/+esm';
-import { showGlobalToast } from './utils.js';
+import { showToast } from './utils.js';
 import autosize from '../autosize.esm.js';
 
 const selectedDates = new Set();
@@ -62,7 +62,7 @@ async function initialize() {
         autosize(document.querySelectorAll('textarea'));
     } catch (error) {
         console.error('Initialization error:', error);
-        showGlobalToast('Error', 'Gagal memuat data awal: ' + error.message, 'error');
+        showToast('Error', 'Gagal memuat data awal: ' + error.message, 'error');
     }
 }
 
@@ -71,7 +71,7 @@ async function initializeCalendar() {
         await renderCalendar(displayedYear, displayedMonth);
     } catch (error) {
         console.error('Failed to initialize calendar:', error);
-        showGlobalToast('Error', 'Gagal memuat kalender', 'error');
+        showToast('Error', 'Gagal memuat kalender', 'error');
     }
 }
 
@@ -79,7 +79,7 @@ async function renderCalendar(year, month) {
     try {
         if (!calendarDays) {
             console.error('calendar-days element not found');
-            showGlobalToast('Error', 'Elemen kalender tidak ditemukan', 'error');
+            showToast('Error', 'Elemen kalender tidak ditemukan', 'error');
             return;
         }
         const displayedMonth = new Date(year, month, 1);
@@ -135,7 +135,7 @@ async function renderCalendar(year, month) {
         });
     } catch (error) {
         console.error('Failed to render calendar:', error);
-        showGlobalToast('Error', 'Gagal merender kalender: ' + error.message, 'error');
+        showToast('Error', 'Gagal merender kalender: ' + error.message, 'error');
     }
 }
 
@@ -294,7 +294,7 @@ async function fetchHolidayDates(year) {
         return holidays;
     } catch (error) {
         console.error('Failed to fetch holidays:', error);
-        showGlobalToast('Error', 'Gagal memuat data hari libur. Pastikan koneksi internet stabil.', 'error');
+        showToast('Error', 'Gagal memuat data hari libur. Pastikan koneksi internet stabil.', 'error');
         return [];
     }
 }
@@ -308,7 +308,7 @@ async function fetchCustomers() {
         displayCustomerSuggestions(response);
     } catch (error) {
         console.error('Failed to fetch customers:', error);
-        showGlobalToast('Error', 'Gagal memuat daftar pelanggan: ' + error.message, 'error');
+        showToast('Error', 'Gagal memuat daftar pelanggan: ' + error.message, 'error');
     }
 }
 
@@ -373,7 +373,7 @@ async function fetchPackages() {
         updatePackageSelect();
     } catch (error) {
         console.error('Failed to fetch packages:', error);
-        showGlobalToast('Error', 'Gagal memuat daftar paket makanan', 'error');
+        showToast('Error', 'Gagal memuat daftar paket makanan', 'error');
     }
 }
 
@@ -425,7 +425,7 @@ function setupAddRemovePackageHandlers() {
 
     addPackageBtn.addEventListener('click', () => {
         if (document.querySelectorAll('.package-list').length >= 5) {
-            showGlobalToast('Error', 'Maksimum 5 paket dapat ditambahkan.', 'error');
+            showToast('Error', 'Maksimum 5 paket dapat ditambahkan.', 'error');
             return;
         }
         const newList = document.createElement('div');
@@ -575,7 +575,7 @@ async function submitOrder(e) {
         displayConfirmationModal(formData);
     } catch (error) {
         console.error('Submit order error:', error);
-        showGlobalToast('Error', error.message, 'error');
+        showToast('Error', error.message, 'error');
     }
 }
 
@@ -751,10 +751,10 @@ function displayConfirmationModal(order) {
 
             // Reset form dan tampilkan toast sukses
             resetForm();
-            showGlobalToast('Sukses', 'Pesanan berhasil disimpan'); // Default type 'success'
+            showToast('Sukses', 'Pesanan berhasil disimpan'); // Default type 'success'
         } catch (error) {
             console.error('Confirm order error:', error);
-            showGlobalToast('Error', 'Gagal menyimpan pesanan: ' + error.message, 'error');
+            showToast('Error', 'Gagal menyimpan pesanan: ' + error.message, 'error');
             modal.hide();
         } finally {
             confirmBtn.classList.remove('btn-loading','disabled');

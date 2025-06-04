@@ -31,7 +31,7 @@ function initializeBatchDeleteToast() {
             const activePane = document.querySelector('.tab-pane.active');
             if (!activePane) {
                 console.warn('No active tab pane found for batch delete.');
-                if (window.showGlobalToast) window.showGlobalToast('Error', 'Cannot determine active tab for batch delete.', 'error');
+                if (window.showToast) window.showToast('Error', 'Cannot determine active tab for batch delete.', 'error');
                 else alert('Cannot determine active tab for batch delete.');
                 return;
             }
@@ -42,7 +42,7 @@ function initializeBatchDeleteToast() {
 
             if (!activeTableContainer) {
                 console.warn('No active table container found within the active pane.');
-                if (window.showGlobalToast) window.showGlobalToast('Error', 'Cannot find table in active tab for batch delete.', 'error');
+                if (window.showToast) window.showToast('Error', 'Cannot find table in active tab for batch delete.', 'error');
                 else alert('Cannot find table in active tab for batch delete.');
                 return;
             }
@@ -99,11 +99,11 @@ function initializeBatchDeleteToast() {
                         console.warn("Fallback delete: Could not find active table container to update UI post-delete. A page reload might be needed.");
                     }
                     if (window.batchDeleteToast?.hide) window.batchDeleteToast.hide();
-                    if (window.showGlobalToast) window.showGlobalToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted.`, 'success');
+                    if (window.showToast) window.showToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted.`, 'success');
                     else alert(data.message || `${successfullyDeletedIds.length} item(s) deleted.`);
                 })
                 .catch(error => {
-                    if (window.showGlobalToast) window.showGlobalToast('Error', error.message || 'Batch delete failed.', 'error');
+                    if (window.showToast) window.showToast('Error', error.message || 'Batch delete failed.', 'error');
                     else alert(error.message || 'Batch delete failed.');
                 });
                 return; // End of fallback logic
@@ -161,16 +161,16 @@ function initializeBatchDeleteToast() {
                     if (typeof window.batchDeleteToast !== 'undefined' && window.batchDeleteToast.hide) {
                         window.batchDeleteToast.hide();
                     }
-                    if (typeof window.showGlobalToast === 'function') {
-                        window.showGlobalToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`, 'success');
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`, 'success');
                     } else {
                         alert(data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`);
                     }
                 })
                 .catch(error => {
                     console.error('Error during batch delete:', error);
-                    if (typeof window.showGlobalToast === 'function') {
-                        window.showGlobalToast('Error', error.message || 'An error occurred while deleting items.', 'error');
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Error', error.message || 'An error occurred while deleting items.', 'error');
                     } else {
                         alert(error.message || 'An error occurred while deleting items.');
                     }
