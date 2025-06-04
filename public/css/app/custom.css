@@ -243,3 +243,27 @@
 .modal-close:hover svg {
   transform:rotate(90deg)
 }
+
+/* Empty State Styling */
+.empty-state-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px; /* Adjust as needed, works with py-5 for overall height */
+}
+
+.empty-state-card svg {
+    max-width: 100px;
+    max-height: 100px;
+    margin-bottom: 1rem; /* Consistent with Tabler's .mb-4 if needed, or adjust */
+}
+
+/* The <p> tag for the message typically has .mt-3 (margin-top: 1rem) from the templates.
+   Color can be controlled by adding .text-muted to the <p> tag in the Twig/JS,
+   or by uncommenting and setting a color property here: */
+/*
+.empty-state-card p {
+    color: var(--tblr-secondary);
+}
+*/
