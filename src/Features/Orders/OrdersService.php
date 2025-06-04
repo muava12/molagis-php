@@ -647,7 +647,7 @@ class OrdersService
     {
         // Fetch orders with their delivery dates.
         // Request delivery dates to be ordered by tanggal.desc directly in the query.
-        $selectFields = 'id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates!inner(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)),order=tanggal.desc)';
+        $selectFields = 'id,tanggal_pesan,total_harga,metode_pembayaran,notes,customers(nama),deliverydates!inner(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)),order=tanggal.desc)';
 
         $query = sprintf(
             '/rest/v1/orders?customer_id=eq.%d&select=%s&order=tanggal_pesan.desc&limit=%d&offset=%d',
