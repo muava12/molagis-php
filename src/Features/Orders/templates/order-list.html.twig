@@ -173,7 +173,10 @@
                   {% endif %}
                 {% endfor %}
               {% elseif order_id_query_value and orders_by_id_result is empty and view == 'by_order_id' %}
-                 <p class="text-warning">Order dengan ID tersebut tidak ditemukan.</p>
+                <div class="text-center py-4">
+                    {% include '@Shared/svg/bird.svg.twig' with {'width': '100', 'height': '100', 'class': 'mb-3 text-muted'} %}
+                    <p class="text-warning">Order dengan ID tersebut tidak ditemukan.</p>
+                </div>
               {% endif %}
             </div>
           </div>
@@ -191,6 +194,13 @@
       </div>
     </div>
   </div>
+</div>
+
+<div id="emptyStateTemplate" style="display: none;">
+    <div class="text-center py-4">
+        {% include '@Shared/svg/bird.svg.twig' with {'width': '100', 'height': '100', 'class': 'mb-3 text-muted'} %}
+        <p class="empty-state-message text-muted"></p> {# Message will be set by JavaScript #}
+    </div>
 </div>
 
 {% include 'confirmation-modal.html.twig' with {
