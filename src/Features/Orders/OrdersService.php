@@ -493,27 +493,21 @@ class OrdersService
             ];
         }
 
-        // 2. Call the RPC function
-        $rpcParams = [
-            'p_delivery_id' => $deliveryId,
-            'request' => $rpcRequestPayload // Supabase PHP client will handle array to JSON conversion
-        ];
+        // 2. Call the updateDailyOrderRpc method
+        $rpcServiceResult = $this->updateDailyOrderRpc($deliveryId, $rpcRequestPayload, $accessToken);
 
-        $rpcResponse = $this->supabaseClient->rpc('update_daily_order', $rpcParams, [], $accessToken);
-
-        // The RPC RETURNS VOID, so a successful response might have no data or an empty array.
-        // The key is to check for an error.
-        if (isset($rpcResponse['error'])) {
-            // Detailed error from Supabase/PostgREST, potentially including DB trigger errors
-            $dbErrorMessage = is_array($rpcResponse['error']) ? json_encode($rpcResponse['error']) : (string)$rpcResponse['error'];
-            error_log("Supabase RPC 'update_daily_order' error for delivery_id {$deliveryId}: " . $dbErrorMessage);
-            // Try to extract a user-friendly message if possible, otherwise generic
-            $clientMessage = "Database error during update: " . (is_array($rpcResponse['error']) ? ($rpcResponse['error']['message'] ?? 'Details in log') : $dbErrorMessage);
-            if (strlen($clientMessage) > 200) $clientMessage = "An error occurred while saving changes to the database."; // Keep it concise
-            throw new \Exception($clientMessage);
+        // 3. Handle Result from updateDailyOrderRpc
+        if (!$rpcServiceResult['success']) {
+            // The error message and status_code from updateDailyOrderRpc are already logged by that method.
+            // We return them directly for the controller to use.
+            return [
+                'success' => false,
+                'error' => $rpcServiceResult['error'] ?? 'RPC call failed within service.',
+                'status_code' => $rpcServiceResult['status_code'] ?? 500
+            ];
         }
 
-        // 3. Update the parent orders.total_harga (if RPC was successful)
+        // 4. Update the parent orders.total_harga (if RPC was successful)
         // This logic remains similar to before, relying on triggers having updated deliverydates.total_harga_perhari
         if ($orderId) {
             $allDeliveriesForOrderQuery = sprintf(
@@ -541,16 +535,78 @@ class OrdersService
         } else {
             error_log("No order_id found for delivery_id {$deliveryId}, cannot update parent order total.");
         }
-
-        return ['success' => true, 'message' => 'Delivery details updated successfully via RPC.'];
+        // Use message from rpcServiceResult if available, otherwise a default.
+        return ['success' => true, 'message' => $rpcServiceResult['message'] ?? 'Delivery details updated successfully.'];
 
     } catch (\Exception $e) {
-        // Log the full error for debugging
-        error_log("Error in updateDeliveryAndOrderDetails (RPC approach) for delivery ID {$deliveryId}: " . $e->getMessage() . " - Trace: " . $e->getTraceAsString());
-
-        // Provide a user-friendly error message
-        // $e->getMessage() might already be user-friendly if thrown from RPC error handling.
-        return ['success' => false, 'error' => $e->getMessage(), 'status_code' => 500];
+        // This catch block now primarily catches errors from pre-RPC (order_id fetch) or post-RPC logic (order total update)
+        // within this method, as updateDailyOrderRpc has its own try-catch for the RPC call itself.
+        error_log("Exception in updateDeliveryAndOrderDetails for delivery ID {$deliveryId}: " . $e->getMessage() . " - Trace: " . $e->getTraceAsString());
+        return ['success' => false, 'error' => 'Service error: ' . $e->getMessage(), 'status_code' => 500];
     }
+    }
+
+    /**
+     * Calls the 'update_daily_order' Supabase RPC function.
+     *
+     * @param int $deliveryId The ID of the delivery (p_delivery_id).
+     * @param array $requestData The request payload (JSONB for the RPC).
+     * @param string $accessToken The user's Supabase JWT.
+     * @return array An array indicating the result, e.g., ['success' => true] or ['success' => false, 'error' => 'message'].
+     */
+    public function updateDailyOrderRpc(int $deliveryId, array $requestData, string $accessToken): array
+    {
+        if (empty($requestData)) {
+            // Optional: Add more specific validation for requestData structure if desired at service level
+            return ['success' => false, 'error' => 'Request data cannot be empty.', 'status_code' => 400];
+        }
+
+        try {
+            $rpcResult = $this->supabaseClient->rpc(
+                'update_daily_order',
+                [
+                    'p_delivery_id' => $deliveryId,
+                    'request' => $requestData
+                ],
+                [], // options for the rpc call via client, if any
+                $accessToken
+            );
+
+            // Check the structure of $rpcResult based on your SupabaseClient implementation.
+            // Assumes 'error' key indicates failure.
+            if (!empty($rpcResult['error'])) {
+                $errorMessage = 'Supabase RPC update_daily_order failed.';
+                $supError = $rpcResult['error'];
+                // Use status from $rpcResult if available and numeric, otherwise default.
+                // If $rpcResult['status'] is from Supabase, it might be a string error code or HTTP status.
+                // We are aiming for an HTTP status code for our own response.
+                $statusCode = (isset($rpcResult['status']) && is_int($rpcResult['status']) && $rpcResult['status'] >= 400) ? $rpcResult['status'] : 500;
+
+
+                if (is_array($supError) && isset($supError['message'])) {
+                    $errorMessage .= ' Details: ' . $supError['message'];
+                    // Example: '23505' for unique violation. This mapping can be complex.
+                    // if (isset($supError['code']) && $supError['code'] === '23505') $statusCode = 409; // Conflict
+                } elseif (is_string($supError)) {
+                    $errorMessage .= ' Details: ' . $supError;
+                }
+
+                error_log('Supabase RPC update_daily_order error for delivery_id ' . $deliveryId . ': ' . json_encode($supError));
+                return ['success' => false, 'error' => $errorMessage, 'status_code' => $statusCode];
+            }
+
+            // If the RPC function is VOID and there's no error, it's a success.
+            // $rpcResult['data'] might be null or an empty array.
+            // Supabase PHP client often returns null for data on VOID RPC success.
+            // If status is available and it's 204, that's also a good sign.
+            // $isSuccessStatus = isset($rpcResult['status']) && in_array($rpcResult['status'], [200, 204]);
+            // For now, absence of 'error' key is the primary success indicator.
+            return ['success' => true, 'message' => 'Order updated successfully via service.'];
+
+        } catch (\Throwable $e) {
+            error_log('Exception in OrdersService::updateDailyOrderRpc for delivery_id ' . $deliveryId . ': ' . $e->getMessage());
+            // Return a generic error structure, the controller can decide the final HTTP status.
+            return ['success' => false, 'error' => 'Internal service error: ' . $e->getMessage(), 'status_code' => 500];
+        }
     }
 }

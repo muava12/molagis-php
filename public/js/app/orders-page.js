@@ -1010,20 +1010,20 @@ document.addEventListener('DOMContentLoaded', function () {
             submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
             const modalElement = document.getElementById('editOrderModal');
-            const deliveryId = modalElement.getAttribute('data-current-delivery-id');
+            const deliveryIdStr = modalElement.getAttribute('data-current-delivery-id');
 
-            if (!deliveryId) {
+            if (!deliveryIdStr) {
                 console.error('Delivery ID not found on modal for submission.');
                 if(window.showGlobalToast) window.showGlobalToast('Error', 'Cannot save: Delivery ID missing.', 'error');
                 submitButton.disabled = false;
                 submitButton.innerHTML = originalButtonText;
                 return;
             }
+            const deliveryId = parseInt(deliveryIdStr); // Ensure deliveryId is an integer
 
             const formData = gatherEditModalFormData();
 
             // Simple client-side validation: ensure at least one package item if that's a rule
-            // More complex validation (e.g., date format, required fields) can be added here or is expected from server.
             if (formData.package_items.length === 0) {
                  if(window.showGlobalToast) window.showGlobalToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
                  const errorDisplayElement = document.getElementById('edit-modal-error-display');
@@ -1036,31 +1036,39 @@ document.addEventListener('DOMContentLoaded', function () {
                  return;
             }
 
+            // const rpcPayload = { // This was for direct Supabase RPC
+            //     p_delivery_id: deliveryId,
+            //     request: formData
+            // };
 
             try {
-                const response = await fetch(`/api/delivery-details/update/${deliveryId}`, {
+                // The new PHP endpoint will take deliveryId from the URL.
+                // The formData (which is the 'request' part of the RPC) will be the body.
+                const response = await fetch(`/api/delivery-details/update/${deliveryId}`, { // User Preferred PHP Endpoint
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-Requested-With': 'XMLHttpRequest', // Common header for AJAX requests
                     },
-                    body: JSON.stringify(formData),
+                    body: JSON.stringify(formData), // Send the 'request' data directly
                 });
 
-                const result = await response.json();
-                const errorDisplayElement = document.getElementById('edit-modal-error-display'); // Get it once
+                const result = await response.json(); // Expecting JSON response from our PHP backend
 
-                if (response.ok && result.success) {
+                if (response.ok && result.success) { // Check for ok status AND success flag from our PHP response
                     if(window.showGlobalToast) window.showGlobalToast('Success', result.message || 'Order updated successfully!', 'success');
+
                     const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
                     if (bootstrapModal) bootstrapModal.hide();
-                    if (errorDisplayElement) errorDisplayElement.style.display = 'none'; // Hide error on success
+                    const errorDisplayElement = document.getElementById('edit-modal-error-display');
+                    if (errorDisplayElement) errorDisplayElement.style.display = 'none';
                     refreshOrdersView();
                 } else {
-                    throw new Error(result.message || 'Failed to update order. Status: ' + response.status);
+                    // Error from our PHP backend (either non-ok status or result.success === false)
+                    throw new Error(result.message || `Failed to update order. Status: ${response.status}`);
                 }
             } catch (error) {
-                console.error('Error submitting edit order form:', error);
+                console.error('Error submitting edit order form via PHP backend:', error);
                 const errorDisplayElement = document.getElementById('edit-modal-error-display');
                 if (errorDisplayElement) {
                     errorDisplayElement.textContent = error.message;
