@@ -634,15 +634,6 @@ class OrdersService
     }
     // The updateDailyOrderRpc method was here and is now removed.
 
-    /**
-     * Mengambil data pesanan yang dikelompokkan berdasarkan pelanggan, dengan tanggal pengiriman yang terstruktur.
-     *
-     * @param int $customerId ID pelanggan.
-     * @param string|null $accessToken Token akses pengguna.
-     * @param int $limit Jumlah maksimal order utama yang diambil.
-     * @param int $offset Jumlah order utama yang dilewati.
-     * @return array Hasil yang berisi 'data' (daftar pesanan terstruktur) atau 'error'.
-     */
     public function getGroupedDeliveriesByCustomerId(int $customerId, ?string $accessToken = null, int $limit = 100, int $offset = 0): array
     {
         // Fetch orders with their delivery dates.
@@ -665,19 +656,6 @@ class OrdersService
                 error_log('Supabase getGroupedDeliveriesByCustomerId error: ' . $errorMessage);
                 return ['data' => [], 'error' => $errorMessage];
             }
-
-            // The data should already be structured with orders containing their delivery_dates.
-            // The delivery_dates within each order should already be sorted by tanggal.desc due to the select query.
-            // If Supabase's nested ordering `deliverydates(...order=tanggal.desc)` doesn't work as expected,
-            // you would need to iterate here and sort them manually in PHP:
-            // foreach ($response['data'] as &$order) {
-            //     if (isset($order['deliverydates']) && is_array($order['deliverydates'])) {
-            //         usort($order['deliverydates'], function($a, $b) {
-            //             return strcmp($b['tanggal'], $a['tanggal']); // Sort descending
-            //         });
-            //     }
-            // }
-            // unset($order); // Important to unset the reference
 
             return ['data' => $response['data'] ?? [], 'error' => null];
 
