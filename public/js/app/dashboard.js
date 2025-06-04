@@ -713,4 +713,4 @@ function initialize() {
     initOrder();
 }
 
-initialize();
+document.addEventListener('DOMContentLoaded', initialize);
