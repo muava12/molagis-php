@@ -20,10 +20,7 @@
     max-height: 200px;
     overflow-y: auto;
   }
-  .awesomplete > ul > li {
-    padding: 8px;
-    cursor: pointer;
-  }
+  
   .awesomplete > ul > li:hover,
   .awesomplete > ul > li[aria-selected="true"] {
     background: #f0f0f0;
@@ -49,6 +46,11 @@
   max-height: 200px;  /* Limit height and enable scroll */
   overflow-y: auto;   /* Enable scroll if list is long */
   /* overflow: hidden; was there, but overflow-y: auto is more specific for scrolling long lists */
+}
+
+.awesomplete > ul > li {
+  padding: 8px;
+  cursor: pointer;
 }
 
 [data-bs-theme="dark"] .awesomplete > ul {
