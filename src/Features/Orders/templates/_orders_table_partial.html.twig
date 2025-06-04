@@ -3,10 +3,10 @@
 
     {% if current_grouping == 'order_id' %}
         {% if grouped_deliveries is not empty %}
-            <div class="accordion accordion-flush" id="ordersAccordionParent"> {# Main accordion container #}
+            <div class="accordion accordion-tabs" id="ordersAccordionParent"> {# Main accordion container #}
                 {% for order_item in grouped_deliveries %}
                     <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading-order-{{ order_item.id }}">
+                        <div class="accordion-header" id="heading-order-{{ order_item.id }}">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-order-{{ order_item.id }}" aria-expanded="false" aria-controls="collapse-order-{{ order_item.id }}">
                                 <div class="flex-grow-1">
                                     <div class="fw-bold mb-1">Order ID: {{ order_item.id }}</div>
@@ -25,7 +25,7 @@
                                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M6 9l6 6l6 -6"></path></svg>
                                 </div>
                             </button>
-                        </h2>
+                        </div>
                         <div id="collapse-order-{{ order_item.id }}" class="accordion-collapse collapse" aria-labelledby="heading-order-{{ order_item.id }}" data-bs-parent="#ordersAccordionParent">
                             <div class="accordion-body">
                                 <div class="table-responsive">
