@@ -198,9 +198,9 @@
 											{% for order in recent_orders %}
 												<li class="list-group-item d-flex justify-content-between align-items-center">
 													<span>
-														{{ order.customer_name|default('Tanpa Nama') }} | ID: {{ order.order_id }}
+														{{ order.customer_name|default('Tanpa Nama') }} <span class="small text-muted">| ID: {{ order.order_id }}</span>
 													</span>
-													<span class="badge bg-primary rounded-pill">
+													<span class="badge bg-primary-lt rounded-pill"> {# Changed bg-primary to bg-primary-lt #}
 														Rp.{{ order.total_harga|number_format(0, ',', '.') }}
 													</span>
 												</li>
@@ -217,15 +217,15 @@
 										<ul class="list-group list-group-flush">
 											<li class="list-group-item d-flex justify-content-between align-items-center">
 												Total Pesanan:
-												<span class="badge bg-secondary rounded-pill">{{ dashboard_statistics.total_orders_today|default(0) }}</span>
+												<span class="badge bg-secondary-lt rounded-pill">{{ dashboard_statistics.total_orders_today|default(0) }}</span> {# Changed bg-secondary to bg-secondary-lt #}
 											</li>
 											<li class="list-group-item d-flex justify-content-between align-items-center">
 												Total Pendapatan:
-												<span class="badge bg-success rounded-pill">Rp.{{ dashboard_statistics.total_revenue_today|number_format(0, ',', '.') }}</span>
+												<span class="badge bg-success-lt rounded-pill">Rp.{{ dashboard_statistics.total_revenue_today|number_format(0, ',', '.') }}</span> {# Changed bg-success to bg-success-lt #}
 											</li>
 											<li class="list-group-item d-flex justify-content-between align-items-center">
 												Pengantaran Tertunda:
-												<span class="badge bg-warning rounded-pill">{{ dashboard_statistics.pending_deliveries_today|default(0) }}</span>
+												<span class="badge bg-warning-lt rounded-pill">{{ dashboard_statistics.pending_deliveries_today|default(0) }}</span> {# Changed bg-warning to bg-warning-lt #}
 											</li>
 										</ul>
 									{% else %}
