@@ -68,10 +68,19 @@
       </div>
       {# New Control Bar - Below the card-header with tabs, but before the card-body with tab-content #}
       <div class="card-body border-bottom py-3">
-        <div class="d-flex"> {# Reverted to simple d-flex, as align-items-center is for the children that were moved #}
-          {# The items_per_page_select and pagination ul were here. They are now moved. #}
+        <div class="d-flex">
           {# This div.text-muted was the container for pagination, now removed from here. #}
           <div class="ms-auto d-flex align-items-center"> {# Search Area - aligned right #}
+
+            {# NEW GROUPING DROPDOWN START #}
+            <div class="me-3">
+              <label for="grouping_select" class="form-label visually-hidden">Group By</label>
+              <select class="form-select" id="grouping_select" style="width: auto;">
+                  <option value="none" {% if current_grouping == 'none' or current_grouping is null %}selected{% endif %}>No Grouping</option>
+                  <option value="order_id" {% if current_grouping == 'order_id' %}selected{% endif %}>Group by Order ID</option>
+              </select>
+            </div>
+            {# NEW GROUPING DROPDOWN END #}
 
             {# Form for "By Name" - initial style set by JS based on 'view' variable #}
             <form method="GET" action="/orders" class="mb-0 me-2" id="form_search_by_name" style="display: {{ (view == 'by_name' or view is null or view == '') ? 'flex' : 'none' }};">

@@ -44,6 +44,7 @@ class OrdersController
 
         // Get selected customer_id from query parameters
         $queryParams = $request->getQueryParams();
+        $grouping = $queryParams['grouping'] ?? 'none'; // Default to 'none'
         $view = $queryParams['view'] ?? 'by_name'; // Default to 'by_name'
         $selectedCustomerId = isset($queryParams['customer_id']) ? (int)$queryParams['customer_id'] : null;
 
@@ -58,15 +59,18 @@ class OrdersController
             }
         }
 
+        // Initialize variables related to 'by_name' view data and errors
         $customerDeliveries = [];
+        $groupedCustomerDeliveries = [];
         $deliveriesError = null;
+        // $orderByIdResult and $orderByIdError are for a different view
         $orderByIdResult = [];
         $orderByIdError = null;
         $orderIdQueryValue = $queryParams['order_id_query'] ?? null;
 
+
         // Initialize pagination variables with defaults
         $page = 1;
-        // $limit = 100; // Default items per page, also used by by_name view // Replaced by new logic below
         $totalPages = 1; // Default total pages
 
         // Handle "Items Per Page" limit
@@ -77,36 +81,48 @@ class OrdersController
             $limit = $defaultLimit;
         }
 
-        if ($view === 'by_name' || $view === '') { // Default view or explicitly by_name
+        if ($view === 'by_name' || $view === '') { // Logic for 'by_name' view
             if ($selectedCustomerId) {
                 $page = isset($queryParams['page']) ? (int)$queryParams['page'] : 1;
                 $offset = ($page - 1) * $limit;
+                $currentViewError = null; // Specific error for this data fetching operation
 
-                $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken, $limit, $offset);
-                $customerDeliveries = $deliveriesResponse['data'] ?? [];
-                $deliveriesError = $deliveriesResponse['error'] ?? null;
+                if ($grouping === 'order_id') {
+                    $deliveriesResponse = $this->ordersService->getGroupedDeliveriesByCustomerId($selectedCustomerId, $accessToken, $limit, $offset);
+                    $groupedCustomerDeliveries = $deliveriesResponse['data'] ?? [];
+                    $currentViewError = $deliveriesResponse['error'] ?? null;
+                    // This assumes OrdersService has getOrdersCountByCustomerId.
+                    // If not, this will cause an error. The subtask stated not to modify OrdersService.
+                    $countResponse = $this->ordersService->getOrdersCountByCustomerId($selectedCustomerId, $accessToken);
+                } else { // 'none' or any other value
+                    $deliveriesResponse = $this->ordersService->getDeliveriesByCustomerId($selectedCustomerId, $accessToken, $limit, $offset);
+                    $customerDeliveries = $deliveriesResponse['data'] ?? [];
+                    $currentViewError = $deliveriesResponse['error'] ?? null;
+                    $countResponse = $this->ordersService->getDeliveriesCountByCustomerId($selectedCustomerId, $accessToken);
+                }
 
                 $totalCount = 0;
-                $countResponse = $this->ordersService->getDeliveriesCountByCustomerId($selectedCustomerId, $accessToken);
-
                 if (isset($countResponse['count']) && $countResponse['error'] === null) {
                     $totalCount = $countResponse['count'];
                 } else {
-                    // Optionally log $countResponse['error'] if it's not null
-                    if (isset($countResponse['error'])) {
-                        error_log("Error fetching deliveries count for customer $selectedCustomerId: " . $countResponse['error']);
-                        // You might want to add this error to $deliveriesError or a new error variable for the template
-                    }
-                    $totalCount = 0; // Ensure totalCount is 0 if there was an error or count is not set
+                    $countFetchError = $countResponse['error'] ?? 'Error fetching count';
+                    error_log("Error fetching count for customer $selectedCustomerId, grouping '$grouping': " . $countFetchError);
+                    $currentViewError = ($currentViewError ? $currentViewError . '; ' : '') . 'Count retrieval error: ' . $countFetchError;
+                    $totalCount = 0;
                 }
 
                 if ($limit > 0 && $totalCount > 0) {
                     $totalPages = (int)ceil($totalCount / $limit);
                 } else {
-                    $totalPages = 1; // Default to 1 page if no items or limit is somehow zero
+                    $totalPages = 1;
                 }
+                $deliveriesError = $currentViewError; // Assign to the broader $deliveriesError
+            } else {
+                // No customer selected for 'by_name' view, $page/$totalPages retain defaults
+                // $deliveriesError remains as it was (e.g., null or from other views)
             }
         } elseif ($view === 'by_order_id') {
+            // ... existing logic for by_order_id ...
             if ($orderIdQueryValue && is_numeric($orderIdQueryValue)) {
                 $orderId = (int)$orderIdQueryValue;
                 $orderResponse = $this->ordersService->getOrderByExactId($orderId, $accessToken);
@@ -118,7 +134,6 @@ class OrdersController
             } elseif ($orderIdQueryValue !== null && !is_numeric($orderIdQueryValue) && $orderIdQueryValue !== '') {
                  $orderByIdError = 'Order ID must be a number.';
             }
-            // If $orderIdQueryValue is null or empty string, no search is performed, $orderByIdResult remains empty.
         }
         // Logic for 'by_date' view can be added here later with an elseif block
 
@@ -127,23 +142,25 @@ class OrdersController
         $finalError = $deliveriesError ?? $orderByIdError ?? $couriersResult['error'] ?? null;
 
         $twigData = [
-            'title' => 'Manajemen Pesanan', // Generic title, can be adjusted by view in Twig if needed
+            'title' => 'Manajemen Pesanan',
             'all_customers' => $allCustomers,
             'selected_customer_id' => $selectedCustomerId,
             'selected_customer_name' => $selectedCustomerName,
-            'deliveries' => $customerDeliveries, // For 'by_name' view
-            'orders_by_id_result' => $orderByIdResult, // For 'by_order_id' view
-            'order_id_query_value' => $orderIdQueryValue, // For pre-filling search box
+            'deliveries' => $customerDeliveries,
+            'grouped_deliveries' => $groupedCustomerDeliveries,
+            'current_grouping' => $grouping,
+            'orders_by_id_result' => $orderByIdResult,
+            'order_id_query_value' => $orderIdQueryValue,
             'business_name' => $businessName,
             'couriers' => $couriersResult['data'] ?? [],
             'user_id' => $userId,
             'view' => $view,
             'error' => $finalError,
             'current_page' => $page,
-            'items_per_page' => $limit, // This now correctly reflects the potentially user-selected limit
+            'items_per_page' => $limit,
             'total_pages' => $totalPages,
-            'current_limit' => $limit, // Pass current limit for dropdown UI
-            'allowed_limits' => $allowedLimits // Pass allowed limits for dropdown UI
+            'current_limit' => $limit,
+            'allowed_limits' => $allowedLimits
         ];
 
         // Detect AJAX request

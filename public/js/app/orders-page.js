@@ -1,13 +1,18 @@
 document.addEventListener('DOMContentLoaded', function () {
     const customerSearchInput = document.getElementById('customer_search_orders');
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
-    const customerSearchForm = customerSearchInput ? customerSearchInput.closest('form') : null;
+    const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
     const bootstrap = window.tabler?.bootstrap;
     const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
     const byNameContainer = contentWrapper; // Alias for clarity in new logic
     const byDateContainer = document.getElementById('delivery_date_search_results_container');
     const ordersTabContent = document.getElementById('orders-tab-content'); // Parent for event delegation
     let availablePaketsForModal = []; // To store available pakets for the modal context
+
+    // Element selectors for controls
+    const groupingSelect = document.getElementById('grouping_select');
+    const itemsPerPageSelect = document.getElementById('items_per_page_select');
+
 
     // Function to update the batch delete toast based on the active tab
     function updateBatchDeleteToast() {
@@ -162,18 +167,62 @@ document.addEventListener('DOMContentLoaded', function () {
         customerSearchForm.addEventListener('submit', function(event) {
             event.preventDefault();
             const customerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
+            event.preventDefault(); // Prevent default GET submission
+
+            // Ensure hidden fields for grouping and limit are added/updated
+            let groupingHidden = customerSearchForm.querySelector('input[name="grouping"]');
+            if (!groupingHidden) {
+                groupingHidden = document.createElement('input');
+                groupingHidden.type = 'hidden';
+                groupingHidden.name = 'grouping';
+                customerSearchForm.appendChild(groupingHidden);
+            }
+            // Use groupingSelect if available, otherwise try to get from URL or default
+            const currentUrlForGrouping = new URL(window.location.href);
+            groupingHidden.value = groupingSelect ? groupingSelect.value : currentUrlForGrouping.searchParams.get('grouping') || 'none';
+
+            let limitHidden = customerSearchForm.querySelector('input[name="limit"]');
+            if (!limitHidden) {
+                limitHidden = document.createElement('input');
+                limitHidden.type = 'hidden';
+                limitHidden.name = 'limit';
+                customerSearchForm.appendChild(limitHidden);
+            }
+            // Use itemsPerPageSelect if available, otherwise try to get from URL or default
+            const currentUrlForLimit = new URL(window.location.href);
+            limitHidden.value = itemsPerPageSelect ? itemsPerPageSelect.value : currentUrlForLimit.searchParams.get('limit') || '100';
+
+            // Ensure page is reset
+            let pageHidden = customerSearchForm.querySelector('input[name="page"]');
+            if (!pageHidden) {
+                pageHidden = document.createElement('input');
+                pageHidden.type = 'hidden';
+                pageHidden.name = 'page';
+                customerSearchForm.appendChild(pageHidden);
+            }
+            pageHidden.value = '1';
+
+            // Hidden field for view=by_name should already exist in the form.
+
+            // For AJAX update, construct URL with all params. For full reload, the form now has all params.
+            // The existing fetchAndUpdateOrdersView is for AJAX. If we want full reload, use customerSearchForm.submit()
+            // The prompt mentioned earlier that full page reloads are the primary mechanism.
+            // So, let's ensure the form is submitted naturally after adding hidden fields if it's not an AJAX call by default.
+            // The current code calls fetchAndUpdateOrdersView, which is AJAX.
+            // To switch to full reload for this form:
+            // customerSearchForm.submit(); // This would be used instead of fetchAndUpdateOrdersView
+            // For now, keeping AJAX as per existing structure, but ensuring params are correctly built for it.
+            const customerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
             const baseUrl = customerSearchForm.action || (window.location.origin + '/orders');
             const params = new URLSearchParams();
             params.set('view', 'by_name');
             if (customerId) {
                 params.set('customer_id', customerId);
             }
-            params.set('page', '1');
-            const currentUrlForLimit = new URL(window.location.href);
-            const currentLimit = currentUrlForLimit.searchParams.get('limit');
-            if (currentLimit) {
-                params.set('limit', currentLimit);
-            }
+            params.set('page', pageHidden.value); // '1'
+            params.set('limit', limitHidden.value);
+            params.set('grouping', groupingHidden.value);
+
             fetchAndUpdateOrdersView(baseUrl + '?' + params.toString());
         });
     }
@@ -349,19 +398,112 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Tab Management & Visibility ---
     // ... (existing tab logic - kept for brevity) ...
     const tabButtons = document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]');
-    const formSearchByName = document.getElementById('form_search_by_name'); // Already defined
+    // const formSearchByName = document.getElementById('form_search_by_name'); // Already defined as customerSearchForm
     const formSearchByOrderId = document.getElementById('form_search_by_order_id');
     const formSearchByDate = document.getElementById('form_search_by_date');
-    const allSearchForms = [formSearchByName, formSearchByOrderId, formSearchByDate].filter(form => form !== null);
+    // const allSearchForms = [customerSearchForm, formSearchByOrderId, formSearchByDate].filter(form => form !== null);
 
-    function updateSearchFormVisibility(activeTabTarget) { /* ... existing logic ... */ }
-    tabButtons.forEach(tabButton => { tabButton.addEventListener('shown.bs.tab', function (event) { /* ... existing logic ... */ }); });
+    function updateSearchFormVisibility(activeTabTarget) {
+        allSearchForms.forEach(form => {
+            if (form) form.style.display = 'none';
+        });
+        let formToShow = null;
+        if (activeTabTarget === '#pane-by-name') formToShow = customerSearchForm;
+        else if (activeTabTarget === '#pane-by-order-id') formToShow = formSearchByOrderId;
+        else if (activeTabTarget === '#pane-by-date') formToShow = formSearchByDate;
+        if (formToShow) formToShow.style.display = 'flex'; // Assuming flex is desired for visible forms
+    }
+
+    tabButtons.forEach(tabButton => {
+        tabButton.addEventListener('shown.bs.tab', function (event) {
+            updateSearchFormVisibility(event.target.getAttribute('data-bs-target'));
+            // Store the active tab in localStorage
+            localStorage.setItem('activeOrdersTab', event.target.getAttribute('data-bs-target'));
+        });
+    });
+
     const currentUrlParams = new URLSearchParams(window.location.search);
     const urlView = currentUrlParams.get('view');
-    let activeTabTargetOnLoad = null;
-    if (urlView) { /* ... existing logic ... */ } else { /* ... existing logic ... */ }
-    if (activeTabTargetOnLoad) { updateSearchFormVisibility(activeTabTargetOnLoad); }
-    else if (!urlView && !localStorage.getItem('activeOrdersTab')) { updateSearchFormVisibility('#pane-by-name');}
+    let activeTabTargetOnLoad = localStorage.getItem('activeOrdersTab') || '#pane-by-name'; // Default to by_name
+
+    // If 'view' param in URL, it overrides localStorage
+    if (urlView) {
+        if (urlView === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
+        else if (urlView === 'by_order_id') activeTabTargetOnLoad = '#pane-by-order-id';
+        else if (urlView === 'by_date') activeTabTargetOnLoad = '#pane-by-date';
+    }
+
+    // Activate the determined tab
+    const activeTabButton = document.querySelector(`.nav-link[data-bs-target="${activeTabTargetOnLoad}"]`);
+    if (activeTabButton && bootstrap && typeof bootstrap.Tab === 'function') { // Check for bootstrap.Tab
+        const tabInstance = new bootstrap.Tab(activeTabButton);
+        tabInstance.show();
+    } else if (activeTabButton) {
+        // Fallback or manual activation if bootstrap.Tab is not found or not a function
+        // This might involve manually setting 'active' classes and hiding/showing panes
+        console.warn("Bootstrap Tab instance couldn't be created. Tab activation might be incomplete.");
+        // Manual activation example (simplified, might need more robust class handling):
+        document.querySelectorAll('#orders-view-tabs .nav-link').forEach(tb => tb.classList.remove('active'));
+        activeTabButton.classList.add('active');
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+        const targetPane = document.querySelector(activeTabTargetOnLoad);
+        if (targetPane) targetPane.classList.add('show', 'active');
+    }
+
+    if (activeTabTargetOnLoad) {
+        updateSearchFormVisibility(activeTabTargetOnLoad);
+    } else if (!urlView && !localStorage.getItem('activeOrdersTab')) {
+        updateSearchFormVisibility('#pane-by-name');
+    }
+
+    // Tab switching logic (full page reload)
+    document.querySelectorAll('#orders-view-tabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', function(event) {
+            event.preventDefault();
+            const viewTarget = this.getAttribute('data-bs-target'); // e.g., #pane-by-name
+            let viewName = 'by_name'; // Default
+            if (viewTarget === '#pane-by-order-id') {
+                viewName = 'by_order_id';
+            } else if (viewTarget === '#pane-by-date') {
+                viewName = 'by_date';
+            }
+
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('view', viewName);
+            currentUrl.searchParams.delete('page'); // Reset page
+
+            if (viewName === 'by_name') {
+                const groupingValue = groupingSelect ? groupingSelect.value : currentUrl.searchParams.get('grouping') || 'none';
+                currentUrl.searchParams.set('grouping', groupingValue);
+                // customer_id is preserved if already in URL (e.g. from a previous selection)
+            } else {
+                // For other views, grouping is not applicable, so remove it.
+                currentUrl.searchParams.delete('grouping');
+                // Also clear customer_id as it's specific to by_name view when switching away
+                currentUrl.searchParams.delete('customer_id');
+            }
+
+            // Clear specific search inputs of other views to avoid confusion
+            if (viewName !== 'by_order_id') {
+                const orderIdInput = document.getElementById('order_id_search_input');
+                if (orderIdInput) orderIdInput.value = '';
+                 currentUrl.searchParams.delete('order_id_query'); // Also remove from URL if it was there
+            }
+            if (viewName !== 'by_name') {
+                 const customerSearchBox = document.getElementById('customer_search_orders');
+                 if(customerSearchBox) customerSearchBox.value = '';
+                 // selected_customer_id_hidden is tied to form_search_by_name, not directly to URL by this tab switch
+                 // customer_id is cleared from URL above if switching away from by_name
+            }
+            if (viewName !== 'by_date') {
+                const dateInput = document.getElementById('delivery_date_search_input');
+                if(dateInput) dateInput.value = '';
+                // No specific URL param for date search shown in controller for page load, it's API driven
+            }
+
+            window.location.href = currentUrl.toString();
+        });
+    });
 
 
     // --- Delete Delivery Confirmation Modal Logic ---
@@ -464,33 +606,66 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- Event Delegation for controls within #pane-by-name ---
-    const paneByName = document.getElementById('pane-by-name');
+    // --- Event Delegation for controls within #pane-by-name (now using byNameContainer for clarity) ---
+    // This includes items_per_page_select and pagination links, which are part of _orders_table_partial.html.twig
 
-    if (paneByName) {
-        paneByName.addEventListener('change', function(event) {
-            if (event.target.matches('#items_per_page_select')) {
-                const newLimit = event.target.value;
-                const currentUrl = new URL(window.location.href);
-                const params = new URLSearchParams(currentUrl.search);
-                params.set('limit', newLimit);
-                params.set('page', '1');
-                params.set('view', 'by_name');
-                currentUrl.search = params.toString();
-                fetchAndUpdateOrdersView(currentUrl.toString());
-            }
+    // Handler for "Items per page" select, if it's rendered
+    if (itemsPerPageSelect) {
+        itemsPerPageSelect.addEventListener('change', function() {
+            const selectedLimit = this.value;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('limit', selectedLimit);
+            currentUrl.searchParams.set('page', '1'); // Reset page to 1
+
+            // Preserve grouping parameter
+            const groupingValue = groupingSelect ? groupingSelect.value : currentUrl.searchParams.get('grouping') || 'none';
+            currentUrl.searchParams.set('grouping', groupingValue);
+
+            // Ensure view is by_name as this control is specific to it
+            currentUrl.searchParams.set('view', 'by_name');
+
+            // The AJAX update was causing issues with state. Full reload is more robust here.
+            window.location.href = currentUrl.toString();
+            // fetchAndUpdateOrdersView(currentUrl.toString()); // Previous AJAX attempt
         });
+    }
 
-        paneByName.addEventListener('click', function(event) {
+    // Handler for pagination links (event delegation on byNameContainer)
+    if (byNameContainer) {
+        byNameContainer.addEventListener('click', function(event) {
             let clickedLinkElement = event.target.closest('.page-link');
             if (clickedLinkElement && clickedLinkElement.tagName === 'A' && clickedLinkElement.href &&
-                !clickedLinkElement.href.endsWith('#') &&
-                !clickedLinkElement.closest('.page-item.disabled')) {
+                !clickedLinkElement.href.endsWith('#') && // Ignore placeholder links
+                !clickedLinkElement.closest('.page-item.disabled')) { // Ignore disabled links
                 event.preventDefault();
-                fetchAndUpdateOrdersView(clickedLinkElement.href);
+                // The pagination links in _orders_table_partial.html.twig should already include all necessary params (view, customer_id, page, limit, grouping)
+                // So, a full navigation is fine. If AJAX is preferred, fetchAndUpdateOrdersView can be used.
+                window.location.href = clickedLinkElement.href;
+                // fetchAndUpdateOrdersView(clickedLinkElement.href); // Previous AJAX attempt
             }
         });
     }
+
+    // Grouping select handler
+    if (groupingSelect) {
+       groupingSelect.addEventListener('change', function() {
+           const selectedGrouping = this.value;
+           const currentUrl = new URL(window.location.href);
+           currentUrl.searchParams.set('grouping', selectedGrouping);
+
+           // Grouping primarily applies to 'by_name' view.
+           // If current view is different, switch to 'by_name'.
+           currentUrl.searchParams.set('view', 'by_name');
+           currentUrl.searchParams.set('page', '1'); // Reset page to 1 when grouping changes.
+
+           // If a customer_id is already in the URL for by_name view, it will be preserved.
+           // If no customer_id is present (e.g. user was on "by_order_id" and changed grouping),
+           // the page will show "by_name" view without a customer selected, prompting to select one.
+           // This is generally fine.
+
+           window.location.href = currentUrl.toString();
+       });
+   }
 
     // Click listener for the external submit button to trigger form submission
     const externalSubmitBtn = document.getElementById('submit-btn');

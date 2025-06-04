@@ -1,92 +1,201 @@
 {% if selected_customer_id %}
     <h3 class="card-title mt-4 mb-2">Daftar Pengiriman untuk: <strong>{{ selected_customer_name | default('Pelanggan Terpilih') }}</strong></h3>
-    <div class="card-table table-responsive">
-        <table class="table table-vcenter card-table table-selectable">
-            <thead>
-                <tr>
-                    <th><input class="form-check-input m-0 align-middle" type="checkbox" id="select-all-deliveries" aria-label="Select all deliveries"></th>
-                    <th>Tanggal</th>
-                    <th>Details</th>
-                    <th>Kurir</th>
-                    <th>Tambahan</th>
-                    <th>Total</th>
-                    <th>Ongkir</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if deliveries is not empty %}
-                    {% for delivery in deliveries %}
-                        <tr>
-                            <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="{{ delivery.delivery_id }}" aria-label="Select delivery {{ delivery.delivery_id }}"></td>
-                            <td>{{ delivery.delivery_tanggal | date("d M Y") }}</td>
-                            <td>
-                                {% if delivery.details is not empty %}
-                                    <table class="table table-sm table-borderless mb-0">
-                                        <tbody>
-                                            {% for detail_item in delivery.details %}
-                                                <tr>
-                                                    <td>{{ detail_item.paket.nama | default('N/A') }}</td>
-                                                    <td>({{ detail_item.jumlah }})</td>
-                                                    <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
-                                                </tr>
-                                                {% if detail_item.catatan_dapur %}
-                                                    <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
-                                                {% endif %}
-                                                {% if detail_item.catatan_kurir %}
-                                                    <tr><td colspan="3"><small class="text-muted"><em>Kurir: {{ detail_item.catatan_kurir }}</em></small></td></tr>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td>{{ delivery.courier_nama | default('-') }}</td>
-                            <td>
-                                {% if delivery.item_tambahan %}
-                                    {{ delivery.item_tambahan }}
-                                    {% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}
-                                        <br><small class="text-muted">({{ delivery.harga_tambahan | number_format(0, ',', '.') }})</small>
-                                    {% endif %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
-                            <td>{{ delivery.delivery_ongkir | number_format(0, ',', '.') }}</td>
-                            <td>
-                                {% set status_lower = delivery.delivery_status | lower %}
-                                {% set badge_class = 'secondary' %}
-                                {% if status_lower == 'completed' %}{% set badge_class = 'success' %}
-                                {% elseif status_lower == 'pending' %}{% set badge_class = 'warning' %}
-                                {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %}{% set badge_class = 'danger' %}
-                                {% elseif status_lower == 'in-progress' or status_lower == 'in_progress' %}{% set badge_class = 'info' %}
-                                {% endif %}
-                                <span class="badge bg-{{ badge_class }} me-1"></span>
-                                {{ delivery.delivery_status | replace({'_': ' '}) | title }}
-                            </td>
-                            <td>
-                                <div class="btn-list flex-nowrap">
-                                    <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Edit Pengiriman">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                                    </button>
-                                    <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Hapus Pengiriman">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr><td colspan="9" class="text-center">Tidak ada data pengiriman untuk pelanggan ini.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
 
+    {% if current_grouping == 'order_id' %}
+        {# Code for 'order_id' grouping #}
+        {% if grouped_deliveries is not empty %}
+            {% for order_item in grouped_deliveries %}
+                <div class="card mt-3 mb-3"> {# Card for each order group #}
+                    <div class="card-header bg-light">
+                        <h4 class="card-title mb-0">
+                            Order ID: {{ order_item.id }}
+                            <small class="text-muted ms-2"> (Pesan: {{ order_item.tanggal_pesan | date("d M Y") }})</small>
+                            {% if order_item.notes %}
+                                <small class="d-block text-muted fw-normal">Catatan Order: {{ order_item.notes }}</small>
+                            {% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-table table-responsive">
+                        <table class="table table-vcenter card-table table-selectable">
+                            <thead>
+                                <tr>
+                                    <th><input class="form-check-input m-0 align-middle select-delivery-group-master" type="checkbox" aria-label="Select all deliveries for this order" data-order-id="{{ order_item.id }}"></th>
+                                    <th>Tanggal Kirim</th>
+                                    <th>Details Paket</th>
+                                    <th>Kurir</th>
+                                    <th>Tambahan</th>
+                                    <th>Total Harian</th>
+                                    <th>Ongkir Harian</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if order_item.deliverydates is not empty %}
+                                    {% for delivery in order_item.deliverydates %}
+                                        <tr>
+                                            <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="{{ delivery.id }}" aria-label="Select delivery {{ delivery.id }}" data-order-group="{{ order_item.id }}"></td>
+                                            <td>{{ delivery.tanggal | date("d M Y") }}</td>
+                                            <td>
+                                                {% if delivery.orderdetails is not empty %}
+                                                    <table class="table table-sm table-borderless mb-0">
+                                                        <tbody>
+                                                            {% for detail_item in delivery.orderdetails %}
+                                                                <tr>
+                                                                    <td>{{ detail_item.paket.nama | default('N/A') }}</td>
+                                                                    <td>({{ detail_item.jumlah }})</td>
+                                                                    <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                                                </tr>
+                                                                {% if detail_item.catatan_dapur %}
+                                                                    <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
+                                                                {% endif %}
+                                                                {% if detail_item.catatan_kurir %}
+                                                                    <tr><td colspan="3"><small class="text-muted"><em>Kurir: {{ detail_item.catatan_kurir }}</em></small></td></tr>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ delivery.couriers.nama | default('-') }}</td>
+                                            <td>
+                                                {% if delivery.item_tambahan %}
+                                                    {{ delivery.item_tambahan }}
+                                                    {% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}
+                                                        <br><small class="text-muted">({{ delivery.harga_tambahan | number_format(0, ',', '.') }})</small>
+                                                    {% endif %}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
+                                            <td>{{ delivery.ongkir | number_format(0, ',', '.') }}</td>
+                                            <td>
+                                                {% set status_lower = delivery.status | lower %}
+                                                {% set badge_class = 'secondary' %}
+                                                {% if status_lower == 'completed' %}{% set badge_class = 'success' %}
+                                                {% elseif status_lower == 'pending' %}{% set badge_class = 'warning' %}
+                                                {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %}{% set badge_class = 'danger' %}
+                                                {% elseif status_lower == 'in-progress' or status_lower == 'in_progress' %}{% set badge_class = 'info' %}
+                                                {% endif %}
+                                                <span class="badge bg-{{ badge_class }} me-1"></span>
+                                                {{ delivery.status | replace({'_': ' '}) | title }}
+                                            </td>
+                                            <td>
+                                                <div class="btn-list flex-nowrap">
+                                                    <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="{{ delivery.id }}" title="Edit Pengiriman">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="{{ delivery.id }}" title="Hapus Pengiriman">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="9" class="text-center">Tidak ada data pengiriman untuk order ini.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-center">Tidak ada data pengiriman yang dikelompokkan untuk pelanggan ini.</p>
+        {% endif %}
+    {% else %} {# 'none' grouping or default #}
+        <div class="card-table table-responsive">
+            <table class="table table-vcenter card-table table-selectable">
+                <thead>
+                    <tr>
+                        <th><input class="form-check-input m-0 align-middle" type="checkbox" id="select-all-deliveries" aria-label="Select all deliveries"></th>
+                        <th>Tanggal</th>
+                        <th>Details</th>
+                        <th>Kurir</th>
+                        <th>Tambahan</th>
+                        <th>Total</th>
+                        <th>Ongkir</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if deliveries is not empty %}
+                        {% for delivery in deliveries %}
+                            <tr>
+                                <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="{{ delivery.delivery_id }}" aria-label="Select delivery {{ delivery.delivery_id }}"></td>
+                                <td>{{ delivery.delivery_tanggal | date("d M Y") }}</td>
+                                <td>
+                                    {% if delivery.details is not empty %}
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tbody>
+                                                {% for detail_item in delivery.details %}
+                                                    <tr>
+                                                        <td>{{ detail_item.paket.nama | default('N/A') }}</td>
+                                                        <td>({{ detail_item.jumlah }})</td>
+                                                        <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                                    </tr>
+                                                    {% if detail_item.catatan_dapur %}
+                                                        <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
+                                                    {% endif %}
+                                                    {% if detail_item.catatan_kurir %}
+                                                        <tr><td colspan="3"><small class="text-muted"><em>Kurir: {{ detail_item.catatan_kurir }}</em></small></td></tr>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>{{ delivery.courier_nama | default('-') }}</td>
+                                <td>
+                                    {% if delivery.item_tambahan %}
+                                        {{ delivery.item_tambahan }}
+                                        {% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}
+                                            <br><small class="text-muted">({{ delivery.harga_tambahan | number_format(0, ',', '.') }})</small>
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
+                                <td>{{ delivery.delivery_ongkir | number_format(0, ',', '.') }}</td>
+                                <td>
+                                    {% set status_lower = delivery.delivery_status | lower %}
+                                    {% set badge_class = 'secondary' %}
+                                    {% if status_lower == 'completed' %}{% set badge_class = 'success' %}
+                                    {% elseif status_lower == 'pending' %}{% set badge_class = 'warning' %}
+                                    {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %}{% set badge_class = 'danger' %}
+                                    {% elseif status_lower == 'in-progress' or status_lower == 'in_progress' %}{% set badge_class = 'info' %}
+                                    {% endif %}
+                                    <span class="badge bg-{{ badge_class }} me-1"></span>
+                                    {{ delivery.delivery_status | replace({'_': ' '}) | title }}
+                                </td>
+                                <td>
+                                    <div class="btn-list flex-nowrap">
+                                        <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Edit Pengiriman">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                        </button>
+                                        <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Hapus Pengiriman">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="9" class="text-center">Tidak ada data pengiriman untuk pelanggan ini.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %} {# End of the main if current_grouping == 'order_id' else ... #}
+
+    {# Pagination and Items Per Page - this div should be outside the conditional grouping block #}
     <div class="d-flex align-items-center mt-3">
         {% if view == 'by_name' and selected_customer_id and allowed_limits is defined and current_limit is defined %}
         <div class="me-3">
@@ -104,7 +213,7 @@
             {% if view == 'by_name' and selected_customer_id and total_pages is defined and total_pages > 0 %}
             <ul class="pagination m-0">
                 <li class="page-item {{ current_page == 1 ? 'disabled' : '' }}">
-                    <a class="page-link" href="{{ current_page == 1 ? '#' : ('/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ (current_page - 1)) }}" {{ current_page == 1 ? 'tabindex="-1" aria-disabled="true"' : '' }}>
+                    <a class="page-link" href="{{ current_page == 1 ? '#' : ('/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ (current_page - 1) ~ '&limit=' ~ current_limit ~ '&grouping=' ~ current_grouping) }}" {{ current_page == 1 ? 'tabindex="-1" aria-disabled="true"' : '' }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
                             <path d="M15 6l-6 6l6 6"></path>
                         </svg>
@@ -115,12 +224,12 @@
                     {% if total_pages == 1 %}
                     <span class="page-link">{{ i }}</span>
                     {% else %}
-                    <a class="page-link" href="{{ '/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ i }}">{{ i }}</a>
+                    <a class="page-link" href="{{ '/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ i ~ '&limit=' ~ current_limit ~ '&grouping=' ~ current_grouping }}">{{ i }}</a>
                     {% endif %}
                 </li>
                 {% endfor %}
                 <li class="page-item {{ current_page == total_pages ? 'disabled' : '' }}">
-                    <a class="page-link" href="{{ current_page == total_pages ? '#' : ('/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ (current_page + 1)) }}" {{ current_page == total_pages ? 'tabindex="-1" aria-disabled="true"' : '' }}>
+                    <a class="page-link" href="{{ current_page == total_pages ? '#' : ('/orders?view=by_name&customer_id=' ~ selected_customer_id ~ '&page=' ~ (current_page + 1) ~ '&limit=' ~ current_limit ~ '&grouping=' ~ current_grouping) }}" {{ current_page == total_pages ? 'tabindex="-1" aria-disabled="true"' : '' }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
                             <path d="M9 6l6 6l-6 6"></path>
                         </svg>
@@ -148,7 +257,8 @@
             {% endif %}
         </div>
     </div>
+
 {% else %}
-    {# This part is intentionally left out from the partial as per the plan for the wrapper #}
-    {# It will be in the main template, inside the wrapper, if selected_customer_id is null #}
+    {# This part is intentionally left as is, for when no customer is selected.
+       The main order-list.html.twig template shows a message in this case. #}
 {% endif %}
