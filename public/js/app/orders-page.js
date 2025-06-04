@@ -155,7 +155,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const awesompleteInstance = new Awesomplete(customerSearchInput, {
             minChars: 2,
             autoFirst: true,
-            filter: Awesomplete.FILTER_CONTAINS
+        filter: Awesomplete.FILTER_CONTAINS, // Existing filter
+        sort: (a, b) => { // Added sort function
+            const inputText = customerSearchInput.value.toLowerCase();
+            const aStartsWith = a.label.toLowerCase().startsWith(inputText);
+            const bStartsWith = b.label.toLowerCase().startsWith(inputText);
+            return aStartsWith && !bStartsWith ? -1 : !aStartsWith && bStartsWith ? 1 : a.label.localeCompare(b.label);
+        }
         });
 
         // ---- JS TO SET LOADING STATE ----
