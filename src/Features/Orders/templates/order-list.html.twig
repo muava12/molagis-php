@@ -88,11 +88,16 @@
               <div class="row g-2">
                 <div class="col-auto">
                   <label for="customer_search_orders" class="visually-hidden">Pelanggan</label>
-                  <input type="text" id="customer_search_orders" class="form-control" placeholder="Ketik nama pelanggan..." value="{{ selected_customer_name | default('') }}">
+                  <div class="input-icon">
+                    <input type="text" id="customer_search_orders" class="form-control" placeholder="Loading..." value="">
+                    <span class="input-icon-addon" id="customer_search_spinner_addon">
+                      <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                    </span>
+                  </div>
                   <input type="hidden" name="customer_id" id="selected_customer_id_hidden" value="{{ selected_customer_id | default('') }}">
                 </div>
                 <div class="col-auto">
-                  <button type="submit" class="btn btn-primary">Cari</button>
+                  <button type="submit" class="btn btn-primary" id="customer_search_button" disabled>Cari</button>
                 </div>
               </div>
             </form>

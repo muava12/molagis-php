@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const customerSearchInput = document.getElementById('customer_search_orders');
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
+    const customerSearchButton = document.getElementById('customer_search_button');
+    const customerSearchSpinner = document.getElementById('customer_search_spinner_addon');
     const bootstrap = window.tabler?.bootstrap;
     const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
     const byNameContainer = contentWrapper; // Alias for clarity in new logic
@@ -151,8 +153,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 awesompleteInstance.list = customerList;
                 if (customerList.length > 0) awesompleteInstance.evaluate();
+
+                // ---- NEW/MODIFIED CODE START ----
+                if (customerSearchSpinner) {
+                    customerSearchSpinner.style.display = 'none';
+                }
+                customerSearchInput.placeholder = 'Ketik nama pelanggan...';
+                if (customerSearchButton) {
+                    customerSearchButton.disabled = false;
+                }
+                // ---- NEW/MODIFIED CODE END ----
             })
-            .catch(error => console.error('Error fetching customer data for Awesomplete:', error));
+            .catch(error => {
+                console.error('Error fetching customer data for Awesomplete:', error);
+                // ---- NEW/MODIFIED CODE START ----
+                if (customerSearchSpinner) {
+                    customerSearchSpinner.style.display = 'none';
+                }
+                customerSearchInput.placeholder = 'Gagal memuat data pelanggan';
+                // Button remains disabled (initial state)
+                // ---- NEW/MODIFIED CODE END ----
+            });
 
         customerSearchInput.addEventListener('awesomplete-selectcomplete', function (event) {
             const selection = event.text;
