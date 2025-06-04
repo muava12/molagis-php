@@ -1,25 +1,31 @@
 {% if selected_customer_id %}
-    <h3 class="card-title mt-4 mb-2">Daftar Pengiriman untuk: <strong>{{ selected_customer_name | default('Pelanggan Terpilih') }}</strong></h3>
+    <h3 class="card-title mt-4 mb-2">Rincian Pesanan</h3>
 
     {% if current_grouping == 'order_id' %}
         {% if grouped_deliveries is not empty %}
-            <div class="accordion accordion-flush" id="ordersAccordionParent"> {# Main accordion container #}
+            <div class="accordion accordion-tabs" id="ordersAccordionParent"> {# Main accordion container #}
                 {% for order_item in grouped_deliveries %}
                     <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading-order-{{ order_item.id }}">
+                        <div class="accordion-header" id="heading-order-{{ order_item.id }}">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-order-{{ order_item.id }}" aria-expanded="false" aria-controls="collapse-order-{{ order_item.id }}">
-                                Order ID: {{ order_item.id }} &nbsp; | &nbsp;
-                                Tgl Pesan: {{ order_item.tanggal_pesan | date("d M Y") }} &nbsp; | &nbsp;
-                                Customer: {{ order_item.customers.nama | default('N/A') }} &nbsp; | &nbsp;
-                                Total: Rp {{ order_item.total_harga | number_format(0, ',', '.') }}
-                                {% if order_item.notes %}
-                                    <br><small class="text-muted w-100 d-block mt-1">Catatan Order: {{ order_item.notes }}</small>
-                                {% endif %}
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold mb-1">Order ID: {{ order_item.id }}</div>
+                                    <div class="small">
+                                        <span>Tgl Pesan: {{ order_item.tanggal_pesan | date("d M Y") }}</span>
+                                        <span class="mx-2">|</span>
+                                        <span>Total: Rp {{ order_item.total_harga | number_format(0, ',', '.') }}</span>
+                                    </div>
+                                    {% if order_item.notes %}
+                                        <div class="text-muted small mt-1">
+                                            Catatan Order: {{ order_item.notes }}
+                                        </div>
+                                    {% endif %}
+                                </div>
                                 <div class="accordion-button-toggle">
                                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M6 9l6 6l6 -6"></path></svg>
                                 </div>
                             </button>
-                        </h2>
+                        </div>
                         <div id="collapse-order-{{ order_item.id }}" class="accordion-collapse collapse" aria-labelledby="heading-order-{{ order_item.id }}" data-bs-parent="#ordersAccordionParent">
                             <div class="accordion-body">
                                 <div class="table-responsive">

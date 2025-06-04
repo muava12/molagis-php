@@ -24,7 +24,7 @@
   <div class="container-xl">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Manajemen Pesanan</h3>
+        <h3 class="card-title">Manajemen Pesanan{% if selected_customer_name and selected_customer_name is not empty %} - {{ selected_customer_name }}{% endif %}</h3>
         <div class="ms-auto">
           <nav class="nav nav-segmented nav-sm" role="tablist" id="orders-view-tabs">
               <button class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" type="button" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">
@@ -88,11 +88,16 @@
               <div class="row g-2">
                 <div class="col-auto">
                   <label for="customer_search_orders" class="visually-hidden">Pelanggan</label>
-                  <input type="text" id="customer_search_orders" class="form-control" placeholder="Ketik nama pelanggan..." value="{{ selected_customer_name | default('') }}">
+                  <div class="input-icon">
+                    <input type="text" id="customer_search_orders" class="form-control" placeholder="Ketik nama pelanggan..." value="">
+                    <span class="input-icon-addon" id="customer_search_spinner_addon" style="display: none;">
+                      <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                    </span>
+                  </div>
                   <input type="hidden" name="customer_id" id="selected_customer_id_hidden" value="{{ selected_customer_id | default('') }}">
                 </div>
                 <div class="col-auto">
-                  <button type="submit" class="btn btn-primary">Cari</button>
+                  <button type="submit" class="btn btn-primary" id="customer_search_button">Cari</button>
                 </div>
               </div>
             </form>

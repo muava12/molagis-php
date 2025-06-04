@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const customerSearchInput = document.getElementById('customer_search_orders');
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
+    const customerSearchButton = document.getElementById('customer_search_button');
+    const customerSearchSpinner = document.getElementById('customer_search_spinner_addon');
     const bootstrap = window.tabler?.bootstrap;
     const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
     const byNameContainer = contentWrapper; // Alias for clarity in new logic
@@ -68,6 +70,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Moved fetchAndUpdateOrdersView function definition higher up
     async function fetchAndUpdateOrdersView(url) {
+        // ---- NEW CODE START ----
+        if (customerSearchSpinner) {
+            customerSearchSpinner.style.display = 'inline-flex'; // Or appropriate display value
+        }
+        if (customerSearchButton) {
+            customerSearchButton.disabled = true;
+        }
+        // ---- NEW CODE END ----
+
         try {
             const response = await fetch(url, {
                 method: 'GET',
@@ -127,7 +138,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error('Error fetching or updating orders view:', error);
-            window.location.href = url;
+            window.location.href = url; // Existing error handling
+        } finally {
+            // ---- NEW CODE START ----
+            if (customerSearchSpinner) {
+                customerSearchSpinner.style.display = 'none';
+            }
+            if (customerSearchButton) {
+                customerSearchButton.disabled = false;
+            }
+            // ---- NEW CODE END ----
         }
     }
 
@@ -137,6 +157,15 @@ document.addEventListener('DOMContentLoaded', function () {
             autoFirst: true,
             filter: Awesomplete.FILTER_CONTAINS
         });
+
+        // ---- JS TO SET LOADING STATE ----
+        if (customerSearchSpinner) {
+            customerSearchSpinner.style.display = 'inline-flex'; // Show spinner
+        }
+        if (customerSearchButton) {
+            customerSearchButton.disabled = true; // Disable button
+        }
+        // Placeholder remains "Ketik nama pelanggan..." from HTML initially.
 
         fetch('/api/customers')
             .then(response => response.ok ? response.json() : Promise.reject('Failed to load customers'))
@@ -151,8 +180,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 awesompleteInstance.list = customerList;
                 if (customerList.length > 0) awesompleteInstance.evaluate();
+
+                // ---- JS TO SET SUCCESS STATE ----
+                if (customerSearchSpinner) {
+                    customerSearchSpinner.style.display = 'none'; // Hide spinner
+                }
+                customerSearchInput.placeholder = 'Ketik nama pelanggan...'; // Confirm placeholder
+                if (customerSearchButton) {
+                    customerSearchButton.disabled = false; // Enable button
+                }
             })
-            .catch(error => console.error('Error fetching customer data for Awesomplete:', error));
+            .catch(error => {
+                console.error('Error fetching customer data for Awesomplete:', error);
+                // ---- JS TO SET ERROR STATE ----
+                if (customerSearchSpinner) {
+                    customerSearchSpinner.style.display = 'none'; // Hide spinner
+                }
+                customerSearchInput.placeholder = 'Gagal memuat daftar pelanggan'; // Error placeholder
+                if (customerSearchButton) {
+                    customerSearchButton.disabled = true; // Ensure button is disabled
+                }
+            });
 
         customerSearchInput.addEventListener('awesomplete-selectcomplete', function (event) {
             const selection = event.text;
