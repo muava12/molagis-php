@@ -17,6 +17,7 @@ use Molagis\Features\Order\OrderController;
 use Molagis\Features\Order\OrderService;
 use Molagis\Features\Settings\SettingsController;
 use Molagis\Features\Settings\SettingsService;
+use Molagis\Features\Paket\PaketService; // Added
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -42,11 +43,16 @@ $containerBuilder->addDefinitions([
     SupabaseClient::class => fn() => new SupabaseClient($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']),
     SupabaseService::class => fn($c) => new SupabaseService($c->get(SupabaseClient::class)),
     AuthMiddleware::class => fn($c) => new AuthMiddleware($c->get(SupabaseService::class)),
+
+    // Paket Service definition (added)
+    PaketService::class => fn($c) => new PaketService($c->get(SupabaseClient::class)),
+
     SettingsService::class => fn($c) => new SettingsService($c->get(SupabaseClient::class)),
     SettingsController::class => fn($c) => new SettingsController(
         $c->get(SettingsService::class),
         $c->get(SupabaseService::class),
-        $c->get(Environment::class)
+        $c->get(Environment::class),
+        $c->get(PaketService::class) // Added PaketService injection
     ),
     DashboardService::class => fn($c) => new DashboardService($c->get(SupabaseClient::class)),
     DashboardController::class => fn($c) => new DashboardController(
@@ -146,8 +152,17 @@ $routes = [
     // Renamed controller method from updateDeliveryDetailsApi to updateDailyOrder. Route remains the same.
     ['POST', '/api/delivery-details/update/{id:\d+}', [\Molagis\Features\Orders\OrdersController::class, 'updateDailyOrder'], [\Molagis\Shared\Middleware\AuthMiddleware::class]],
     ['GET', '/api/packages', [OrderController::class, 'getPackages'], [AuthMiddleware::class]],
+
+    // Settings and Paket Routes
     ['GET', '/settings', [SettingsController::class, 'showSettings'], [AuthMiddleware::class]],
     ['POST', '/api/settings/update', [SettingsController::class, 'updateSettings'], [AuthMiddleware::class]],
+    // Paket API Routes
+    ['GET', '/api/pakets', [SettingsController::class, 'listPakets'], [AuthMiddleware::class]],
+    ['GET', '/api/paket/{id:\d+}', [SettingsController::class, 'getPaket'], [AuthMiddleware::class]],
+    ['POST', '/api/paket/add', [SettingsController::class, 'addPaket'], [AuthMiddleware::class]],
+    ['POST', '/api/paket/{id:\d+}/update', [SettingsController::class, 'updatePaket'], [AuthMiddleware::class]],
+    ['DELETE', '/api/paket/{id:\d+}/delete', [SettingsController::class, 'deletePaket'], [AuthMiddleware::class]],
+    ['POST', '/api/paket/order/update', [SettingsController::class, 'updatePaketOrder'], [AuthMiddleware::class]],
 ];
 
 // Create FastRoute dispatcher
@@ -223,6 +238,13 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'updateDailyOrder' => [$request, $vars], // New method name
                     'showSettings' => [$request],
                     'updateSettings' => [$request],
+                    // Paket methods in SettingsController
+                    'listPakets' => [$request],
+                    'getPaket' => [$request, $vars],
+                    'addPaket' => [$request],
+                    'updatePaket' => [$request, $vars],
+                    'deletePaket' => [$request, $vars],
+                    'updatePaketOrder' => [$request],
                     default => []
                 };
 
