@@ -1,5 +1,5 @@
 // public/js/app/utils.js
-export function showGlobalToast(title, message, type = 'success') {
+export function showToast(title, message, type = 'success') {
     let toastElementId;
     let titleElementId;
     let messageElementId;

@@ -423,8 +423,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function performDeleteDelivery(deliveryId) {
         console.log('Attempting to delete delivery ID:', deliveryId);
 
-        if (typeof window.showGlobalToast !== 'function') {
-            console.error('showGlobalToast function is not defined. Make sure utils.js is loaded correctly.');
+        if (typeof window.showToast !== 'function') {
+            console.error('showToast function is not defined. Make sure utils.js is loaded correctly.');
             alert('An error occurred while trying to display a notification.');
             return;
         }
@@ -453,14 +453,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     console.warn('Could not find row to remove for delivery ID:', deliveryId, '. Consider reloading list.');
                 }
-                window.showGlobalToast('Sukses', data.message || `Pengiriman ID ${deliveryId} berhasil dihapus.`, 'success');
+                window.showToast('Sukses', data.message || `Pengiriman ID ${deliveryId} berhasil dihapus.`, 'success');
             } else {
-                window.showGlobalToast('Error', data.message || `Gagal menghapus pengiriman ID ${deliveryId}.`, 'error');
+                window.showToast('Error', data.message || `Gagal menghapus pengiriman ID ${deliveryId}.`, 'error');
             }
         })
         .catch(error => {
             console.error('Error in performDeleteDelivery:', error);
-            window.showGlobalToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, 'error');
+            window.showToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, 'error');
         });
     }
 
@@ -808,7 +808,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const modalElement = document.getElementById('editOrderModal');
         if (!modalElement) {
             console.error('Edit Order Modal element #editOrderModal not found.');
-            if (window.showGlobalToast) window.showGlobalToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
+            if (window.showToast) window.showToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
             return;
         }
 
@@ -838,7 +838,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } catch (error) {
             console.error('Error opening edit order modal:', error);
-            if (window.showGlobalToast) window.showGlobalToast('Error', error.message, 'error');
+            if (window.showToast) window.showToast('Error', error.message, 'error');
         } finally {
             // Hide loading state
             if (formElement) {
@@ -858,7 +858,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     openEditOrderModal(deliveryId);
                 } else {
                     console.error('Edit button clicked but data-delivery-id attribute is missing or empty.');
-                    if(window.showGlobalToast) window.showGlobalToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
+                    if(window.showToast) window.showToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
                 }
             }
         });
@@ -1014,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!deliveryIdStr) {
                 console.error('Delivery ID not found on modal for submission.');
-                if(window.showGlobalToast) window.showGlobalToast('Error', 'Cannot save: Delivery ID missing.', 'error');
+                if(window.showToast) window.showToast('Error', 'Cannot save: Delivery ID missing.', 'error');
                 submitButton.disabled = false;
                 submitButton.innerHTML = originalButtonText;
                 return;
@@ -1025,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Simple client-side validation: ensure at least one package item if that's a rule
             if (formData.package_items.length === 0) {
-                 if(window.showGlobalToast) window.showGlobalToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
+                 if(window.showToast) window.showToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
                  const errorDisplayElement = document.getElementById('edit-modal-error-display');
                  if (errorDisplayElement) {
                     errorDisplayElement.textContent = 'Harap tambahkan minimal satu paket makanan.';
@@ -1056,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const result = await response.json(); // Expecting JSON response from our PHP backend
 
                 if (response.ok && result.success) { // Check for ok status AND success flag from our PHP response
-                    if(window.showGlobalToast) window.showGlobalToast('Success', result.message || 'Order updated successfully!', 'success');
+                    if(window.showToast) window.showToast('Success', result.message || 'Order updated successfully!', 'success');
 
                     const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
                     if (bootstrapModal) bootstrapModal.hide();
@@ -1073,8 +1073,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (errorDisplayElement) {
                     errorDisplayElement.textContent = error.message;
                     errorDisplayElement.style.display = 'block';
-                } else if(window.showGlobalToast) {
-                    window.showGlobalToast('Error', error.message, 'error');
+                } else if(window.showToast) {
+                    window.showToast('Error', error.message, 'error');
                 }
             } finally {
                 submitButton.disabled = false;
