@@ -250,7 +250,7 @@ class OrdersService
             // Construct the endpoint for Supabase REST API
             // This assumes 'delivery_dates' is the table and 'customer_id' is the column.
             // The 'select=count' will make Supabase return just the count.
-            $endpoint = "/rest/v1/deliverydates?select=count&customer_id=eq.{$customerId}";
+            $endpoint = "/rest/v1/deliverydates?select=count&order_id.customer_id=eq.{$customerId}";
 
             // Make the GET request using the custom SupabaseClient
             $response = $this->supabaseClient->get($endpoint, [], $accessToken);
