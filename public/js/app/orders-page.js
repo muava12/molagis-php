@@ -3,18 +3,48 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = customerSearchInput ? customerSearchInput.closest('form') : null;
     const bootstrap = window.tabler?.bootstrap;
-    const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Moved higher for access
+    const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
+    const byNameContainer = contentWrapper; // Alias for clarity in new logic
+    const byDateContainer = document.getElementById('delivery_date_search_results_container');
+    const ordersTabContent = document.getElementById('orders-tab-content'); // Parent for event delegation
+    let availablePaketsForModal = []; // To store available pakets for the modal context
 
-    // Function to update the batch delete toast
+    // Function to update the batch delete toast based on the active tab
     function updateBatchDeleteToast() {
-        if (!contentWrapper || typeof window.batchDeleteToast === 'undefined') {
-            return; // Exit if wrapper or toast functions aren't available
+        if (typeof window.batchDeleteToast === 'undefined') {
+            console.warn('batchDeleteToast helper not found on window object.');
+            return;
         }
-        const selectedCheckboxes = contentWrapper.querySelectorAll('.select-delivery-item:checked');
-        const selectedCount = selectedCheckboxes.length;
 
-        if (selectedCount > 0) {
-            window.batchDeleteToast.show(selectedCount);
+        let activeViewSelectedCount = 0;
+        const activePane = document.querySelector('.tab-pane.active');
+
+        if (activePane) {
+            // Check if the active pane itself is one of the containers, or find a container within it.
+            // This handles cases where the pane IS the container (e.g. if results are directly in pane-by-date)
+            // or if the container is a child of the pane.
+            let containerToCount = null;
+            if (activePane.id === 'pane-by-name' && byNameContainer) { // #pane-by-name contains orders-by-name-content-wrapper
+                 containerToCount = activePane.querySelector('#orders-by-name-content-wrapper');
+            } else if (activePane.id === 'pane-by-date' && byDateContainer) { // #pane-by-date contains delivery_date_search_results_container
+                 containerToCount = activePane.querySelector('#delivery_date_search_results_container');
+            } else {
+                // Fallback or if structure is different, check direct children common for tables
+                containerToCount = activePane; // Default to activePane if specific containers aren't matched
+            }
+
+            if (containerToCount) {
+                 activeViewSelectedCount = containerToCount.querySelectorAll('.select-delivery-item:checked').length;
+            } else {
+                // If specific containers aren't found within the active pane, try querying the activePane directly.
+                // This is a fallback, ideally specific containers are more robust.
+                activeViewSelectedCount = activePane.querySelectorAll('.select-delivery-item:checked').length;
+            }
+        }
+         // console.log('Active pane:', activePane, 'Selected count:', activeViewSelectedCount);
+
+        if (activeViewSelectedCount > 0) {
+            window.batchDeleteToast.show(activeViewSelectedCount);
         } else {
             window.batchDeleteToast.hide();
         }
@@ -52,16 +82,16 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const html = await response.text();
 
-            // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Already defined above
-            if (contentWrapper) {
-                contentWrapper.innerHTML = html;
+    // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // This is byNameContainer
+    if (byNameContainer) { // Only operate if this specific container is being updated
+        byNameContainer.innerHTML = html;
 
-                const selectAllCheckbox = contentWrapper.querySelector('#select-all-deliveries');
+        const selectAllCheckbox = byNameContainer.querySelector('#select-all-deliveries');
                 if (selectAllCheckbox) {
                     selectAllCheckbox.checked = false;
                     selectAllCheckbox.indeterminate = false;
                 }
-                updateBatchDeleteToast();
+        // updateBatchDeleteToast(); // Called by checkbox logic if items are re-rendered
 
                 // --- ADDED LOGIC START ---
                 // Use a full URL if 'url' is relative, to ensure URLSearchParams works correctly.
@@ -216,7 +246,103 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (deliveryDateSearchButton && deliveryDateSearchInput && deliveryDateSearchResultsContainer) {
-        deliveryDateSearchButton.addEventListener('click', function() { /* ... existing logic ... */ });
+        deliveryDateSearchButton.addEventListener('click', function() {
+            const dateQuery = deliveryDateSearchInput.value.trim();
+            deliveryDateSearchResultsContainer.innerHTML = '<p class="text-center">Loading...</p>'; // Basic loading indicator
+
+            if (!dateQuery) {
+                deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Please select a date.</p>';
+                return;
+            }
+
+            // Validate date format YYYY-MM-DD (basic regex)
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateQuery)) {
+                deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Invalid date format. Please use YYYY-MM-DD.</p>';
+                return;
+            }
+
+            fetch(`/api/orders/search/date?date=${encodeURIComponent(dateQuery)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || `HTTP error ${response.status}`);
+                        }).catch(() => {
+                            throw new Error(`HTTP error ${response.status} - ${response.statusText || 'Server error'}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.deliveries) {
+                        let html = '<table class="table table-vcenter card-table table-selectable">';
+                        html += `
+                            <thead>
+                                <tr>
+                                    <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
+                                    <th>Tanggal</th>
+                                    <th>Customer</th>
+                                    <th>Order ID</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                        <tbody>`;
+
+                        if (data.deliveries.length === 0) {
+                            html += '<tr><td colspan="8" class="text-center">No deliveries found for this date.</td></tr>';
+                        } else {
+                            data.deliveries.forEach(delivery => {
+                                let itemsHtml = '';
+                                if (delivery.orderdetails && delivery.orderdetails.length > 0) {
+                                    itemsHtml += '<ul class="list-unstyled mb-0">'; // Added mb-0 for tighter list
+                                    delivery.orderdetails.forEach(detail => {
+                                        itemsHtml += `<li>${detail.paket.nama} (x${detail.jumlah})</li>`;
+                                    });
+                                    itemsHtml += '</ul>';
+                                } else {
+                                    itemsHtml = 'N/A';
+                                }
+
+                                let badge_class = 'secondary';
+                                const status_lower = delivery.status ? delivery.status.toLowerCase() : '';
+                                if (status_lower === 'completed') badge_class = 'success';
+                                else if (status_lower === 'pending') badge_class = 'warning';
+                                else if (status_lower === 'canceled' || status_lower === 'cancelled') badge_class = 'danger';
+                                else if (status_lower === 'in-progress' || status_lower === 'in_progress') badge_class = 'info';
+
+                                html += `
+                                    <tr>
+                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.id}" aria-label="Select delivery ${delivery.id}"></td>
+                                        <td>${new Date(delivery.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                        <td>${delivery.orders && delivery.orders.customers ? delivery.orders.customers.nama : 'N/A'}</td>
+                                        <td>${delivery.orders ? delivery.orders.id : 'N/A'}</td>
+                                        <td>${itemsHtml}</td>
+                                        <td>${delivery.total_harga_perhari ? Number(delivery.total_harga_perhari).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A'}</td>
+                                        <td><span class="badge bg-${badge_class} me-1"></span> ${delivery.status ? delivery.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}</td>
+                                        <td>
+                                            <div class="btn-list flex-nowrap">
+                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.id}" title="Hapus Pengiriman">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                        }
+                        html += '</tbody></table>';
+                        deliveryDateSearchResultsContainer.innerHTML = html;
+                    } else {
+                        deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching deliveries by date:', error);
+                    deliveryDateSearchResultsContainer.innerHTML = `<p class="text-danger text-center">Error: ${error.message}</p>`;
+                });
+        });
     }
 
 
@@ -366,40 +492,586 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- "Select All" Checkbox Functionality ---
-    // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Already defined above
+    // Click listener for the external submit button to trigger form submission
+    const externalSubmitBtn = document.getElementById('submit-btn');
+    if (externalSubmitBtn) {
+        externalSubmitBtn.addEventListener('click', function() {
+            const editOrderFormToSubmit = document.getElementById('edit-form');
+            if (editOrderFormToSubmit) {
+                // Programmatically submit the form.
+                // requestSubmit() is the modern way and also triggers HTML5 validation if any.
+                if (typeof editOrderFormToSubmit.requestSubmit === 'function') {
+                    editOrderFormToSubmit.requestSubmit();
+                } else {
+                    // Fallback for older browsers or if requestSubmit isn't available for some reason
+                    // This will trigger the 'submit' event listener on the form.
+                    editOrderFormToSubmit.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            }
+        });
+    }
 
-    if (contentWrapper) {
-        contentWrapper.addEventListener('change', function(event) {
-            if (event.target.matches('#select-all-deliveries')) {
-                const isChecked = event.target.checked;
-                const itemCheckboxes = contentWrapper.querySelectorAll('.select-delivery-item');
+    // --- Unified "Select All" Checkbox Functionality via Event Delegation ---
+    if (ordersTabContent) {
+        ordersTabContent.addEventListener('change', function(event) {
+            const target = event.target;
+            let currentTableContainer = null;
+            let selectAllCheckboxInstance = null; // Renamed to avoid conflict with selectAllCheckbox var if any
+
+            // Determine current container and corresponding "select all" checkbox
+            if (target.closest('#orders-by-name-content-wrapper')) {
+                currentTableContainer = byNameContainer;
+                selectAllCheckboxInstance = currentTableContainer?.querySelector('#select-all-deliveries');
+            } else if (target.closest('#delivery_date_search_results_container')) {
+                currentTableContainer = byDateContainer;
+                selectAllCheckboxInstance = currentTableContainer?.querySelector('#select-all-deliveries-by-date');
+            }
+
+            if (!currentTableContainer) {
+                // If the change event is not within a known container, exit.
+                // This can happen if other form elements within ordersTabContent trigger change events.
+                return;
+            }
+
+            const itemCheckboxes = currentTableContainer.querySelectorAll('.select-delivery-item');
+
+            if (target.matches('#select-all-deliveries, #select-all-deliveries-by-date')) {
+                // Handle "Select All" checkbox click
+                const isChecked = target.checked;
                 itemCheckboxes.forEach(checkbox => {
                     checkbox.checked = isChecked;
                 });
-                updateBatchDeleteToast(); // <--- ADD THIS
-            } else if (event.target.matches('.select-delivery-item')) {
-                const selectAllCheckbox = contentWrapper.querySelector('#select-all-deliveries');
-                if (selectAllCheckbox) {
-                    const itemCheckboxes = contentWrapper.querySelectorAll('.select-delivery-item');
+            } else if (target.matches('.select-delivery-item')) {
+                // Handle individual item checkbox click
+                if (selectAllCheckboxInstance) {
                     const allChecked = Array.from(itemCheckboxes).every(checkbox => checkbox.checked);
                     const someChecked = Array.from(itemCheckboxes).some(checkbox => checkbox.checked);
 
                     if (allChecked && itemCheckboxes.length > 0) {
-                        selectAllCheckbox.checked = true;
-                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckboxInstance.checked = true;
+                        selectAllCheckboxInstance.indeterminate = false;
                     } else if (someChecked) {
-                        selectAllCheckbox.checked = false;
-                        selectAllCheckbox.indeterminate = true;
+                        selectAllCheckboxInstance.checked = false;
+                        selectAllCheckboxInstance.indeterminate = true;
                     } else {
-                        selectAllCheckbox.checked = false;
-                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckboxInstance.checked = false;
+                        selectAllCheckboxInstance.indeterminate = false;
                     }
                 }
-                updateBatchDeleteToast(); // <--- ADD THIS
+            }
+
+            // After any relevant checkbox change, update the toast.
+            // This will correctly count from the active tab due to updateBatchDeleteToast's internal logic.
+            if (target.matches('#select-all-deliveries, #select-all-deliveries-by-date, .select-delivery-item')) {
+                 updateBatchDeleteToast();
             }
         });
+        // Initial call to set toast state when page loads (e.g. if there are pre-selected items from server-side rendering, though not current case)
+        // updateBatchDeleteToast(); // This might be better called after initial content load for each tab if applicable
     } else {
-        console.warn("Content wrapper for select-all functionality ('orders-by-name-content-wrapper') not found.");
+        console.warn("Main tab content area ('orders-tab-content') not found. Checkbox functionality might be affected.");
+    }
+
+    // Ensure toast is updated when tabs change
+    tabButtons.forEach(tabButton => {
+        tabButton.addEventListener('shown.bs.tab', function (event) {
+            // event.target // newly activated tab
+            // event.relatedTarget // previous active tab
+            updateSearchFormVisibility(event.target.getAttribute('data-bs-target'));
+
+            // Reset "Select All" for the tab that is becoming inactive (event.relatedTarget)
+            const previousActivePaneTarget = event.relatedTarget ? event.relatedTarget.getAttribute('data-bs-target') : null;
+            if (previousActivePaneTarget) {
+                const previousPane = document.querySelector(previousActivePaneTarget);
+                if (previousPane) {
+                    const selectAllInPrevious = previousPane.querySelector('#select-all-deliveries, #select-all-deliveries-by-date');
+                    if (selectAllInPrevious && selectAllInPrevious.checked) {
+                        // selectAllInPrevious.checked = false; // Optionally uncheck all when tab becomes inactive
+                        // selectAllInPrevious.indeterminate = false;
+                        // const itemsInPrevious = previousPane.querySelectorAll('.select-delivery-item');
+                        // itemsInPrevious.forEach(item => item.checked = false);
+                    }
+                }
+            }
+            updateBatchDeleteToast(); // Update toast based on the new active tab's selection state
+        });
+    });
+
+    // Initial toast update on page load, considering the initially active tab
+    // This ensures the toast is correctly shown/hidden if the page loads with an active tab that might have selections
+    // (though currently selections are client-side only).
+    const initialActiveTab = document.querySelector('#orders-view-tabs .nav-link.active');
+    if (initialActiveTab) {
+        updateSearchFormVisibility(initialActiveTab.getAttribute('data-bs-target')); // Ensure correct form visibility
+    }
+    updateBatchDeleteToast(); // Update toast for the initially active tab
+
+
+    // --- Edit Order Modal Logic ---
+
+    // Helper function to add a package row to the modal
+    function addPackageRowToModal(availablePakets, detail = null) {
+        const packageFieldsContainer = document.getElementById('package-fields-container');
+        if (!packageFieldsContainer) {
+            console.error('Package fields container #package-fields-container not found in modal.');
+            return;
+        }
+
+        const detailId = detail ? detail.id : ''; // Store existing orderdetail.id if present
+        const selectedPaketId = detail ? detail.paket_id : (detail && detail.paket ? detail.paket.id : ''); // Ensure detail.paket.id is also checked
+        const jumlah = detail ? detail.jumlah : 1;
+        const catatanDapur = detail && detail.catatan_dapur ? detail.catatan_dapur : '';
+        const catatanKurir = detail && detail.catatan_kurir ? detail.catatan_kurir : '';
+
+        const packageRow = document.createElement('div');
+        packageRow.classList.add('package-item-row', 'mb-3', 'p-3', 'border', 'rounded'); // Added more padding and rounded corners
+        packageRow.setAttribute('data-orderdetail-id', detailId);
+
+        let paketOptionsHtml = '<option value="">Pilih Paket</option>';
+        availablePakets.forEach(paket => {
+            const isSelected = paket.id === selectedPaketId || (detail && detail.paket && paket.id === detail.paket.id);
+            paketOptionsHtml += `<option value="${paket.id}" data-harga-jual="${paket.harga_jual}" data-harga-modal="${paket.harga_modal}" ${isSelected ? 'selected' : ''}>${paket.nama} (Jual: ${Number(paket.harga_jual).toLocaleString('id-ID')}, Modal: ${Number(paket.harga_modal).toLocaleString('id-ID')})</option>`;
+        });
+
+        packageRow.innerHTML = `
+            <input type="hidden" class="order-detail-id" value="${detailId}"> <!-- Hidden input for existing detail ID -->
+            <div class="row g-3"> <!-- Increased gutter for better spacing -->
+                <div class="col-md-7 mb-2"> <!-- Adjusted column width -->
+                    <label class="form-label">Paket Makanan</label>
+                    <select class="form-select paket-select">${paketOptionsHtml}</select>
+                </div>
+                <div class="col-md-2 mb-2"> <!-- Adjusted column width -->
+                    <label class="form-label">Jumlah</label>
+                    <input class="form-control paket-jumlah" type="number" value="${jumlah}" min="1">
+                </div>
+                <div class="col-md-3 mb-2"> <!-- Subtotal display column -->
+                    <label class="form-label">Subtotal</label>
+                    <input type="text" class="form-control item-subtotal-display" readonly style="pointer-events: none;">
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Catatan Dapur</label>
+                <textarea class="form-control paket-catatan-dapur" rows="1">${catatanDapur}</textarea>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Catatan Kurir</label>
+                <textarea class="form-control paket-catatan-kurir" rows="1">${catatanKurir}</textarea>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger remove-package-btn mt-2">Hapus Paket Ini</button>
+            <hr class="my-3 d-md-none"> <!-- Show hr only on smaller screens if rows stack -->
+        `;
+        packageFieldsContainer.appendChild(packageRow);
+    }
+
+    // Function to populate the modal with fetched data
+    function populateEditOrderModal(data) {
+        const deliveryData = data;
+        const orderDetails = data.details || [];
+        const availableCouriers = data.available_couriers || [];
+        availablePaketsForModal = data.available_pakets || []; // Store for "Add Package" button
+
+        const modalTitleElement = document.getElementById('editOrderModalTitle');
+        if (modalTitleElement) {
+            modalTitleElement.textContent = `Edit Pengiriman (ID: ${deliveryData.id}) Pesanan ID: ${deliveryData.order_id || 'N/A'}`;
+        }
+
+        const deliveryDateInput = document.getElementById('delivery-date-input');
+        if (deliveryDateInput) {
+            deliveryDateInput.value = deliveryData.tanggal;
+             if (window.flatpickr) { // Check if flatpickr is available
+                const fpInstance = deliveryDateInput._flatpickr;
+                if (fpInstance) {
+                    fpInstance.setDate(deliveryData.tanggal, true);
+                } else {
+                    // Initialize flatpickr if it wasn't initialized before for this specific input
+                    flatpickr(deliveryDateInput, { dateFormat: "Y-m-d", locale: "id" });
+                    deliveryDateInput._flatpickr.setDate(deliveryData.tanggal, true);
+                }
+            }
+        }
+
+
+        const ongkirInput = document.getElementById('ongkir-input');
+        if (ongkirInput) ongkirInput.value = deliveryData.ongkir || 0;
+
+        const itemTambahanInput = document.getElementById('item-tambahan-input');
+        if (itemTambahanInput) itemTambahanInput.value = deliveryData.item_tambahan || '';
+
+        const hargaTambahanInput = document.getElementById('harga-tambahan-input');
+        if (hargaTambahanInput) hargaTambahanInput.value = deliveryData.harga_tambahan || 0;
+
+        const hargaModalTambahanInput = document.getElementById('harga-modal-tambahan-input');
+        if (hargaModalTambahanInput) hargaModalTambahanInput.value = deliveryData.harga_modal_tambahan || 0;
+
+        // Populate new daily notes fields
+        const dailyKitchenNoteEl = document.getElementById('daily-kitchen-note');
+        if (dailyKitchenNoteEl) dailyKitchenNoteEl.value = deliveryData.kitchen_note || '';
+
+        const dailyCourierNoteEl = document.getElementById('daily-courier-note');
+        if (dailyCourierNoteEl) dailyCourierNoteEl.value = deliveryData.courier_note || '';
+
+        // Order-level notes (display only, or make editable if form field exists)
+        const orderNotesDisplay = document.getElementById('order-notes-display'); // Example ID for a display area
+        if (orderNotesDisplay && deliveryData.orders && deliveryData.orders.notes) {
+            orderNotesDisplay.textContent = deliveryData.orders.notes;
+            // Show the container if notes exist
+            const orderNotesContainer = document.getElementById('order-notes-container');
+            if(orderNotesContainer) orderNotesContainer.style.display = 'block';
+        } else if (orderNotesDisplay) {
+            orderNotesDisplay.textContent = 'Tidak ada catatan pesanan.';
+            const orderNotesContainer = document.getElementById('order-notes-container');
+            if(orderNotesContainer) orderNotesContainer.style.display = 'none'; // Hide if no notes
+        }
+
+
+        const kurirSelect = document.getElementById('kurir-select');
+        if (kurirSelect) {
+            kurirSelect.innerHTML = '<option value="">Pilih Kurir</option>';
+            availableCouriers.forEach(courier => {
+                const option = new Option(courier.nama, courier.id);
+                option.selected = String(courier.id) === String(deliveryData.kurir_id); // Ensure type safe comparison
+                kurirSelect.add(option);
+            });
+            if (!deliveryData.kurir_id && kurirSelect.options.length > 0) {
+                kurirSelect.selectedIndex = 0;
+            }
+        }
+
+        const packageFieldsContainer = document.getElementById('package-fields-container');
+        if (packageFieldsContainer) {
+            packageFieldsContainer.innerHTML = '';
+            if (orderDetails.length === 0) {
+                // addPackageRowToModal(availablePaketsForModal, null); // Optionally add one blank row
+            } else {
+                orderDetails.forEach(detail => {
+                    addPackageRowToModal(availablePaketsForModal, detail);
+                });
+            }
+            // After populating all rows, update their individual subtotals and then the grand total
+            document.querySelectorAll('#package-fields-container .package-item-row').forEach(row => {
+                 if (row.querySelector('.paket-select')) { // Ensure it's a fully formed row
+                    updateItemSubtotalDisplay(row);
+                }
+            });
+            updateOverallTotalDisplay();
+        }
+    }
+
+    // Function to update individual item subtotal display
+    function updateItemSubtotalDisplay(packageRow) {
+        const paketSelect = packageRow.querySelector('.paket-select');
+        const jumlahInput = packageRow.querySelector('.paket-jumlah');
+        const subtotalDisplay = packageRow.querySelector('.item-subtotal-display');
+
+        if (!paketSelect || !jumlahInput || !subtotalDisplay) return;
+
+        const selectedOption = paketSelect.options[paketSelect.selectedIndex];
+        const hargaJual = parseFloat(selectedOption.dataset.hargaJual || 0);
+        const jumlah = parseInt(jumlahInput.value) || 0;
+        const subtotal = hargaJual * jumlah;
+
+        subtotalDisplay.value = subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    }
+
+    // Function to update the overall total display in the modal
+    function updateOverallTotalDisplay() {
+        const overallTotalDisplay = document.getElementById('overall-total-display');
+        if (!overallTotalDisplay) return;
+
+        let sumOfItemSubtotals = 0;
+        document.querySelectorAll('#package-fields-container .package-item-row').forEach(row => {
+            const paketSelect = row.querySelector('.paket-select');
+            const jumlahInput = row.querySelector('.paket-jumlah');
+            if (paketSelect && jumlahInput) {
+                const selectedOption = paketSelect.options[paketSelect.selectedIndex];
+                if (selectedOption && selectedOption.dataset.hargaJual) { // Ensure option is selected and has data
+                    const hargaJual = parseFloat(selectedOption.dataset.hargaJual);
+                    const jumlah = parseInt(jumlahInput.value) || 0;
+                    sumOfItemSubtotals += hargaJual * jumlah;
+                }
+            }
+        });
+
+        const ongkirInput = document.getElementById('ongkir-input');
+        const hargaTambahanInput = document.getElementById('harga-tambahan-input');
+
+        const ongkir = parseFloat(ongkirInput ? ongkirInput.value : 0) || 0;
+        const hargaTambahan = parseFloat(hargaTambahanInput ? hargaTambahanInput.value : 0) || 0;
+
+        const grandTotal = sumOfItemSubtotals + ongkir + hargaTambahan;
+        overallTotalDisplay.value = grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+    }
+
+
+    // Function to open and fetch data for the Edit Order Modal
+    async function openEditOrderModal(deliveryId) {
+        const modalElement = document.getElementById('editOrderModal');
+        if (!modalElement) {
+            console.error('Edit Order Modal element #editOrderModal not found.');
+            if (window.showGlobalToast) window.showGlobalToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
+            return;
+        }
+
+        modalElement.setAttribute('data-current-delivery-id', deliveryId);
+
+        // Show loading state - e.g., disable form, show spinner
+        const formElement = modalElement.querySelector('#edit-form'); // Assuming form has id 'edit-form'
+        if (formElement) {
+            Array.from(formElement.elements).forEach(el => el.disabled = true);
+        }
+        // You might want to show a visual spinner here too.
+
+        try {
+            const response = await fetch(`/api/delivery-details/${deliveryId}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Gagal memuat detail pengiriman. Status: ' + response.status }));
+                throw new Error(errorData.message || 'Gagal memuat detail pengiriman.');
+            }
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                populateEditOrderModal(result.data);
+                const bootstrapModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                bootstrapModal.show();
+            } else {
+                throw new Error(result.message || 'Tidak dapat mengambil detail pengiriman.');
+            }
+        } catch (error) {
+            console.error('Error opening edit order modal:', error);
+            if (window.showGlobalToast) window.showGlobalToast('Error', error.message, 'error');
+        } finally {
+            // Hide loading state
+            if (formElement) {
+                Array.from(formElement.elements).forEach(el => el.disabled = false);
+            }
+        }
+    }
+
+    // Event listener for Edit buttons (delegated from ordersTabContent)
+    if (ordersTabContent) {
+        ordersTabContent.addEventListener('click', function(event) {
+            const editButton = event.target.closest('.edit-delivery-btn');
+            if (editButton) {
+                event.preventDefault();
+                const deliveryId = editButton.getAttribute('data-delivery-id');
+                if (deliveryId) {
+                    openEditOrderModal(deliveryId);
+                } else {
+                    console.error('Edit button clicked but data-delivery-id attribute is missing or empty.');
+                    if(window.showGlobalToast) window.showGlobalToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
+                }
+            }
+        });
+    }
+
+    // Initialize Flatpickr for the main delivery_date_search_input (if not already done)
+    // The modal's flatpickr is handled within populateEditOrderModal or should be initialized when modal HTML is loaded.
+    // This ensures that if the main page has a flatpickr input, it's also initialized.
+    const mainDeliveryDateInput = document.getElementById('delivery_date_search_input'); // This is for the "By Date" tab search
+    if (mainDeliveryDateInput && window.flatpickr && !mainDeliveryDateInput._flatpickr) {
+       flatpickr(mainDeliveryDateInput, { dateFormat: "Y-m-d", locale: "id" });
+    }
+
+    // It's good practice to initialize modal's flatpickr when the modal is first added to DOM or shown,
+    // but the current populateEditOrderModal handles re-setting the date or initializing if needed.
+    // If #delivery-date-input (modal's date input) exists on page load (e.g. not dynamically loaded with modal):
+    const modalDeliveryDateInput = document.getElementById('delivery-date-input');
+    if (modalDeliveryDateInput && window.flatpickr && !modalDeliveryDateInput._flatpickr) {
+        flatpickr(modalDeliveryDateInput, { dateFormat: "Y-m-d", locale: "id" });
+    }
+
+    // Event listeners for modal calculation fields
+    const packageFieldsContainer = document.getElementById('package-fields-container');
+    if (packageFieldsContainer) {
+        packageFieldsContainer.addEventListener('change', function(event) {
+            if (event.target.matches('.paket-select') || event.target.matches('.paket-jumlah')) {
+                const packageRow = event.target.closest('.package-item-row');
+                if (packageRow) {
+                    updateItemSubtotalDisplay(packageRow);
+                    updateOverallTotalDisplay();
+                }
+            }
+        });
+
+        packageFieldsContainer.addEventListener('click', function(event) {
+            if (event.target.matches('.remove-package-btn')) {
+                const packageRow = event.target.closest('.package-item-row');
+                if (packageRow) {
+                    packageRow.remove();
+                    updateOverallTotalDisplay();
+                }
+            }
+        });
+    }
+
+    const addPackageBtn = document.getElementById('add-package-item-btn');
+    if (addPackageBtn) {
+        addPackageBtn.addEventListener('click', function() {
+            addPackageRowToModal(availablePaketsForModal, null);
+            // New row's subtotal will be calculated if its quantity/paket changes.
+            // Or, explicitly update its subtotal if it defaults to values that should show one.
+            const newRows = document.querySelectorAll('#package-fields-container .package-item-row:last-child');
+            if(newRows.length > 0) updateItemSubtotalDisplay(newRows[0]);
+
+            updateOverallTotalDisplay();
+        });
+    }
+
+    const ongkirInputModal = document.getElementById('ongkir-input');
+    if (ongkirInputModal) ongkirInputModal.addEventListener('change', updateOverallTotalDisplay);
+
+    const hargaTambahanInputModal = document.getElementById('harga-tambahan-input');
+    if (hargaTambahanInputModal) hargaTambahanInputModal.addEventListener('change', updateOverallTotalDisplay);
+
+    // Function to gather data from the edit modal form
+    function gatherEditModalFormData() {
+        const data = {
+            tanggal: document.getElementById('delivery-date-input').value,
+            kurir_id: document.getElementById('kurir-select').value,
+            ongkir: parseFloat(document.getElementById('ongkir-input').value) || 0,
+            item_tambahan: document.getElementById('item-tambahan-input').value,
+            harga_tambahan: parseFloat(document.getElementById('harga-tambahan-input').value) || 0,
+            harga_modal_tambahan: parseFloat(document.getElementById('harga-modal-tambahan-input').value) || 0,
+            daily_kitchen_note: document.getElementById('daily-kitchen-note')?.value || '',
+            daily_courier_note: document.getElementById('daily-courier-note')?.value || '',
+            package_items: [],
+        };
+
+        document.querySelectorAll('#package-fields-container .package-item-row').forEach(row => {
+            const orderDetailIdInput = row.querySelector('.order-detail-id'); // Uses the hidden input
+            const orderDetailId = orderDetailIdInput ? orderDetailIdInput.value : null; // Get value from hidden input
+
+            const paketSelect = row.querySelector('.paket-select');
+            const jumlahInput = row.querySelector('.paket-jumlah');
+            const catatanDapurTextarea = row.querySelector('.paket-catatan-dapur');
+            const catatanKurirTextarea = row.querySelector('.paket-catatan-kurir');
+
+            if (paketSelect && paketSelect.value && jumlahInput && jumlahInput.value && parseInt(jumlahInput.value) > 0) {
+                data.package_items.push({
+                    order_detail_id: orderDetailId || null,
+                    paket_id: parseInt(paketSelect.value),
+                    jumlah: parseInt(jumlahInput.value),
+                    catatan_dapur: catatanDapurTextarea ? catatanDapurTextarea.value : '',
+                    catatan_kurir: catatanKurirTextarea ? catatanKurirTextarea.value : '',
+                });
+            }
+        });
+        return data;
+    }
+
+    // Function to refresh the main orders list view
+    function refreshOrdersView() {
+        const activePane = document.querySelector('.tab-pane.active');
+        if (!activePane) {
+            window.location.reload(); // Fallback
+            return;
+        }
+
+        if (activePane.id === 'pane-by-name') {
+            const customerSearchFormForRefresh = document.getElementById('form_search_by_name'); // Use specific ID
+            const selectedCustomerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
+
+            if (customerSearchFormForRefresh && typeof fetchAndUpdateOrdersView === 'function' && selectedCustomerId) {
+                const params = new URLSearchParams(window.location.search); // Preserve existing params like limit
+                params.set('view', 'by_name');
+                params.set('customer_id', selectedCustomerId);
+                // page will be preserved if in URL, or defaults to 1 if not set by pagination previously
+                if (!params.has('page')) params.set('page', '1');
+
+                fetchAndUpdateOrdersView(customerSearchFormForRefresh.action + '?' + params.toString());
+            } else {
+                 // If no customer selected or function not available, just reload.
+                window.location.reload();
+            }
+        } else if (activePane.id === 'pane-by-date') {
+            const deliveryDateSearchButtonForRefresh = document.getElementById('delivery_date_search_button');
+            if (deliveryDateSearchButtonForRefresh) {
+                deliveryDateSearchButtonForRefresh.click();
+            } else {
+                window.location.reload();
+            }
+        } else {
+            window.location.reload();
+        }
+    }
+
+    // Event listener for the Edit Order Modal form submission
+    const editOrderForm = document.getElementById('edit-form');
+    if (editOrderForm) {
+        editOrderForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const submitButton = document.getElementById('submit-btn'); // Ensure modal submit button has this ID
+            if (!submitButton) {
+                console.error('Submit button #submit-btn not found in edit modal.');
+                return;
+            }
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+            const modalElement = document.getElementById('editOrderModal');
+            const deliveryId = modalElement.getAttribute('data-current-delivery-id');
+
+            if (!deliveryId) {
+                console.error('Delivery ID not found on modal for submission.');
+                if(window.showGlobalToast) window.showGlobalToast('Error', 'Cannot save: Delivery ID missing.', 'error');
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+                return;
+            }
+
+            const formData = gatherEditModalFormData();
+
+            // Simple client-side validation: ensure at least one package item if that's a rule
+            // More complex validation (e.g., date format, required fields) can be added here or is expected from server.
+            if (formData.package_items.length === 0) {
+                 if(window.showGlobalToast) window.showGlobalToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
+                 const errorDisplayElement = document.getElementById('edit-modal-error-display');
+                 if (errorDisplayElement) {
+                    errorDisplayElement.textContent = 'Harap tambahkan minimal satu paket makanan.';
+                    errorDisplayElement.style.display = 'block';
+                 }
+                 submitButton.disabled = false;
+                 submitButton.innerHTML = originalButtonText;
+                 return;
+            }
+
+
+            try {
+                const response = await fetch(`/api/delivery-details/update/${deliveryId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                const result = await response.json();
+                const errorDisplayElement = document.getElementById('edit-modal-error-display'); // Get it once
+
+                if (response.ok && result.success) {
+                    if(window.showGlobalToast) window.showGlobalToast('Success', result.message || 'Order updated successfully!', 'success');
+                    const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+                    if (bootstrapModal) bootstrapModal.hide();
+                    if (errorDisplayElement) errorDisplayElement.style.display = 'none'; // Hide error on success
+                    refreshOrdersView();
+                } else {
+                    throw new Error(result.message || 'Failed to update order. Status: ' + response.status);
+                }
+            } catch (error) {
+                console.error('Error submitting edit order form:', error);
+                const errorDisplayElement = document.getElementById('edit-modal-error-display');
+                if (errorDisplayElement) {
+                    errorDisplayElement.textContent = error.message;
+                    errorDisplayElement.style.display = 'block';
+                } else if(window.showGlobalToast) {
+                    window.showGlobalToast('Error', error.message, 'error');
+                }
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        });
     }
 });

@@ -11,3 +11,38 @@
   /* --tblr-toast-spacing: calc(var(--tblr-page-padding) * 2); */
   --tblr-toast-spacing: 0px;
 }
+
+/* Ensure the modal body for the edit order modal can scroll */
+#editOrderModal .modal-body {
+  /* overflow-y: auto; */ /* This is usually handled by .modal-dialog-scrollable, but explicit for safety if needed */
+                           /* The main goal is to ensure no conflicting fixed height from custom CSS */
+}
+
+/* Ensure the modal body for the edit order modal can scroll */
+#editOrderModal .modal-body {
+  /* overflow-y: auto; */ /* This is usually handled by .modal-dialog-scrollable, but explicit for safety if needed */
+                           /* The main goal is to ensure no conflicting fixed height from custom CSS */
+}
+
+/* Ensure the package fields container within the edit modal doesn't have a fixed height or hidden overflow */
+/* that would prevent the modal-body itself from scrolling. */
+#editOrderModal #package-fields-container {
+  max-height: none; /* Override any potential max-height that might be set elsewhere */
+  overflow-y: visible; /* Ensure it doesn't try to scroll itself if it's not meant to */
+                       /* Or 'auto' if it *should* be the one scrolling, but modal-body is preferred by Bootstrap */
+}
+
+/* Forcing scrollability on the Edit Order Modal's body */
+#editOrderModal .modal-body {
+  overflow-y: auto !important; /* Ensure vertical scrollbar appears when content overflows */
+  max-height: 65vh;           /* Set a max height relative to viewport height */
+                                /* Alternatively, calc(100vh - Xpx) where X is header+footer height; e.g., calc(100vh - 210px) */
+                                /* This prevents the modal body from becoming taller than this value, forcing scroll. */
+}
+
+/* Resetting any potentially conflicting styles on the package fields container from previous attempts, */
+/* as the modal-body should now be the primary scrolling element. */
+#editOrderModal #package-fields-container {
+  max-height: none; /* Ensure this doesn't have its own max-height that might conflict */
+  overflow-y: visible; /* Ensure this doesn't try to create its own scrollbar */
+}

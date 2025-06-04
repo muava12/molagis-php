@@ -28,7 +28,26 @@ function initializeBatchDeleteToast() {
 
     if (deleteSelectedBtnToast) {
         deleteSelectedBtnToast.addEventListener('click', () => {
-            const selectedCheckboxes = document.querySelectorAll('#orders-by-name-content-wrapper .select-delivery-item:checked');
+            const activePane = document.querySelector('.tab-pane.active');
+            if (!activePane) {
+                console.warn('No active tab pane found for batch delete.');
+                if (window.showGlobalToast) window.showGlobalToast('Error', 'Cannot determine active tab for batch delete.', 'error');
+                else alert('Cannot determine active tab for batch delete.');
+                return;
+            }
+
+            // Determine the active table container within the active pane
+            // This assumes that one of these containers will be a child of the activePane.
+            const activeTableContainer = activePane.querySelector('#orders-by-name-content-wrapper') || activePane.querySelector('#delivery_date_search_results_container');
+
+            if (!activeTableContainer) {
+                console.warn('No active table container found within the active pane.');
+                if (window.showGlobalToast) window.showGlobalToast('Error', 'Cannot find table in active tab for batch delete.', 'error');
+                else alert('Cannot find table in active tab for batch delete.');
+                return;
+            }
+
+            const selectedCheckboxes = activeTableContainer.querySelectorAll('.select-delivery-item:checked');
             const deliveryIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.value);
 
             if (deliveryIdsToDelete.length === 0) {
@@ -65,11 +84,20 @@ function initializeBatchDeleteToast() {
                 })
                 .then(data => {
                     const successfullyDeletedIds = data.deleted_ids || deliveryIdsToDelete;
-                    successfullyDeletedIds.forEach(id => {
-                        document.querySelector(`#orders-by-name-content-wrapper .select-delivery-item[value="${id}"]`)?.closest('tr')?.remove();
-                    });
-                    const saCheckbox = document.querySelector('#orders-by-name-content-wrapper #select-all-deliveries');
-                    if (saCheckbox) { saCheckbox.checked = false; saCheckbox.indeterminate = false; }
+                    // Re-determine activeTableContainer for UI updates, as it might be lost in promise scope or if DOM changed.
+                    // It's safer to query it again based on the active pane.
+                    const currentActivePaneForFallback = document.querySelector('.tab-pane.active');
+                    const currentActiveTableContainerForFallback = currentActivePaneForFallback ? (currentActivePaneForFallback.querySelector('#orders-by-name-content-wrapper') || currentActivePaneForFallback.querySelector('#delivery_date_search_results_container')) : null;
+
+                    if (currentActiveTableContainerForFallback) {
+                        successfullyDeletedIds.forEach(id => {
+                            currentActiveTableContainerForFallback.querySelector(`.select-delivery-item[value="${id}"]`)?.closest('tr')?.remove();
+                        });
+                        const saCheckbox = currentActiveTableContainerForFallback.querySelector('#select-all-deliveries, #select-all-deliveries-by-date');
+                        if (saCheckbox) { saCheckbox.checked = false; saCheckbox.indeterminate = false; }
+                    } else {
+                        console.warn("Fallback delete: Could not find active table container to update UI post-delete. A page reload might be needed.");
+                    }
                     if (window.batchDeleteToast?.hide) window.batchDeleteToast.hide();
                     if (window.showGlobalToast) window.showGlobalToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted.`, 'success');
                     else alert(data.message || `${successfullyDeletedIds.length} item(s) deleted.`);
@@ -109,17 +137,27 @@ function initializeBatchDeleteToast() {
                 .then(data => {
                     console.log('Batch delete successful:', data);
                     const successfullyDeletedIds = data.deleted_ids || deliveryIdsToDelete;
-                    successfullyDeletedIds.forEach(id => {
-                        const rowToRemove = document.querySelector(`#orders-by-name-content-wrapper .select-delivery-item[value="${id}"]`)?.closest('tr');
-                        if (rowToRemove) {
-                            rowToRemove.remove();
+
+                    // Re-determine activeTableContainer for UI updates
+                    const currentActivePane = document.querySelector('.tab-pane.active');
+                    const currentActiveTableContainer = currentActivePane ? (currentActivePane.querySelector('#orders-by-name-content-wrapper') || currentActivePane.querySelector('#delivery_date_search_results_container')) : null;
+
+                    if (currentActiveTableContainer) {
+                        successfullyDeletedIds.forEach(id => {
+                            const rowToRemove = currentActiveTableContainer.querySelector(`.select-delivery-item[value="${id}"]`)?.closest('tr');
+                            if (rowToRemove) {
+                                rowToRemove.remove();
+                            }
+                        });
+                        const selectAllInActive = currentActiveTableContainer.querySelector('#select-all-deliveries, #select-all-deliveries-by-date');
+                        if (selectAllInActive) {
+                            selectAllInActive.checked = false;
+                            selectAllInActive.indeterminate = false;
                         }
-                    });
-                    const selectAllCheckbox = document.querySelector('#orders-by-name-content-wrapper #select-all-deliveries');
-                    if (selectAllCheckbox) {
-                        selectAllCheckbox.checked = false;
-                        selectAllCheckbox.indeterminate = false;
+                    } else {
+                        console.warn("Could not determine active table container to update UI. A page reload might be needed.");
                     }
+
                     if (typeof window.batchDeleteToast !== 'undefined' && window.batchDeleteToast.hide) {
                         window.batchDeleteToast.hide();
                     }

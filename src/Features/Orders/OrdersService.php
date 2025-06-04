@@ -280,4 +280,277 @@ class OrdersService
             return ['count' => 0, 'error' => 'An unexpected error occurred while fetching delivery count.'];
         }
     }
+
+    /**
+     * Batch deletes delivery dates by their IDs.
+     *
+     * @param array $deliveryDateIds An array of integer delivery date IDs.
+     * @param string|null $accessToken User's access token.
+     * @return array Result array with 'success', 'message'/'error', and optionally 'deleted_ids'.
+     */
+    public function batchDeleteDeliveryDatesByIds(array $deliveryDateIds, ?string $accessToken = null): array
+    {
+        if (empty($deliveryDateIds)) {
+            return ['success' => false, 'error' => 'No delivery IDs provided.', 'status_code' => 400];
+        }
+
+        // Ensure all IDs are integers, just in case they weren't sanitized before.
+        $ids = array_map('intval', $deliveryDateIds);
+        $ids = array_filter($ids, fn($id) => $id > 0);
+
+        if (empty($ids)) {
+            return ['success' => false, 'error' => 'No valid delivery IDs after filtering.', 'status_code' => 400];
+        }
+
+        $idList = implode(',', $ids); // Format for "in" clause: e.g., "1,2,3"
+
+        // Using "deliverydates" as the table name as per previous delete logic for single items.
+        $query = sprintf(
+            '/rest/v1/deliverydates?id=in.(%s)',
+            $idList
+        );
+
+        try {
+            // Assuming $this->supabaseClient->delete() handles the request appropriately.
+            // The Supabase PHP client's delete method might return true on 204,
+            // or throw an exception for other errors.
+            $response = $this->supabaseClient->delete($query, [], $accessToken);
+
+            // Check if Supabase client returned an error array (e.g. RLS violation)
+            if (is_array($response) && isset($response['error'])) {
+                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
+                error_log('Supabase batchDeleteDeliveryDatesByIds error: ' . $errorMessage);
+                return ['success' => false, 'error' => $errorMessage, 'status_code' => 500]; // Generic server error for DB issues
+            }
+
+            // Ideal scenario: Supabase client returns true for 204, or a Guzzle response object for 204.
+            if ($response === true || (is_object($response) && method_exists($response, 'getStatusCode') && $response->getStatusCode() === 204)) {
+                return [
+                    'success' => true,
+                    'message' => count($ids) . ' delivery date(s) processed for deletion.',
+                    'deleted_ids' => $ids
+                ];
+            }
+
+            // Fallback for unexpected response types from Supabase client
+            // This might indicate that nothing was deleted, or an issue not caught as an exception or error array.
+            // Supabase DELETE with `in` clause on items that don't exist still returns 204.
+            // So, if we reach here, it's an ambiguous success/failure from the client's perspective.
+            // For safety, let's assume it might not have worked as expected if not explicitly a 204 or true.
+            // However, many clients might just return the response body/object even if it's a success without specific content.
+            // Given the previous single delete logic, let's assume if no error was thrown and no ['error'] key, it's a success.
+            return [
+               'success' => true,
+               'message' => count($ids) . ' delivery date(s) targeted for deletion. Verify results.',
+               'deleted_ids' => $ids
+           ];
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $responseBody = $e->getResponse() ? $e->getResponse()->getBody()->getContents() : $e->getMessage();
+            error_log('Guzzle ClientException in batchDeleteDeliveryDatesByIds: ' . $responseBody);
+            $decodedBody = json_decode($responseBody, true);
+            $errorMessage = $decodedBody['message'] ?? $decodedBody['error'] ?? 'Batch delete failed due to client error.';
+            $statusCode = $e->getResponse() ? $e->getResponse()->getStatusCode() : 500;
+            // A 404 for a batch delete (e.g., if all IDs in the list were not found) might still be considered "processed".
+            // However, Supabase usually returns 204 even if no rows match the `in` criteria for a DELETE.
+            // So a 404 here would be unusual and likely indicate a problem with the request itself or endpoint.
+            return ['success' => false, 'error' => $errorMessage, 'status_code' => $statusCode];
+        } catch (\Exception $e) {
+            error_log('Generic Exception in batchDeleteDeliveryDatesByIds: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'An exception occurred during batch delete: ' . $e->getMessage(), 'status_code' => 500];
+        }
+    }
+
+    /**
+     * Fetches all necessary data for editing a specific delivery date.
+     *
+     * @param int $deliveryId The ID of the deliverydates record.
+     * @param string|null $accessToken User's access token.
+     * @return array Result array with 'success', 'data' or 'error', and 'status_code'.
+     */
+    public function getDeliveryDataForEdit(int $deliveryId, ?string $accessToken = null): array
+    {
+        try {
+            // 1. Fetch the main deliverydates record
+            $deliveryFields = [
+                'id', 'order_id', 'tanggal', 'kurir_id', 'ongkir',
+                'item_tambahan', 'harga_tambahan', 'harga_modal_tambahan',
+                'total_harga_perhari', 'total_modal_perhari', 'status',
+                'kitchen_note', 'courier_note' // Added new note fields
+            ];
+            $deliveryDateQuery = sprintf(
+                '/rest/v1/deliverydates?id=eq.%d&select=%s,orders(customer_id,notes)',
+                $deliveryId,
+                implode(',', $deliveryFields)
+            );
+            $deliveryDateResponse = $this->supabaseClient->get($deliveryDateQuery, [], $accessToken);
+
+            if (isset($deliveryDateResponse['error']) || empty($deliveryDateResponse['data'])) {
+                $errorMsg = isset($deliveryDateResponse['error']) ? (is_array($deliveryDateResponse['error']) ? json_encode($deliveryDateResponse['error']) : $deliveryDateResponse['error']) : 'Delivery date not found.';
+                error_log('Supabase error fetching deliverydate for edit: ' . $errorMsg);
+                return ['success' => false, 'error' => $errorMsg, 'status_code' => isset($deliveryDateResponse['error']) ? 500 : 404];
+            }
+            $deliveryData = $deliveryDateResponse['data'][0];
+
+            // 2. Fetch associated orderdetails with paket information
+            $orderDetailsQuery = sprintf(
+                '/rest/v1/orderdetails?delivery_id=eq.%d&select=*,paket(id,nama,harga_jual,harga_modal)',
+                $deliveryId
+            );
+            $orderDetailsResponse = $this->supabaseClient->get($orderDetailsQuery, [], $accessToken);
+
+            if (isset($orderDetailsResponse['error'])) {
+                $errorMsg = is_array($orderDetailsResponse['error']) ? json_encode($orderDetailsResponse['error']) : $orderDetailsResponse['error'];
+                error_log('Supabase error fetching orderdetails for edit: ' . $errorMsg);
+                return ['success' => false, 'error' => $errorMsg, 'status_code' => 500];
+            }
+            $deliveryData['details'] = $orderDetailsResponse['data'] ?? [];
+
+            // 3. Fetch list of all active couriers
+            $couriersResponse = $this->supabaseClient->get('/rest/v1/couriers?aktif=eq.true&select=id,nama', [], $accessToken);
+            if (isset($couriersResponse['error'])) {
+                // Log error but don't necessarily fail the whole request if couriers are optional for display
+                error_log('Supabase error fetching couriers for edit: ' . json_encode($couriersResponse['error']));
+                $deliveryData['available_couriers'] = [];
+            } else {
+                $deliveryData['available_couriers'] = $couriersResponse['data'] ?? [];
+            }
+
+            // 4. Fetch list of all pakets
+            $paketsResponse = $this->supabaseClient->get('/rest/v1/paket?select=id,nama,harga_jual,harga_modal,urutan&order=urutan.asc,nama.asc', [], $accessToken);
+            if (isset($paketsResponse['error'])) {
+                $errorMsg = is_array($paketsResponse['error']) ? json_encode($paketsResponse['error']) : $paketsResponse['error'];
+                error_log('Supabase error fetching pakets for edit: ' . $errorMsg);
+                return ['success' => false, 'error' => 'Failed to fetch package list: ' . $errorMsg, 'status_code' => 500];
+            }
+            $deliveryData['available_pakets'] = $paketsResponse['data'] ?? [];
+
+            return ['success' => true, 'data' => $deliveryData];
+
+        } catch (\Exception $e) {
+            error_log('Generic Exception in getDeliveryDataForEdit for ID ' . $deliveryId . ': ' . $e->getMessage());
+            return ['success' => false, 'error' => 'An exception occurred: ' . $e->getMessage(), 'status_code' => 500];
+        }
+    }
+
+    /**
+     * Updates delivery details, associated orderdetails, and potentially the parent order's total.
+     *
+     * @param int $deliveryId The ID of the deliverydates record to update.
+     * @param array $data The form data from the edit modal. Expected keys:
+     *                    'tanggal', 'kurir_id', 'ongkir', 'item_tambahan', 'harga_tambahan', 'harga_modal_tambahan',
+     *                    'package_items' => [ [ 'order_detail_id' (optional), 'paket_id', 'jumlah', 'catatan_dapur', 'catatan_kurir' ], ... ]
+     * @param string|null $accessToken User's access token.
+     * @return array Result array with 'success', 'message' or 'error', and 'status_code'.
+     */
+    public function updateDeliveryAndOrderDetails(int $deliveryId, array $data, ?string $accessToken = null): array
+    {
+    try {
+        // 0. Fetch the order_id for the given deliveryId.
+        // This is needed for the final step of updating the parent order's total_harga.
+        // It's better to fetch it before the main RPC call in case the RPC modifies or deletes the delivery record in an unexpected way.
+        $orderIdQuery = sprintf('/rest/v1/deliverydates?id=eq.%d&select=order_id', $deliveryId);
+        $orderIdResponse = $this->supabaseClient->get($orderIdQuery, [], $accessToken);
+
+        if (isset($orderIdResponse['error']) || empty($orderIdResponse['data'])) {
+            $errorMsg = 'Failed to fetch order_id for the given delivery_id before update. Error: ' . json_encode($orderIdResponse['error'] ?? 'Delivery record not found or no order_id.');
+            error_log($errorMsg);
+            return ['success' => false, 'error' => 'Internal error: Could not verify parent order.', 'status_code' => 404]; // Or 500
+        }
+        $orderId = $orderIdResponse['data'][0]['order_id'];
+
+        // 1. Prepare the 'request' JSONB payload for the RPC
+        $rpcRequestPayload = [
+            'tanggal' => $data['tanggal'] ?? null, // RPC casts to DATE
+            'kurir_id' => !empty($data['kurir_id']) ? (int)$data['kurir_id'] : null, // RPC casts to BIGINT
+            'ongkir' => isset($data['ongkir']) ? (float)$data['ongkir'] : 0, // RPC casts to INTEGER or NUMERIC
+            'item_tambahan' => $data['item_tambahan'] ?? null,
+            'harga_tambahan' => isset($data['harga_tambahan']) ? (float)$data['harga_tambahan'] : 0, // RPC casts to NUMERIC
+            'harga_modal_tambahan' => isset($data['harga_modal_tambahan']) ? (float)$data['harga_modal_tambahan'] : 0, // RPC casts to NUMERIC
+            'daily_kitchen_note' => $data['daily_kitchen_note'] ?? null,
+            'daily_courier_note' => $data['daily_courier_note'] ?? null,
+            'package_items' => [], // Initialize to empty array
+        ];
+
+        // Populate package_items, ensuring correct structure
+        $submittedPackageItems = $data['package_items'] ?? [];
+        foreach ($submittedPackageItems as $item) {
+            // Basic validation for essential package item fields
+            if (empty($item['paket_id']) || !isset($item['jumlah']) || ((int)$item['jumlah'] <= 0)) {
+                // Optionally, throw an exception or collect errors if strict validation is needed here
+                // For now, consistent with previous logic, we might just log and skip,
+                // but RPC might be stricter. It's better if frontend ensures this.
+                error_log("Skipping invalid package item in RPC payload prep: " . json_encode($item));
+                continue;
+            }
+            $rpcRequestPayload['package_items'][] = [
+                // order_detail_id is BIGINT in RPC, ensure it's null if not provided or empty
+                'order_detail_id' => !empty($item['order_detail_id']) ? (int)$item['order_detail_id'] : null,
+                'paket_id' => (int)$item['paket_id'], // RPC casts to BIGINT
+                'jumlah' => (int)$item['jumlah'],     // RPC casts to INTEGER
+                'catatan_dapur' => $item['catatan_dapur'] ?? null,
+                'catatan_kurir' => $item['catatan_kurir'] ?? null,
+            ];
+        }
+
+        // 2. Call the RPC function
+        $rpcParams = [
+            'p_delivery_id' => $deliveryId,
+            'request' => $rpcRequestPayload // Supabase PHP client will handle array to JSON conversion
+        ];
+
+        $rpcResponse = $this->supabaseClient->rpc('update_daily_order', $rpcParams, [], $accessToken);
+
+        // The RPC RETURNS VOID, so a successful response might have no data or an empty array.
+        // The key is to check for an error.
+        if (isset($rpcResponse['error'])) {
+            // Detailed error from Supabase/PostgREST, potentially including DB trigger errors
+            $dbErrorMessage = is_array($rpcResponse['error']) ? json_encode($rpcResponse['error']) : (string)$rpcResponse['error'];
+            error_log("Supabase RPC 'update_daily_order' error for delivery_id {$deliveryId}: " . $dbErrorMessage);
+            // Try to extract a user-friendly message if possible, otherwise generic
+            $clientMessage = "Database error during update: " . (is_array($rpcResponse['error']) ? ($rpcResponse['error']['message'] ?? 'Details in log') : $dbErrorMessage);
+            if (strlen($clientMessage) > 200) $clientMessage = "An error occurred while saving changes to the database."; // Keep it concise
+            throw new \Exception($clientMessage);
+        }
+
+        // 3. Update the parent orders.total_harga (if RPC was successful)
+        // This logic remains similar to before, relying on triggers having updated deliverydates.total_harga_perhari
+        if ($orderId) {
+            $allDeliveriesForOrderQuery = sprintf(
+                '/rest/v1/deliverydates?order_id=eq.%d&select=total_harga_perhari',
+                $orderId
+            );
+            $allDeliveriesResponse = $this->supabaseClient->get($allDeliveriesForOrderQuery, [], $accessToken);
+
+            if (isset($allDeliveriesResponse['error'])) {
+                // Log this error but don't fail the entire operation if the main RPC succeeded.
+                // The order total might become out of sync. This might need a more robust solution later.
+                error_log("Failed to fetch all delivery dates for order ID {$orderId} to update order total after RPC: " . json_encode($allDeliveriesResponse['error']));
+            } else {
+                $newOrderTotalHarga = 0;
+                foreach ($allDeliveriesResponse['data'] as $d) {
+                    $newOrderTotalHarga += ($d['total_harga_perhari'] ?? 0);
+                }
+                $updateOrderQuery = '/rest/v1/orders?id=eq.' . $orderId;
+                $orderUpdateResponse = $this->supabaseClient->patch($updateOrderQuery, ['total_harga' => $newOrderTotalHarga], $accessToken);
+                if (isset($orderUpdateResponse['error'])) {
+                    error_log("Failed to update total_harga for order ID {$orderId} after RPC: " . json_encode($orderUpdateResponse['error']));
+                    // Don't throw an exception here to ensure the main success message is returned.
+                }
+            }
+        } else {
+            error_log("No order_id found for delivery_id {$deliveryId}, cannot update parent order total.");
+        }
+
+        return ['success' => true, 'message' => 'Delivery details updated successfully via RPC.'];
+
+    } catch (\Exception $e) {
+        // Log the full error for debugging
+        error_log("Error in updateDeliveryAndOrderDetails (RPC approach) for delivery ID {$deliveryId}: " . $e->getMessage() . " - Trace: " . $e->getTraceAsString());
+
+        // Provide a user-friendly error message
+        // $e->getMessage() might already be user-friendly if thrown from RPC error handling.
+        return ['success' => false, 'error' => $e->getMessage(), 'status_code' => 500];
+    }
+    }
 }

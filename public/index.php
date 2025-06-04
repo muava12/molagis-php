@@ -141,6 +141,9 @@ $routes = [
     ['GET', '/api/orders/search/id', [\Molagis\Features\Orders\OrdersController::class, 'searchOrderByIdApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]], // API for Orders (plural)
     ['GET', '/api/orders/search/date', [\Molagis\Features\Orders\OrdersController::class, 'getDeliveriesByDateApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]], // API for Orders (plural) by date
     ['DELETE', '/api/delivery/{id:\d+}', [\Molagis\Features\Orders\OrdersController::class, 'deleteDeliveryDateApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]],
+    ['DELETE', '/api/deliveries/batch', [\Molagis\Features\Orders\OrdersController::class, 'batchDeleteDeliveriesApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]],
+    ['GET', '/api/delivery-details/{id:\d+}', [\Molagis\Features\Orders\OrdersController::class, 'getDeliveryDetailsForEdit'], [\Molagis\Shared\Middleware\AuthMiddleware::class]],
+    ['POST', '/api/delivery-details/update/{id:\d+}', [\Molagis\Features\Orders\OrdersController::class, 'updateDeliveryDetailsApi'], [\Molagis\Shared\Middleware\AuthMiddleware::class]],
     ['GET', '/api/packages', [OrderController::class, 'getPackages'], [AuthMiddleware::class]],
     ['GET', '/settings', [SettingsController::class, 'showSettings'], [AuthMiddleware::class]],
     ['POST', '/api/settings/update', [SettingsController::class, 'updateSettings'], [AuthMiddleware::class]],
@@ -213,6 +216,9 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'searchOrderByIdApi' => [$request],
                     'getDeliveriesByDateApi' => [$request],
                     'deleteDeliveryDateApi' => [$request, $vars], // Added case, passing $vars
+                    'batchDeleteDeliveriesApi' => [$request],
+                    'getDeliveryDetailsForEdit' => [$request, $vars],
+                    'updateDeliveryDetailsApi' => [$request, $vars],
                     'showSettings' => [$request],
                     'updateSettings' => [$request],
                     default => []

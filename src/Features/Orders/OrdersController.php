@@ -252,4 +252,144 @@ class OrdersController
             return new JsonResponse(['success' => false, 'message' => $serviceResponse['error'] ?? 'Failed to delete delivery date.'], $statusCode);
         }
     }
+
+    public function batchDeleteDeliveriesApi(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $data = json_decode($request->getBody()->getContents(), true);
+        $deliveryDateIds = $data['ids'] ?? null;
+
+        if (empty($deliveryDateIds) || !is_array($deliveryDateIds)) {
+            return new JsonResponse(['success' => false, 'message' => 'Invalid or missing delivery IDs.'], 400);
+        }
+
+        // Basic sanitation: ensure all IDs are integers
+        $sanitizedIds = array_filter(array_map('intval', $deliveryDateIds), fn($id) => $id > 0);
+
+        if (empty($sanitizedIds)) {
+            return new JsonResponse(['success' => false, 'message' => 'No valid delivery IDs provided after sanitation.'], 400);
+        }
+
+        if (count($sanitizedIds) !== count($deliveryDateIds)) {
+           error_log("[BatchDelete] Some IDs were invalid. Original: " . json_encode($deliveryDateIds) . " Sanitized: " . json_encode($sanitizedIds));
+           // Decide if to proceed with only valid ones or reject. For now, let's proceed with valid ones but acknowledge.
+           // To be stricter, you could return an error here if count($sanitizedIds) !== count($deliveryDateIds)
+        }
+
+        $serviceResponse = $this->ordersService->batchDeleteDeliveryDatesByIds($sanitizedIds, $accessToken);
+
+        if ($serviceResponse['success']) {
+            return new JsonResponse([
+                'success' => true,
+                'message' => $serviceResponse['message'] ?? 'Selected deliveries deleted successfully.',
+                'deleted_ids' => $serviceResponse['deleted_ids'] ?? $sanitizedIds // Return sanitized IDs if service doesn't specify
+            ]);
+        } else {
+            $statusCode = $serviceResponse['status_code'] ?? 500; // Default to 500 if not specified
+            return new JsonResponse([
+                'success' => false,
+                'message' => $serviceResponse['error'] ?? 'Failed to delete selected deliveries.'
+            ], $statusCode);
+        }
+    }
+
+    public function getDeliveryDetailsForEdit(ServerRequestInterface $request, array $args): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $deliveryId = isset($args['id']) ? (int)$args['id'] : 0;
+        if ($deliveryId <= 0) {
+            return new JsonResponse(['success' => false, 'message' => 'Invalid Delivery ID provided.'], 400);
+        }
+
+        // Use a method in OrdersService to fetch all required data
+        $serviceResponse = $this->ordersService->getDeliveryDataForEdit($deliveryId, $accessToken);
+
+        if (!$serviceResponse['success']) {
+            $statusCode = $serviceResponse['status_code'] ?? 500;
+            return new JsonResponse([
+                'success' => false,
+                'message' => $serviceResponse['error'] ?? 'Failed to fetch delivery details.'
+            ], $statusCode);
+        }
+
+        return new JsonResponse(['success' => true, 'data' => $serviceResponse['data']]);
+    }
+
+    public function updateDeliveryDetailsApi(ServerRequestInterface $request, array $args): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'message' => 'Authentication required.'], 401);
+        }
+
+        $deliveryId = isset($args['id']) ? (int)$args['id'] : 0;
+        if ($deliveryId <= 0) {
+            return new JsonResponse(['success' => false, 'message' => 'Invalid Delivery ID for update.'], 400);
+        }
+
+        $rawBody = $request->getBody()->getContents();
+        $formData = json_decode($rawBody, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE && !empty($rawBody)) {
+            error_log("JSON decode error in updateDeliveryDetailsApi for delivery ID {$deliveryId}: " . json_last_error_msg() . ". Raw body: " . $rawBody);
+            return new JsonResponse(['success' => false, 'message' => 'Invalid JSON data submitted.'], 400);
+        }
+
+        if (empty($formData) && empty($rawBody)) { // Check if body was actually empty
+            return new JsonResponse(['success' => false, 'message' => 'No data submitted.'], 400);
+        }
+
+        if (empty($formData) && !empty($rawBody)) { // Non-empty body but formData is empty (e.g. not an object or json_decode failed silently for some reason)
+             error_log("Received non-empty, non-JSON body or JSON that decoded to empty in updateDeliveryDetailsApi for delivery ID {$deliveryId}. Body: " . $rawBody);
+             return new JsonResponse(['success' => false, 'message' => 'Submitted data is not in the expected format.'], 400);
+        }
+
+
+        // Basic validation (more detailed validation can be added in the service)
+        if (!isset($formData['tanggal']) || !isset($formData['package_items']) || !is_array($formData['package_items'])) {
+           return new JsonResponse(['success' => false, 'message' => 'Missing required fields (tanggal, package_items).'], 400);
+        }
+
+        try {
+            // Pass deliveryId and formData to the service
+            $serviceResponse = $this->ordersService->updateDeliveryAndOrderDetails($deliveryId, $formData, $accessToken);
+
+            // It's good practice to check if the service returned the expected array structure
+            if (!is_array($serviceResponse) || !isset($serviceResponse['success'])) {
+                error_log("OrdersService::updateDeliveryAndOrderDetails returned unexpected format for delivery ID {$deliveryId}. Response: " . print_r($serviceResponse, true));
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'An unexpected internal error occurred while processing the update (Service Error Format).'
+                ], 500);
+            }
+
+            if ($serviceResponse['success']) {
+                return new JsonResponse(['success' => true, 'message' => $serviceResponse['message'] ?? 'Delivery details updated successfully.']);
+            } else {
+                $statusCode = $serviceResponse['status_code'] ?? 500;
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => $serviceResponse['error'] ?? 'Failed to update delivery details.'
+                ], $statusCode);
+            }
+        } catch (\Throwable $t) { // Catch any throwable, including Errors and Exceptions
+            // Log the detailed error for server-side analysis
+            error_log("Critical error in OrdersController::updateDeliveryDetailsApi for delivery ID {$deliveryId}: " . $t->getMessage() . " - File: " . $t->getFile() . " - Line: " . $t->getLine() . " - Trace: " . $t->getTraceAsString());
+
+            // Return a generic error message to the client
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'An critical server error occurred. Please try again later or contact support if the issue persists.'
+                // Optionally, include a unique error ID here that can be cross-referenced with logs
+            ], 500); // Internal Server Error
+        }
+    }
 }
