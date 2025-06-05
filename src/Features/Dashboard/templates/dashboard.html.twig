@@ -126,12 +126,53 @@
 										</svg>
 									</button>
 									<a href="#" class="btn">Total
-										<span class="badge bg-primary text-primary-fg ms-2" id="total-badge">{{ total_deliveries }}</span>
+										<span class="badge bg-primary text-primary-fg ms-2" id="total-badge">{{ total_deliveries_display }}</span>
 									</a>
 								</div>
 							</div>
 							<div class="card-body p-1">
-								<div id="deliveries-list-container" class="list-group list-group-flush"></div>
+								<div id="deliveries-list-container" class="list-group list-group-flush">
+        {% if is_sunday_initial_load is defined and is_sunday_initial_load %}
+            {# Display SVG and holiday message for Sunday #}
+            <div class="list-group-item list-group-item-holiday text-center py-4">
+                {# Ensure the include path for beach.svg.twig is correct from shared templates #}
+                {% include 'svg/beach.svg.twig' with {'width': 150, 'height': 150, 'style': 'margin: auto; display: block; margin-bottom: 1rem;'} %}
+                <p class="h3 mt-2 mb-1">Minggu Ceria!</p>
+                <p class="text-muted mb-0">Saatnya istirahat dan menikmati hari libur.</p>
+            </div>
+        {% elseif deliveries is defined and deliveries is not empty %}
+            {# Loop through deliveries and render them as list items for non-Sundays #}
+            {% for delivery in deliveries %}
+                <div class="list-group-item delivery-list-item"> {# Ensure 'delivery-list-item' class is present #}
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            {% if delivery.kurir_id is null or delivery.kurir_id == 0 %}
+                                <span class="avatar avatar-sm bg-pink">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                                </span>
+                            {% else %}
+                                <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ delivery.kurir_id }});"></span>
+                            {% endif %}
+                        </div>
+                        <div class="col text-truncate">
+                            <div class="text-body d-block">{{ delivery.courier_name }}</div>
+                            <div class="text-muted text-truncate mt-n1">{{ delivery.jumlah_pengantaran }} titik Pengantaran - {{ delivery.jumlah_selesai }} sudah sampai</div>
+                        </div>
+                        <div class="col-auto">
+                            <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="{{ delivery.kurir_id ?? 'null' }}" data-courier-name="{{ delivery.courier_name }}" aria-label="Lihat Antaran">
+                                <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            {# No deliveries and not a Sunday holiday (initial load) #}
+            <div class="list-group-item">
+                <p class="text-center m-0">Tidak ada pengantaran untuk tanggal ini</p>
+            </div>
+        {% endif %}
+								</div>
 							</div>
 						</div>
 					</div>

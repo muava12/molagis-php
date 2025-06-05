@@ -556,24 +556,14 @@ export function initDashboard() {
         return;
     }
 
-    // ---- START: Fix for initial data load ----
-    // Ensure showDate is set to the server-provided date for the initial load.
-    // The initial value of prevButton.dataset.date is set by the server-side template.
+    // ---- START: Initialize showDate from SSR data ----
     if (prevButton && prevButton.dataset.date) {
         showDate = getValidDate(prevButton.dataset.date);
     } else {
-        // Fallback if the data attribute isn't there (should not happen normally).
-        // The global showDate is already initialized with getValidDate(new Date()),
-        // so this else block could simply log a warning.
         showDate = getValidDate(new Date());
-        console.warn('Initial date from prevButton.dataset.date not found, using current client date for initial fetch.');
+        console.warn('Initial date from prevButton.dataset.date not found for showDate, using current client date.');
     }
-
-    // Call fetchDeliveries to load initial data for the dashboard list.
-    // The `true` is for `showSpinner`.
-    // The three `null`s are for `deliveryIds`, `status`, and `clickedButton`.
-    fetchDeliveries(showDate, true, null, null, null);
-    // ---- END: Fix for initial data load ----
+    // ---- END: Initialize showDate from SSR data ----
 
     // Fungsi untuk memperbarui tanggal di frontend dan menunda fetch
     const debouncedFetchDeliveries = debounce(({ newDate, clickedButton }) => {
