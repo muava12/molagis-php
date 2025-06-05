@@ -389,9 +389,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const deliveryDateSearchResultsContainer = document.getElementById('delivery_date_search_results_container');
 
     if (deliveryDateSearchInput && typeof flatpickr !== "undefined") {
-        if (flatpickr.l10ns && flatpickr.l10ns.id) {
-            flatpickr.localize(flatpickr.l10ns.id);
-        }
         flatpickr(deliveryDateSearchInput, { dateFormat: "Y-m-d", locale: "id" });
     }
 
