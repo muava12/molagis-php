@@ -84,14 +84,15 @@
                   <label for="customer_search_orders" class="visually-hidden">Pelanggan</label>
                   <div class="input-icon">
                     <input type="text" id="customer_search_orders" class="form-control" placeholder="Ketik nama pelanggan..." value="">
-                    <span class="input-icon-addon" id="customer_search_spinner_addon" style="display: none;">
-                      <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                    <span class="input-icon-addon">
+                      <!-- Default to showing the search icon -->
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+                        <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path>
+                        <path d="M21 21l-6 -6"></path>
+                      </svg>
                     </span>
                   </div>
                   <input type="hidden" name="customer_id" id="selected_customer_id_hidden" value="{{ selected_customer_id | default('') }}">
-                </div>
-                <div class="col-auto">
-                  <button type="submit" class="btn btn-primary" id="customer_search_button">Cari</button>
                 </div>
               </div>
             </form>

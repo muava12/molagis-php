@@ -1,9 +1,32 @@
 document.addEventListener('DOMContentLoaded', function () {
+    const MAGNIFIER_ICON_HTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path><path d="M21 21l-6 -6"></path></svg>';
+    const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
+
+    const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
+    const cardTitleElement = document.querySelector('.card .card-header .card-title');
+    if (!cardTitleElement) {
+        console.error('Card title element (.card .card-header .card-title) not found.');
+    }
+
     const customerSearchInput = document.getElementById('customer_search_orders');
+    let iconAddonSpan = null;
+    let awesompleteInstance = null; // Declare here for broader scope
+
+    if (customerSearchInput) {
+        if (customerSearchInput.parentElement && customerSearchInput.parentElement.classList.contains('input-icon')) {
+            iconAddonSpan = customerSearchInput.parentElement.querySelector('.input-icon-addon');
+            if (!iconAddonSpan) {
+                console.error('Icon addon span (.input-icon-addon) not found within the parent of customer_search_orders.');
+            }
+        } else {
+            console.error('Parent of customer_search_orders is not the expected div.input-icon.');
+        }
+    } else {
+        console.error('Customer search input (customer_search_orders) not found.');
+    }
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
-    const customerSearchButton = document.getElementById('customer_search_button');
-    const customerSearchSpinner = document.getElementById('customer_search_spinner_addon');
+    // const customerSearchSpinner = document.getElementById('customer_search_spinner_addon'); // Removed
     const bootstrap = window.tabler?.bootstrap;
     const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
     const byNameContainer = contentWrapper; // Alias for clarity in new logic
@@ -71,11 +94,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Moved fetchAndUpdateOrdersView function definition higher up
     async function fetchAndUpdateOrdersView(url) {
         // ---- NEW CODE START ----
-        if (customerSearchSpinner) {
-            customerSearchSpinner.style.display = 'inline-flex'; // Or appropriate display value
-        }
-        if (customerSearchButton) {
-            customerSearchButton.disabled = true;
+        if (iconAddonSpan) {
+            iconAddonSpan.innerHTML = SPINNER_HTML;
         }
         // ---- NEW CODE END ----
 
@@ -111,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // --- ADDED LOGIC START ---
                 // Use a full URL if 'url' is relative, to ensure URLSearchParams works correctly.
-                const absoluteUrl = new URL(url, window.location.origin);
+                const absoluteUrl = new URL(url, window.location.origin); // Renamed to avoid conflict
                 const currentUrlParams = new URLSearchParams(absoluteUrl.search);
                 const currentView = currentUrlParams.get('view');
 
@@ -124,6 +144,40 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
                 // --- ADDED LOGIC END ---
+
+                // --- Update Card Title Logic ---
+                if (cardTitleElement) {
+                    const customerIdForTitle = currentUrlParams.get('customer_id'); // Already have currentUrlParams and absoluteUrl
+                    const currentViewForTitle = currentView; // Already have currentView
+
+                    if (currentViewForTitle === 'by_name' && customerIdForTitle) {
+                        let customerNameFound = false;
+                        if (typeof awesompleteInstance !== 'undefined' && awesompleteInstance && awesompleteInstance.list) {
+                            const selectedCustomer = awesompleteInstance.list.find(customer => String(customer.value) === String(customerIdForTitle));
+                            if (selectedCustomer && selectedCustomer.label) {
+                                cardTitleElement.textContent = selectedCustomer.label;
+                                customerNameFound = true;
+                            }
+                        }
+
+                        if (!customerNameFound) {
+                            // Try fallback to dataset
+                            if (selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
+                                 cardTitleElement.textContent = selectedCustomerIdHidden.dataset.selectedName;
+                                 customerNameFound = true;
+                            }
+                        }
+
+                        if (!customerNameFound) {
+                            console.warn(`Customer name for ID ${customerIdForTitle} not found.`);
+                            cardTitleElement.textContent = DEFAULT_CARD_TITLE; // Fallback if not found
+                        }
+                    } else if (currentViewForTitle === 'by_name') { // 'by_name' view but no customer_id
+                        cardTitleElement.textContent = DEFAULT_CARD_TITLE;
+                    }
+                    // If not 'by_name' view, title remains as rendered by server or other logic
+                }
+                // --- End Update Card Title Logic ---
             } else {
                 console.error('Error: Target content wrapper #orders-by-name-content-wrapper for AJAX update not found.');
                 window.location.href = url;
@@ -141,18 +195,15 @@ document.addEventListener('DOMContentLoaded', function () {
             window.location.href = url; // Existing error handling
         } finally {
             // ---- NEW CODE START ----
-            if (customerSearchSpinner) {
-                customerSearchSpinner.style.display = 'none';
-            }
-            if (customerSearchButton) {
-                customerSearchButton.disabled = false;
+            if (iconAddonSpan) {
+                iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
             }
             // ---- NEW CODE END ----
         }
     }
 
     if (customerSearchInput && selectedCustomerIdHidden && customerSearchForm) {
-        const awesompleteInstance = new Awesomplete(customerSearchInput, {
+        awesompleteInstance = new Awesomplete(customerSearchInput, { // Assign to the outer scope variable
             minChars: 2,
             autoFirst: true,
         filter: Awesomplete.FILTER_CONTAINS, // Existing filter
@@ -165,11 +216,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // ---- JS TO SET LOADING STATE ----
-        if (customerSearchSpinner) {
-            customerSearchSpinner.style.display = 'inline-flex'; // Show spinner
-        }
-        if (customerSearchButton) {
-            customerSearchButton.disabled = true; // Disable button
+        if (iconAddonSpan) {
+            iconAddonSpan.innerHTML = SPINNER_HTML;
         }
         // Placeholder remains "Ketik nama pelanggan..." from HTML initially.
 
@@ -188,30 +236,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (customerList.length > 0) awesompleteInstance.evaluate();
 
                 // ---- JS TO SET SUCCESS STATE ----
-                if (customerSearchSpinner) {
-                    customerSearchSpinner.style.display = 'none'; // Hide spinner
+                if (iconAddonSpan) {
+                    iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
                 }
                 customerSearchInput.placeholder = 'Ketik nama pelanggan...'; // Confirm placeholder
-                if (customerSearchButton) {
-                    customerSearchButton.disabled = false; // Enable button
-                }
             })
             .catch(error => {
                 console.error('Error fetching customer data for Awesomplete:', error);
                 // ---- JS TO SET ERROR STATE ----
-                if (customerSearchSpinner) {
-                    customerSearchSpinner.style.display = 'none'; // Hide spinner
+                if (iconAddonSpan) {
+                    iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
                 }
                 customerSearchInput.placeholder = 'Gagal memuat daftar pelanggan'; // Error placeholder
-                if (customerSearchButton) {
-                    customerSearchButton.disabled = true; // Ensure button is disabled
-                }
             });
 
         customerSearchInput.addEventListener('awesomplete-selectcomplete', function (event) {
             const selection = event.text;
-            customerSearchInput.value = selection.label;
+            customerSearchInput.value = selection.label; // Keep this for form data if needed by other parts
             selectedCustomerIdHidden.value = selection.value;
+            // Store the selected name on the hidden input or a global variable for easier access later
+            if (selectedCustomerIdHidden) { // Ensure element exists
+                selectedCustomerIdHidden.dataset.selectedName = selection.label; // Storing on dataset
+            }
+
             customerSearchForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); // Programmatically submit form
         });
     }
