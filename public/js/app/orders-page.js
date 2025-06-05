@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const customerSearchInput = document.getElementById('customer_search_orders');
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
-    const customerSearchButton = document.getElementById('customer_search_button');
     const customerSearchSpinner = document.getElementById('customer_search_spinner_addon');
     const bootstrap = window.tabler?.bootstrap;
     const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
@@ -74,9 +73,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (customerSearchSpinner) {
             customerSearchSpinner.style.display = 'inline-flex'; // Or appropriate display value
         }
-        if (customerSearchButton) {
-            customerSearchButton.disabled = true;
-        }
         // ---- NEW CODE END ----
 
         try {
@@ -144,9 +140,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (customerSearchSpinner) {
                 customerSearchSpinner.style.display = 'none';
             }
-            if (customerSearchButton) {
-                customerSearchButton.disabled = false;
-            }
             // ---- NEW CODE END ----
         }
     }
@@ -167,9 +160,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // ---- JS TO SET LOADING STATE ----
         if (customerSearchSpinner) {
             customerSearchSpinner.style.display = 'inline-flex'; // Show spinner
-        }
-        if (customerSearchButton) {
-            customerSearchButton.disabled = true; // Disable button
         }
         // Placeholder remains "Ketik nama pelanggan..." from HTML initially.
 
@@ -192,9 +182,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     customerSearchSpinner.style.display = 'none'; // Hide spinner
                 }
                 customerSearchInput.placeholder = 'Ketik nama pelanggan...'; // Confirm placeholder
-                if (customerSearchButton) {
-                    customerSearchButton.disabled = false; // Enable button
-                }
             })
             .catch(error => {
                 console.error('Error fetching customer data for Awesomplete:', error);
