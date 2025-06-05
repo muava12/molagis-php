@@ -12,26 +12,4 @@
     transform: rotate(180deg);
 }
 
-/* Ensure no hover effect for the Sunday holiday message item */
-#deliveries-list-container .list-group-item-holiday:hover,
-#deliveries-list-container .list-group-item-holiday:focus,
-#deliveries-list-container .list-group-item-holiday.active { /* Handle active state if Tabler uses it for hover/focus */
-    background-color: var(--tblr-list-group-item-bg, #fff) !important;
-    border-color: var(--tblr-list-group-border-color, #d9dbde) !important; /* Adjust color if needed */
-    color: var(--tblr-body-color, #202940) !important; /* Reset text color, var(--tblr-list-group-color) might be more specific if available */
-    box-shadow: none !important;
-    transform: none !important; /* Reset any transforms */
-    text-decoration: none !important; /* Reset text decoration */
-}
-
-/* Ensure no hover effect for regular delivery list items */
-#deliveries-list-container .delivery-list-item:hover,
-#deliveries-list-container .delivery-list-item:focus,
-#deliveries-list-container .delivery-list-item.active { /* Handle active state */
-    background-color: var(--tblr-list-group-item-bg, #fff) !important;
-    border-color: var(--tblr-list-group-border-color, #d9dbde) !important; /* Adjust color if needed */
-    color: var(--tblr-body-color, #202940) !important; /* Reset text color */
-    box-shadow: none !important;
-    transform: none !important;
-    text-decoration: none !important;
-}
+/* CSS rules for list-group-item hover effects removed as the layout no longer uses list-group for these items. */
