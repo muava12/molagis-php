@@ -12,18 +12,26 @@
     transform: rotate(180deg);
 }
 
-/* Disable hover effect for the Sunday holiday message item */
-.list-group-item-holiday:hover,
-.list-group-item-holiday:focus {
-    background-color: var(--tblr-list-group-item-bg, #fff); /* Reset to default non-hover background */
-    /* To be more certain, if the item is directly on card, var(--tblr-card-bg, #fff) might be better */
-    /* Or, if it should be truly transparent against the card background: */
-    /* background-color: transparent; */
-    /* For now, using list-group-item-bg as a sensible default reset */
+/* Ensure no hover effect for the Sunday holiday message item */
+#deliveries-list-container .list-group-item-holiday:hover,
+#deliveries-list-container .list-group-item-holiday:focus,
+#deliveries-list-container .list-group-item-holiday.active { /* Handle active state if Tabler uses it for hover/focus */
+    background-color: var(--tblr-list-group-item-bg, #fff) !important;
+    border-color: var(--tblr-list-group-border-color, #d9dbde) !important; /* Adjust color if needed */
+    color: var(--tblr-body-color, #202940) !important; /* Reset text color, var(--tblr-list-group-color) might be more specific if available */
+    box-shadow: none !important;
+    transform: none !important; /* Reset any transforms */
+    text-decoration: none !important; /* Reset text decoration */
 }
 
-/* Disable hover effect for regular delivery list items */
-.delivery-list-item:hover,
-.delivery-list-item:focus {
-    background-color: var(--tblr-list-group-item-bg, #fff); /* Reset to default non-hover background */
+/* Ensure no hover effect for regular delivery list items */
+#deliveries-list-container .delivery-list-item:hover,
+#deliveries-list-container .delivery-list-item:focus,
+#deliveries-list-container .delivery-list-item.active { /* Handle active state */
+    background-color: var(--tblr-list-group-item-bg, #fff) !important;
+    border-color: var(--tblr-list-group-border-color, #d9dbde) !important; /* Adjust color if needed */
+    color: var(--tblr-body-color, #202940) !important; /* Reset text color */
+    box-shadow: none !important;
+    transform: none !important;
+    text-decoration: none !important;
 }
