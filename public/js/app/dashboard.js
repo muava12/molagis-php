@@ -182,7 +182,7 @@ async function fetchDeliveries(date, showSpinner = true, deliveryIds = null, sta
                 if (data.deliveries?.length > 0) {
                     data.deliveries.forEach((delivery) => {
                         const item = document.createElement('div');
-                        item.className = 'delivery-item-row py-3 border-bottom';
+                        item.className = 'delivery-item-row py-2';
                         // Ensure this innerHTML matches the successfully refactored list item structure
                         item.innerHTML = `
               <div class="row g-3 align-items-center">
