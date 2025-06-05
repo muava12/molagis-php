@@ -147,35 +147,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // --- Update Card Title Logic ---
                 if (cardTitleElement) {
-                    const customerIdForTitle = currentUrlParams.get('customer_id'); // Already have currentUrlParams and absoluteUrl
-                    const currentViewForTitle = currentView; // Already have currentView
+                    const customerIdForTitle = currentUrlParams.get('customer_id');
+                    const currentViewForTitle = currentView;
+
+                    // Try to find an existing avatar span
+                    let avatarSpan = cardTitleElement.querySelector('span.avatar');
 
                     if (currentViewForTitle === 'by_name' && customerIdForTitle) {
-                        let customerNameFound = false;
+                        let customerName = null;
+                        // Try to find customer name from awesomplete list
                         if (typeof awesompleteInstance !== 'undefined' && awesompleteInstance && awesompleteInstance.list) {
                             const selectedCustomer = awesompleteInstance.list.find(customer => String(customer.value) === String(customerIdForTitle));
                             if (selectedCustomer && selectedCustomer.label) {
-                                cardTitleElement.textContent = selectedCustomer.label;
-                                customerNameFound = true;
+                                customerName = selectedCustomer.label;
                             }
                         }
 
-                        if (!customerNameFound) {
-                            // Try fallback to dataset
-                            if (selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
-                                 cardTitleElement.textContent = selectedCustomerIdHidden.dataset.selectedName;
-                                 customerNameFound = true;
-                            }
+                        // Fallback to dataset if not found in awesomplete
+                        if (!customerName && selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
+                            customerName = selectedCustomerIdHidden.dataset.selectedName;
                         }
 
-                        if (!customerNameFound) {
-                            console.warn(`Customer name for ID ${customerIdForTitle} not found.`);
-                            cardTitleElement.textContent = DEFAULT_CARD_TITLE; // Fallback if not found
+                        if (customerName) {
+                            if (!avatarSpan) {
+                                avatarSpan = document.createElement('span');
+                                avatarSpan.className = 'avatar avatar-sm me-2'; // Ensure classes match SSR
+                            }
+                            avatarSpan.style.backgroundImage = `url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${customerIdForTitle}&scale=90&backgroundColor=ae5d29,d08b5b,edb98a,fd9841,ffdbb4,f8d25c&backgroundRotation=0,360,50,40,80,110&eyebrows=angryNatural,default,defaultNatural,flatNatural,raisedExcited,raisedExcitedNatural,sadConcerned,sadConcernedNatural,unibrowNatural,upDown,upDownNatural,angry&eyes=cry,default,eyeRoll,happy,side,squint,surprised,wink,winkWacky&mouth=concerned,default,disbelief,eating,grimace,sad,screamOpen,serious,smile,tongue,twinkle)`;
+                            avatarSpan.style.display = ''; // Ensure it's visible
+
+                            // Reconstruct the innerHTML of cardTitleElement to include avatar and name
+                            cardTitleElement.innerHTML = ''; // Clear previous content
+                            cardTitleElement.appendChild(avatarSpan);
+                            cardTitleElement.appendChild(document.createTextNode(' ' + customerName));
+                            cardTitleElement.classList.add('d-flex', 'align-items-center');
+                        } else {
+                            // Customer ID present, but name not found
+                            console.warn(`Customer name for ID ${customerIdForTitle} not found for card title update.`);
+                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar if it was there
                         }
-                    } else if (currentViewForTitle === 'by_name') { // 'by_name' view but no customer_id
-                        cardTitleElement.textContent = DEFAULT_CARD_TITLE;
+                    } else {
+                        // Not 'by_name' view, or no customer_id in 'by_name' view
+                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar and sets default title
                     }
-                    // If not 'by_name' view, title remains as rendered by server or other logic
                 }
                 // --- End Update Card Title Logic ---
             } else {
