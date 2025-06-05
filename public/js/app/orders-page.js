@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', function () {
+    const CALENDAR_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M4 11h16"></path><path d="M11 15h1"></path><path d="M12 15v3"></path></svg>';
+    const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
     const MAGNIFIER_ICON_HTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path><path d="M21 21l-6 -6"></path></svg>';
     const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
 
-    const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
     const cardTitleElement = document.querySelector('.card .card-header .card-title');
     if (!cardTitleElement) {
         console.error('Card title element (.card .card-header .card-title) not found.');
@@ -532,13 +533,21 @@ document.addEventListener('DOMContentLoaded', function () {
                                 let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
                                 let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A';
 
-                                let badge_class = 'badge '; // Added space for -lt suffix
-                                const status_lower = delivery.status ? delivery.status.toLowerCase() : '';
-                                if (status_lower === 'selesai' || status_lower === 'completed') badge_class += 'bg-success-lt';
-                                else if (status_lower === 'pending' || status_lower === 'terjadwal') badge_class += 'bg-warning-lt';
-                                else if (status_lower === 'dibatalkan' || status_lower === 'cancelled') badge_class += 'bg-danger-lt';
-                                else badge_class += 'bg-secondary-lt';
-                                let statusDisplay = delivery.status ? delivery.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
+                                let badge_class = 'badge ';
+                                const status_lower = delivery.status ? String(delivery.status).toLowerCase().trim() : ''; // Ensure string and trim
+                                if (status_lower === 'selesai' || status_lower === 'completed') {
+                                    badge_class += 'bg-success-lt';
+                                } else if (status_lower === 'pending' || status_lower === 'terjadwal') {
+                                    badge_class += 'bg-warning-lt';
+                                } else if (status_lower === 'dibatalkan' || status_lower === 'cancelled' || status_lower === 'canceled') {
+                                    badge_class += 'bg-danger-lt';
+                                } else if (status_lower === 'in-progress' || status_lower === 'in_progress' || status_lower === 'sedang dikirim') { // Added 'sedang dikirim'
+                                    badge_class += 'bg-info-lt';
+                                } else {
+                                    badge_class += 'bg-secondary-lt';
+                                }
+                                let statusDisplay = delivery.status ? String(delivery.status).replace(/_/g, ' ') : 'N/A';
+                                statusDisplay = statusDisplay.split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ');
 
                                 html += `
                                     <tr id="delivery-row-${delivery.delivery_id}">
@@ -553,10 +562,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <td><span class="${badge_class}">${statusDisplay}</span></td>
                                         <td>
                                             <div class="btn-list flex-nowrap">
-                                                <button class="btn btn-sm btn-icon btn-outline-primary edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
+                                                <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
                                                 </button>
-                                                <button class="btn btn-sm btn-icon btn-outline-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
+                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                                                 </button>
                                             </div>
@@ -567,8 +576,32 @@ document.addEventListener('DOMContentLoaded', function () {
                             html += '</tbody></table>';
                             deliveryDateSearchResultsContainer.innerHTML = html;
                         }
+                         if (cardTitleElement) { // Check if element exists
+                            if (dateQuery && data.success && data.deliveries && data.deliveries.length > 0) {
+                                try {
+                                    const dateObj = new Date(dateQuery + 'T00:00:00'); // Parse date as local
+                                    const formattedDate = dateObj.toLocaleDateString('id-ID', {
+                                        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                                    });
+                                    cardTitleElement.innerHTML = `${CALENDAR_ICON_SVG} ${formattedDate}`;
+                                    cardTitleElement.classList.add('d-flex', 'align-items-center');
+                                } catch (e) {
+                                    console.error("Error formatting date for card title:", e);
+                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                                }
+                            } else {
+                                // Revert to the default title if no date query, or no success, or empty deliveries
+                                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                            }
+                        }
                     } else {
                         deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
+                         if (cardTitleElement) { // Also revert title on error or no deliveries
+                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                        }
                     }
                 })
                 .catch(error => {
