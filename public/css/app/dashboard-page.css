@@ -11,3 +11,5 @@
 .rotate-180 {
     transform: rotate(180deg);
 }
+
+/* CSS rules for list-group-item hover effects removed as the layout no longer uses list-group for these items. */

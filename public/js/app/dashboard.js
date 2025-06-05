@@ -106,15 +106,16 @@ async function fetchDeliveries(date, showSpinner = true, deliveryIds = null, sta
     }
 
     if (!showSpinner) {
+        // Display a loading message appropriate for the new layout
         tableBody.innerHTML = `
-            <tr>
-                <td colspan="3" class="text-center">
+            <div class="text-center py-4">
+                <p class="m-0">
                     <div class="spinner-border spinner-border-sm" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <span class="ms-2">Memuat data...</span>
-                </td>
-            </tr>
+                </p>
+            </div>
         `;
     }
 
@@ -139,48 +140,89 @@ async function fetchDeliveries(date, showSpinner = true, deliveryIds = null, sta
         console.debug('fetchDeliveries API response:', data);
 
         if (response.ok && data.error === null) {
-            tableBody.innerHTML = '';
-            if (data.deliveries?.length > 0) {
-                data.deliveries.forEach((delivery) => {
-                    const row = document.createElement('tr');
-                    const avatarStyle =
-                        delivery.kurir_id === null || delivery.kurir_id === 0
-                            ? `<span class="avatar avatar-sm bg-pink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                            </span>`
-                            : `<span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id});"></span>`;
-                    row.innerHTML = `
-                        <td>
-                            <div class="d-flex align-items-center">
-                                ${avatarStyle}
-                                <div class="ms-2">${delivery.courier_name}</div>
-                            </div>
-                        </td>
-                        <td>
-                            ${delivery.jumlah_pengantaran} titik Pengantaran
-                            <div class="text-muted small">${delivery.jumlah_selesai} sudah sampai</div>
-                        </td>
-                        <td class="text-center">
-                            <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="${delivery.kurir_id ?? 'null'}" data-courier-name="${delivery.courier_name}" aria-label="Lihat Antaran">
-                                <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
-                                    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
-                                </svg>
-                            </a>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+            const deliveryDateStr = data.delivery_date; // Expected 'YYYY-MM-DD'
+            const deliveryTimeZone = data.timezone || TIMEZONE; // Use API's timezone or global fallback
+            const parsedApiDate = parseISO(deliveryDateStr); // Parses to a JS Date object
+
+            // Get the day name in the specified timezone to correctly identify Sunday
+            const dayNameInTimezone = formatInTimeZone(parsedApiDate, deliveryTimeZone, 'EEEE', { locale: id });
+            const isSunday = dayNameInTimezone.toLowerCase() === 'minggu';
+
+            if (isSunday) {
+                tableBody.innerHTML = `
+          <div class="text-center py-4">
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 439.48 439.48" xml:space="preserve" width="150" height="150" style="margin: auto; display: block; margin-bottom: 1rem;">
+                  <g>
+                      <path style="fill:#FFD039;" d="M112.14,148.92C65.39,133.73,15.18,159.32,0,206.06l47.45,15.42l47.29,4.53l27.1,19.63v0.01   l47.45,15.41C184.47,214.31,158.89,164.11,112.14,148.92z"/>
+                      <path style="fill:#3B9DFF;" d="M125.1,126.84l-11.67,35.9c-0.63,1.96-2.28,3.31-4.17,3.69l2.65,0.85l-1.26,3.9l-25.67,79.38   l-43.3,133.88l-10.47-3.39l43.3-133.89l26.93-83.26l2.73,0.88c-0.35-0.38-0.65-0.81-0.88-1.28c-0.63-1.24-0.79-2.73-0.32-4.16   l11.66-35.9c0.94-2.89,4.05-4.47,6.93-3.53C124.45,120.85,126.03,123.95,125.1,126.84z"/>
+                      <path style="fill:#CCCCCC;" d="M218.4,347.9h-26.77l-6.2-16.77c-1.09-2.94-3.89-4.9-7.03-4.9h-45c-3.14,0-5.95,1.96-7.04,4.9   l-6.2,16.77h-10.92l-22.76-31.56c-2.42-3.35-7.11-4.11-10.47-1.69c-3.36,2.42-4.12,7.11-1.7,10.47l25,34.67   c1.41,1.95,3.68,3.11,6.09,3.11h9.22l-1.7,4.61l-3.56,9.62c-1.43,3.89,0.55,8.2,4.44,9.64c3.89,1.43,8.2-0.55,9.63-4.44l5.48-14.82   l1.7-4.61h50.57l1.7,4.61l5.48,14.82c1.12,3.03,3.99,4.9,7.04,4.9c0.86,0,1.74-0.15,2.6-0.46c3.88-1.44,5.87-5.75,4.43-9.64   l-3.56-9.62l-1.7-4.61h21.23c4.14,0,7.5-3.36,7.5-7.5C225.9,351.26,222.54,347.9,218.4,347.9z M136.16,347.9l2.46-6.67h34.55   l2.47,6.67H136.16z"/>
+                      <polygon style="fill:#B3B3B3;" points="112.92,367.51 128.91,367.51 130.61,362.9 114.62,362.9  "/>
+                      <polygon style="fill:#B3B3B3;" points="198.87,367.51 182.88,367.51 181.18,362.9 197.17,362.9  "/>
+                      <path style="fill:#FFD039;" d="M268.74,396.51l-12.32,10.39H0c0-4.06,0.85-7.91,2.38-11.4c1.43-3.29,3.47-6.25,5.97-8.75   c5.15-5.16,12.28-8.35,20.15-8.35h227.92l11.63,17.1L268.74,396.51z"/>
+                      <path style="fill:#EAB932;" d="M268.74,396.51l-12.32,10.39H0c0-4.06,0.85-7.91,2.38-11.4h265.67L268.74,396.51z"/>
+                      <path style="fill:#EAB932;" d="M352.79,32.58c-27.75,0-50.24,22.5-50.24,50.25s22.49,50.25,50.24,50.25s50.25-22.5,50.25-50.25   S380.54,32.58,352.79,32.58z"/>
+                      <path style="fill:#1E79C4;" d="M110.65,171.18l-25.67,79.38l-10.47-3.4l26.93-83.26l2.73,0.88c-0.35-0.38-0.65-0.81-0.88-1.28   C106.15,165.26,108.6,167.87,110.65,171.18z"/>
+                      <path style="fill:#ED2E2E;" d="M112.14,148.92c20.54,6.67,24.88,49.97,9.7,96.72l-74.39-24.16   C62.64,174.73,91.6,142.25,112.14,148.92z"/>
+                      <path style="fill:#3B9DFF;" d="M439.48,406.684v0.216H256.42v-28.5c5.08,2.5,10.17,5,20.34,5c20.34,0,20.34-10,40.68-10   c20.33,0,20.33,10,40.67,10c20.34,0,20.34-10,40.69-10c12.077,0,16.983,3.525,23.234,6.39   C432.599,384.631,439.48,395.063,439.48,406.684z"/>
+                      <rect x="256.42" y="395.5" style="fill:#1E79C4;" width="183.06" height="11.4"/>
+                      <path style="fill:#666666;" d="M386.318,181.904c-0.537,0.636-1.039,1.296-1.508,1.977c-1.005-1.486-2.146-2.875-3.443-4.094   c-6.334-5.954-14.966-9.021-23.547-6.685c2.593,0.995,5.167,1.807,7.585,3.208c3.423,1.984,6.505,4.539,8.906,7.699   c1.694,2.229,3.109,4.744,4.02,7.398c0.739,2.153,1.261,4.43,1.415,6.706c0.028,0.408-0.148,1.465,0.067,1.809   c0.012,0.019,0.01,0.02,0.018,0.034c-0.002,0.098-0.014,0.195-0.015,0.292c-0.045,3.215,2.923,5.751,6.107,5.034   c2.622-0.59,3.835-2.854,3.853-5.316c0.234-0.58,0.229-2.82,0.315-3.476c0.811-6.127,3.895-11.518,8.24-15.799   c1.906-1.878,4.199-3.512,6.57-4.733c2.251-1.16,4.553-1.959,6.916-2.857C402.327,170.454,392.506,174.569,386.318,181.904z"/>
+                      <path style="fill:#FFD039;" d="M302.55,82.83c0,27.75,22.49,50.25,50.24,50.25c6.12,0,11.98-1.09,17.4-3.1   c2.01-5.42,3.1-11.28,3.1-17.4c0-27.75-22.49-50.25-50.25-50.25c-6.11,0-11.97,1.09-17.39,3.09   C303.64,70.85,302.55,76.71,302.55,82.83z"/>
+                  </g>
+              </svg>
+              <p class="h3 mt-2 mb-1">Minggu Ceria!</p>
+              <p class="text-muted mb-0">Saatnya istirahat dan menikmati hari libur.</p>
+          </div>
+      `;
+                if (totalBadge) {
+                    totalBadge.textContent = 'Libur';
+                }
             } else {
-                tableBody.innerHTML = '<tr><td colspan="3" class="text-center">Tidak ada pengantaran untuk tanggal ini</td></tr>';
+                // This is the existing logic for non-Sundays
+                tableBody.innerHTML = ''; // Clear previous content for non-Sundays
+                if (data.deliveries?.length > 0) {
+                    data.deliveries.forEach((delivery) => {
+                        const item = document.createElement('div');
+                        item.className = 'delivery-item-row py-2';
+                        // Ensure this innerHTML matches the successfully refactored list item structure
+                        item.innerHTML = `
+              <div class="row g-3 align-items-center">
+                  <div class="col-auto">
+                      ${delivery.kurir_id === null || delivery.kurir_id === 0 ?
+                          `<span class="avatar avatar-md bg-pink">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                          </span>` :
+                          `<span class="avatar avatar-md" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id});"></span>`}
+                  </div>
+                  <div class="col text-truncate">
+                      <div class="text-body d-block text-truncate">${delivery.courier_name}</div>
+                      <div class="text-muted text-truncate mt-n1">${delivery.jumlah_pengantaran} titik Pengantaran - ${delivery.jumlah_selesai} sudah sampai</div>
+                  </div>
+                  <div class="col-auto">
+                      <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="${delivery.kurir_id ?? 'null'}" data-courier-name="${delivery.courier_name}" aria-label="Lihat Antaran">
+                          <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg>
+                      </a>
+                  </div>
+              </div>
+          `;
+                        tableBody.appendChild(item);
+                    });
+                } else {
+                    tableBody.innerHTML = `
+              <div class="text-center py-4">
+                  <p class="m-0">Tidak ada pengantaran untuk tanggal ini</p>
+              </div>
+          `;
+                }
+                if (totalBadge) {
+                    totalBadge.textContent = data.total_deliveries || 0;
+                }
             }
 
-            totalBadge.textContent = data.total_deliveries || 0;
-            dateSubtitle.textContent = formatInTimeZone(data.delivery_date || validDate, data.timezone || TIMEZONE, 'eeee, dd MMMM yyyy', { locale: id });
-            prevButton.dataset.date = data.delivery_date || validDate;
-            nextButton.dataset.date = data.delivery_date || validDate;
-            showDate = data.delivery_date || validDate;
+            // Common updates for date subtitle, navigation button states, global showDate
+            dateSubtitle.textContent = formatInTimeZone(parsedApiDate, deliveryTimeZone, 'eeee, dd MMMM yyyy', { locale: id });
+            prevButton.dataset.date = deliveryDateStr;
+            nextButton.dataset.date = deliveryDateStr;
+            showDate = deliveryDateStr;
 
             const errorContainer = document.querySelector('#error-container');
             if (errorContainer) errorContainer.innerHTML = '';
@@ -485,7 +527,7 @@ export function initDashboard() {
 
     prevButton = document.getElementById('prev-day');
     nextButton = document.getElementById('next-day');
-    tableBody = document.querySelector('#deliveries-table tbody');
+    tableBody = document.getElementById('deliveries-list-container');
     totalBadge = document.getElementById('total-badge');
     dateSubtitle = document.getElementById('date-subtitle');
     deliveryModal = document.getElementById('delivery-list-modal');
@@ -517,6 +559,15 @@ export function initDashboard() {
         });
         return;
     }
+
+    // ---- START: Initialize showDate from SSR data ----
+    if (prevButton && prevButton.dataset.date) {
+        showDate = getValidDate(prevButton.dataset.date);
+    } else {
+        showDate = getValidDate(new Date());
+        console.warn('Initial date from prevButton.dataset.date not found for showDate, using current client date.');
+    }
+    // ---- END: Initialize showDate from SSR data ----
 
     // Fungsi untuk memperbarui tanggal di frontend dan menunda fetch
     const debouncedFetchDeliveries = debounce(({ newDate, clickedButton }) => {
@@ -704,8 +755,6 @@ export function initDashboard() {
         });
     }
 
-    // Tidak perlu fetch data awal karena data sudah di-render oleh Twig
-    // showDate sudah diatur oleh Twig melalui current_date
 }
 
 function initialize() {

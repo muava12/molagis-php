@@ -54,6 +54,32 @@ class DashboardController
             $viewData['error'] = ($viewData['error'] ? $viewData['error'] . " | " : "") . "Kesalahan saat memuat data pengiriman: " . $deliveriesResult['error'];
         }
 
+        // Determine if the initial load date is a Sunday
+        // Ensure $viewData['current_date'] and $viewData['timezone'] are set before this.
+        // $current_date is the string 'Y-m-d' for the initial view.
+        // $viewData['timezone'] should be 'Asia/Makassar' or similar.
+        $initialDateForView = $viewData['current_date']; // This is the date string
+        $initialTimeZone = $viewData['timezone'] ?? 'Asia/Makassar'; // Default if not set by deliveriesResult
+
+        try {
+            $currentDateTime = new \DateTime($initialDateForView, new \DateTimeZone($initialTimeZone));
+            $is_sunday_initial_load = ($currentDateTime->format('N') == 7); // 'N' gives ISO-8601 day of week, 7 is Sunday.
+        } catch (\Exception $e) {
+            // Log error or handle gracefully if date/timezone is invalid
+            error_log("Error determining if initial date is Sunday: " . $e->getMessage());
+            $is_sunday_initial_load = false; // Default to false on error
+        }
+        $viewData['is_sunday_initial_load'] = $is_sunday_initial_load;
+
+        // Additionally, if it's a Sunday, we might want to adjust 'total_deliveries' for the badge
+        // The badge currently shows {{ total_deliveries }}.
+        // If it's Sunday, the JS sets it to 'Libur'. For SSR, we can do this too.
+        if ($is_sunday_initial_load) {
+            $viewData['total_deliveries_display'] = 'Libur'; // New variable for display
+        } else {
+            $viewData['total_deliveries_display'] = $viewData['total_deliveries'] ?? 0; // Existing numeric total
+        }
+
         // Ambil daftar kurir aktif
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
         $viewData['couriers'] = $couriersResult['data'] ?? [];
