@@ -180,16 +180,16 @@ document.addEventListener('DOMContentLoaded', function () {
                             cardTitleElement.innerHTML = ''; // Clear previous content
                             cardTitleElement.appendChild(avatarSpan);
                             cardTitleElement.appendChild(document.createTextNode(' ' + customerName));
-                            cardTitleElement.classList.add('has-avatar');
+                            cardTitleElement.classList.add('d-flex', 'align-items-center');
                         } else {
                             // Customer ID present, but name not found
                             console.warn(`Customer name for ID ${customerIdForTitle} not found for card title update.`);
-                            cardTitleElement.classList.remove('has-avatar');
+                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
                             cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar if it was there
                         }
                     } else {
                         // Not 'by_name' view, or no customer_id in 'by_name' view
-                        cardTitleElement.classList.remove('has-avatar');
+                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
                         cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar and sets default title
                     }
                 }
