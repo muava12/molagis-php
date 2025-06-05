@@ -403,12 +403,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const deliveryDateSearchInput = document.getElementById('delivery_date_search_input');
     const deliveryDateSearchButton = document.getElementById('delivery_date_search_button');
     const deliveryDateSearchResultsContainer = document.getElementById('delivery_date_search_results_container');
+    let deliveryDateFlatpickrInstance = null;
 
     if (deliveryDateSearchInput && typeof flatpickr !== "undefined") {
-        if (flatpickr.l10ns && flatpickr.l10ns.id) {
-            flatpickr.localize(flatpickr.l10ns.id);
+        deliveryDateFlatpickrInstance = flatpickr(deliveryDateSearchInput, { dateFormat: "Y-m-d", locale: "id" });
+    }
+
+    // Function to set today's date if input is empty
+    function ensureDateInputIsPopulated() {
+        if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
+            const today = new Date().toISOString().slice(0, 10);
+            deliveryDateSearchInput.value = today;
+            if (deliveryDateFlatpickrInstance) {
+                deliveryDateFlatpickrInstance.setDate(today, false); // false to not trigger onChange
+            }
         }
-        flatpickr(deliveryDateSearchInput, { dateFormat: "Y-m-d", locale: "id" });
     }
 
     if (deliveryDateSearchButton && deliveryDateSearchInput && deliveryDateSearchResultsContainer) {
@@ -527,6 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Tab Management & Visibility ---
     // ... (existing tab logic - kept for brevity) ...
     const tabButtons = document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]');
+    const byDateTabButton = document.querySelector('button[data-bs-target="#pane-by-date"]');
     // const formSearchByName = document.getElementById('form_search_by_name'); // Already defined as customerSearchForm
     const formSearchByOrderId = document.getElementById('form_search_by_order_id');
     const formSearchByDate = document.getElementById('form_search_by_date');
@@ -545,9 +555,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     tabButtons.forEach(tabButton => {
         tabButton.addEventListener('shown.bs.tab', function (event) {
-            updateSearchFormVisibility(event.target.getAttribute('data-bs-target'));
-            // Store the active tab in localStorage
-            localStorage.setItem('activeOrdersTab', event.target.getAttribute('data-bs-target'));
+            const activeTabTarget = event.target.getAttribute('data-bs-target');
+            updateSearchFormVisibility(activeTabTarget);
+            localStorage.setItem('activeOrdersTab', activeTabTarget);
+
+            if (activeTabTarget === '#pane-by-date') {
+                // Check if results container is empty. If so, it implies no server-rendered content for today.
+                // Or, if the input is empty (e.g. user cleared it and switched tabs)
+                if (deliveryDateSearchInput.value === '' || (deliveryDateSearchResultsContainer && deliveryDateSearchResultsContainer.innerHTML.trim() === '')) {
+                    ensureDateInputIsPopulated();
+                }
+                 // If there's content (e.g. SSR for today or previous search result),
+                 // and input has a value, don't change it just on tab switch.
+                 // User might be comparing different dates.
+            }
         });
     });
 
@@ -581,9 +602,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (activeTabTargetOnLoad) {
         updateSearchFormVisibility(activeTabTargetOnLoad);
+        if (activeTabTargetOnLoad === '#pane-by-date') {
+            // If "By Date" is the active tab on load and input is empty (e.g. no default_date from server)
+            // and no server-rendered results are present for a different date.
+            // Check if SSR content exists. If not, or if input is empty, populate.
+            // The server might have already set a value if default_date was passed.
+             if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
+                // Check if the container is empty or has the initial "Pilih tanggal" message
+                const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer ||
+                                                 deliveryDateSearchResultsContainer.innerHTML.trim() === '' ||
+                                                 deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state') !== null;
+
+                if (containerIsEmptyOrInitial) {
+                    ensureDateInputIsPopulated();
+                }
+            }
+        }
     } else if (!urlView && !localStorage.getItem('activeOrdersTab')) {
+        // Default to 'by_name' if no URL param and no localStorage
         updateSearchFormVisibility('#pane-by-name');
     }
+
 
     // Tab switching logic (full page reload)
     document.querySelectorAll('#orders-view-tabs .nav-link').forEach(tab => {

@@ -136,14 +136,32 @@ class OrdersController
             }
         }
         // Logic for 'by_date' view can be added here later with an elseif block
+        $deliveries_for_today = [];
+        $default_date = '';
+        $byDateError = null;
+
+        if ($view === 'by_date') {
+            $default_date = date('Y-m-d'); // Today's date
+            $deliveriesResponse = $this->ordersService->getDeliveriesByDate($default_date, $accessToken);
+
+            if (isset($deliveriesResponse['error'])) {
+                $byDateError = 'Error fetching deliveries for today: ' . $deliveriesResponse['error'];
+                error_log($byDateError . (isset($deliveriesResponse['status_code']) ? ' Status: ' . $deliveriesResponse['status_code'] : ''));
+                // $deliveries_for_today remains empty
+            } else {
+                $deliveries_for_today = $deliveriesResponse['data'] ?? [];
+            }
+        }
 
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
 
-        $finalError = $deliveriesError ?? $orderByIdError ?? $couriersResult['error'] ?? null;
+        $finalError = $deliveriesError ?? $orderByIdError ?? $byDateError ?? $couriersResult['error'] ?? null;
 
         $twigData = [
             'title' => 'Manajemen Pesanan',
             'all_customers' => $allCustomers,
+            'deliveries_for_today' => $deliveries_for_today,
+            'default_date' => $default_date,
             'selected_customer_id' => $selectedCustomerId,
             'selected_customer_name' => $selectedCustomerName,
             'deliveries' => $customerDeliveries,

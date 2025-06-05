@@ -211,30 +211,54 @@ class OrdersService
      */
     public function getDeliveriesByDate(string $date, ?string $accessToken = null): array
     {
-        $selectFields = 'id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,' .
-                        'orders!inner(id,tanggal_pesan,metode_pembayaran,notes,customers!inner(id,nama)),' .
-                        'couriers(id,nama),' . // Left join for couriers
-                        'orderdetails!inner(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket!inner(id,nama))';
-
-        $query = sprintf(
-            '/rest/v1/deliverydates?tanggal=eq.%s&select=%s&order=orders.customers.nama.asc,orders.id.asc',
-            $date,
-            $selectFields
-        );
-
         try {
-            $response = $this->supabaseClient->get($query, [], $accessToken);
+            $rpcParams = ['p_tanggal' => $date];
+            $response = $this->supabaseClient->rpc('get_deliveries_by_date', $rpcParams, [], $accessToken);
 
             if (isset($response['error'])) {
                 $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
-                error_log('Supabase getDeliveriesByDate error: ' . $errorMessage);
-                return ['data' => [], 'error' => $errorMessage];
+                error_log('Supabase RPC get_deliveries_by_date error: ' . $errorMessage);
+                // Consider returning a more specific status code if available from $response
+                return ['data' => [], 'error' => $errorMessage, 'status_code' => $response['status'] ?? 500];
             }
 
-            return ['data' => $response['data'] ?? [], 'error' => null];
+            $formattedData = [];
+            if (isset($response['data']) && is_array($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    // Decode the 'items' JSON string into a PHP associative array
+                    $itemsArray = json_decode($item['items'], true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        // Handle JSON decode error, perhaps log it and skip this item or set items to an empty array
+                        error_log('JSON decode error for items in get_deliveries_by_date for delivery_id ' . $item['delivery_id'] . ': ' . json_last_error_msg());
+                        $itemsArray = ['items' => [], 'additional_items' => []]; // Default structure on error
+                    }
+
+                    $formattedData[] = [
+                        'delivery_id' => $item['delivery_id'],
+                        'order_id' => $item['order_id'],
+                        'tanggal' => $item['tanggal'],
+                        'kurir_id' => $item['kurir_id'],
+                        'ongkir' => $item['ongkir'],
+                        'status' => $item['status'],
+                        'items' => $itemsArray, // This should now be the decoded array
+                        'subtotal_harga' => $item['subtotal_harga'],
+                        'courier_name' => $item['courier_name'],
+                        'customer_name' => $item['customer_name'],
+                        'payment_method' => $item['payment_method'],
+                        'courier_note' => $item['courier_note'],
+                        'kitchen_note' => $item['kitchen_note'],
+                        // Ensure all other fields required by the frontend are mapped
+                        // Add any missing fields from $item if they are directly available
+                        // and expected in the output structure.
+                    ];
+                }
+            }
+            // Even if $response['data'] is empty, return success with empty data array
+            return ['data' => $formattedData, 'error' => null, 'status_code' => 200];
+
         } catch (\Exception $e) {
-            error_log('Exception in getDeliveriesByDate: ' . $e->getMessage());
-            return ['data' => [], 'error' => 'Exception occurred while fetching deliveries by date: ' . $e->getMessage()];
+            error_log('Exception in getDeliveriesByDate calling RPC: ' . $e->getMessage());
+            return ['data' => [], 'error' => 'Exception occurred: ' . $e->getMessage(), 'status_code' => 500];
         }
     }
 
