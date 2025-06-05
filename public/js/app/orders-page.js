@@ -2,8 +2,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const MAGNIFIER_ICON_HTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path><path d="M21 21l-6 -6"></path></svg>';
     const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
 
+    const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
+    const cardTitleElement = document.querySelector('.card .card-header .card-title');
+    if (!cardTitleElement) {
+        console.error('Card title element (.card .card-header .card-title) not found.');
+    }
+
     const customerSearchInput = document.getElementById('customer_search_orders');
     let iconAddonSpan = null;
+    let awesompleteInstance = null; // Declare here for broader scope
 
     if (customerSearchInput) {
         if (customerSearchInput.parentElement && customerSearchInput.parentElement.classList.contains('input-icon')) {
@@ -124,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // --- ADDED LOGIC START ---
                 // Use a full URL if 'url' is relative, to ensure URLSearchParams works correctly.
-                const absoluteUrl = new URL(url, window.location.origin);
+                const absoluteUrl = new URL(url, window.location.origin); // Renamed to avoid conflict
                 const currentUrlParams = new URLSearchParams(absoluteUrl.search);
                 const currentView = currentUrlParams.get('view');
 
@@ -137,6 +144,40 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
                 // --- ADDED LOGIC END ---
+
+                // --- Update Card Title Logic ---
+                if (cardTitleElement) {
+                    const customerIdForTitle = currentUrlParams.get('customer_id'); // Already have currentUrlParams and absoluteUrl
+                    const currentViewForTitle = currentView; // Already have currentView
+
+                    if (currentViewForTitle === 'by_name' && customerIdForTitle) {
+                        let customerNameFound = false;
+                        if (typeof awesompleteInstance !== 'undefined' && awesompleteInstance && awesompleteInstance.list) {
+                            const selectedCustomer = awesompleteInstance.list.find(customer => String(customer.value) === String(customerIdForTitle));
+                            if (selectedCustomer && selectedCustomer.label) {
+                                cardTitleElement.textContent = selectedCustomer.label;
+                                customerNameFound = true;
+                            }
+                        }
+
+                        if (!customerNameFound) {
+                            // Try fallback to dataset
+                            if (selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
+                                 cardTitleElement.textContent = selectedCustomerIdHidden.dataset.selectedName;
+                                 customerNameFound = true;
+                            }
+                        }
+
+                        if (!customerNameFound) {
+                            console.warn(`Customer name for ID ${customerIdForTitle} not found.`);
+                            cardTitleElement.textContent = DEFAULT_CARD_TITLE; // Fallback if not found
+                        }
+                    } else if (currentViewForTitle === 'by_name') { // 'by_name' view but no customer_id
+                        cardTitleElement.textContent = DEFAULT_CARD_TITLE;
+                    }
+                    // If not 'by_name' view, title remains as rendered by server or other logic
+                }
+                // --- End Update Card Title Logic ---
             } else {
                 console.error('Error: Target content wrapper #orders-by-name-content-wrapper for AJAX update not found.');
                 window.location.href = url;
@@ -162,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (customerSearchInput && selectedCustomerIdHidden && customerSearchForm) {
-        const awesompleteInstance = new Awesomplete(customerSearchInput, {
+        awesompleteInstance = new Awesomplete(customerSearchInput, { // Assign to the outer scope variable
             minChars: 2,
             autoFirst: true,
         filter: Awesomplete.FILTER_CONTAINS, // Existing filter
@@ -211,8 +252,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         customerSearchInput.addEventListener('awesomplete-selectcomplete', function (event) {
             const selection = event.text;
-            customerSearchInput.value = selection.label;
+            customerSearchInput.value = selection.label; // Keep this for form data if needed by other parts
             selectedCustomerIdHidden.value = selection.value;
+            // Store the selected name on the hidden input or a global variable for easier access later
+            if (selectedCustomerIdHidden) { // Ensure element exists
+                selectedCustomerIdHidden.dataset.selectedName = selection.label; // Storing on dataset
+            }
+
             customerSearchForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); // Programmatically submit form
         });
     }
