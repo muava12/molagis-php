@@ -1,4 +1,28 @@
 document.addEventListener('DOMContentLoaded', function () {
+    let allAvailablePakets = [];
+
+    async function fetchAllPaketDefinitions() {
+        try {
+            const response = await fetch('/api/pakets');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            if (data.success && Array.isArray(data.data)) {
+                allAvailablePakets = data.data;
+                // console.log('Paket definitions loaded:', allAvailablePakets); // Optional: for debugging
+            } else {
+                console.error('Error fetching paket definitions: Data format incorrect or success is false.', data);
+                allAvailablePakets = []; // Ensure it's an empty array on error
+            }
+        } catch (error) {
+            console.error('Error fetching paket definitions:', error.message);
+            allAvailablePakets = []; // Ensure it's an empty array on network error
+        }
+    }
+
+    fetchAllPaketDefinitions(); // Call the function to load pakets on DOMContentLoaded
+
     const MAGNIFIER_ICON_HTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path><path d="M21 21l-6 -6"></path></svg>';
     const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
 
@@ -482,10 +506,35 @@ document.addEventListener('DOMContentLoaded', function () {
                         } else {
                             data.deliveries.forEach(delivery => {
                                 let itemsHtml = '';
-                                if (delivery.orderdetails && delivery.orderdetails.length > 0) {
-                                    itemsHtml += '<ul class="list-unstyled mb-0">'; // Added mb-0 for tighter list
-                                    delivery.orderdetails.forEach(detail => {
-                                        itemsHtml += `<li>${detail.paket.nama} (x${detail.jumlah})</li>`;
+                                let displayedItems = [];
+
+                                // Process package items
+                                if (delivery.items && delivery.items.items && Array.isArray(delivery.items.items) && delivery.items.items.length > 0) {
+                                    delivery.items.items.forEach(packageItem => {
+                                        const paketDetail = allAvailablePakets.find(p => p.id === packageItem.package_id);
+                                        if (paketDetail) {
+                                            displayedItems.push(`${paketDetail.nama} (ID: ${packageItem.package_id})`);
+                                        } else {
+                                            displayedItems.push(`Unknown Paket (ID: ${packageItem.package_id})`);
+                                        }
+                                    });
+                                }
+
+                                // Process additional items
+                                if (delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) && delivery.items.additional_items.length > 0) {
+                                    delivery.items.additional_items.forEach(additionalItem => {
+                                        if (additionalItem.item_name && additionalItem.item_name.trim() !== '') {
+                                            displayedItems.push(`${additionalItem.item_name} (x${additionalItem.quantity || 1})`);
+                                        } else if (additionalItem.quantity) {
+                                            displayedItems.push(`Tambahan (x${additionalItem.quantity || 1})`);
+                                        }
+                                    });
+                                }
+
+                                if (displayedItems.length > 0) {
+                                    itemsHtml = '<ul class="list-unstyled mb-0">';
+                                    displayedItems.forEach(itemText => {
+                                        itemsHtml += `<li>${itemText}</li>`;
                                     });
                                     itemsHtml += '</ul>';
                                 } else {
