@@ -24,7 +24,17 @@
   <div class="container-xl">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% if selected_customer_name and selected_customer_name is not empty %}{{ selected_customer_name }}{% else %}Manajemen Pesanan{% endif %}</h3>
+  <h3 class="card-title">
+    {% if selected_customer_name and selected_customer_name is not empty %}
+      {# Ensure selected_customer_id is available in this template context.
+         If it's not, this might render incorrectly or throw an error.
+         Assuming selected_customer_id holds the customer's ID. #}
+      <span class="avatar avatar-sm me-2" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ selected_customer_id | default('defaultSeed') }});"></span>
+      {{ selected_customer_name }}
+    {% else %}
+      Manajemen Pesanan
+    {% endif %}
+  </h3>
         <div class="ms-auto">
           <nav class="nav nav-segmented" role="tablist" id="orders-view-tabs">
               <button class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" type="button" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">

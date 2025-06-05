@@ -262,3 +262,8 @@
     color: var(--tblr-secondary);
 }
 */
+
+.card-title.has-avatar {
+  display: flex;
+  align-items: center;
+}
