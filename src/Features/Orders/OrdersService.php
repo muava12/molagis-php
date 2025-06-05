@@ -225,12 +225,24 @@ class OrdersService
             $formattedData = [];
             if (isset($response['data']) && is_array($response['data'])) {
                 foreach ($response['data'] as $item) {
-                    // Decode the 'items' JSON string into a PHP associative array
-                    $itemsArray = json_decode($item['items'], true);
-                    if (json_last_error() !== JSON_ERROR_NONE) {
-                        // Handle JSON decode error, perhaps log it and skip this item or set items to an empty array
-                        error_log('JSON decode error for items in get_deliveries_by_date for delivery_id ' . $item['delivery_id'] . ': ' . json_last_error_msg());
-                        $itemsArray = ['items' => [], 'additional_items' => []]; // Default structure on error
+                    // The 'items' field from RPC is now expected to be an already structured array/object.
+                    // Assign it directly. Ensure it's an array, default to an empty structure if not.
+                    $itemsArray = null;
+                    if (isset($item['items']) && is_array($item['items'])) {
+                        $itemsArray = $item['items'];
+                        // Further validation: ensure the expected sub-keys 'items' and 'additional_items' exist.
+                        if (!isset($itemsArray['items']) || !is_array($itemsArray['items'])) {
+                            $itemsArray['items'] = [];
+                            error_log('Warning: `items.items` was missing or not an array in get_deliveries_by_date for delivery_id ' . ($item['delivery_id'] ?? 'unknown'));
+                        }
+                        if (!isset($itemsArray['additional_items']) || !is_array($itemsArray['additional_items'])) {
+                            $itemsArray['additional_items'] = [];
+                             error_log('Warning: `items.additional_items` was missing or not an array in get_deliveries_by_date for delivery_id ' . ($item['delivery_id'] ?? 'unknown'));
+                        }
+                    } else {
+                        error_log('Error: `items` field was missing, not an array, or null in get_deliveries_by_date for delivery_id ' . ($item['delivery_id'] ?? 'unknown') . '. Raw item data: ' . json_encode($item));
+                        // Provide a default structure that the frontend expects to prevent further errors
+                        $itemsArray = ['items' => [], 'additional_items' => []];
                     }
 
                     $formattedData[] = [
