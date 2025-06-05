@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
+    const MAGNIFIER_ICON_HTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path><path d="M21 21l-6 -6"></path></svg>';
+    const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
+
     const customerSearchInput = document.getElementById('customer_search_orders');
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
-    const customerSearchSpinner = document.getElementById('customer_search_spinner_addon');
+    // const customerSearchSpinner = document.getElementById('customer_search_spinner_addon'); // Removed
     const bootstrap = window.tabler?.bootstrap;
     const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
     const byNameContainer = contentWrapper; // Alias for clarity in new logic
@@ -70,8 +73,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Moved fetchAndUpdateOrdersView function definition higher up
     async function fetchAndUpdateOrdersView(url) {
         // ---- NEW CODE START ----
-        if (customerSearchSpinner) {
-            customerSearchSpinner.style.display = 'inline-flex'; // Or appropriate display value
+        // const currentInput = document.getElementById('customer_search_orders'); // Using customerSearchInput from outer scope
+        if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
+            customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = SPINNER_HTML;
         }
         // ---- NEW CODE END ----
 
@@ -137,8 +141,9 @@ document.addEventListener('DOMContentLoaded', function () {
             window.location.href = url; // Existing error handling
         } finally {
             // ---- NEW CODE START ----
-            if (customerSearchSpinner) {
-                customerSearchSpinner.style.display = 'none';
+            // const currentInput = document.getElementById('customer_search_orders'); // Using customerSearchInput from outer scope
+            if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
+                customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = MAGNIFIER_ICON_HTML;
             }
             // ---- NEW CODE END ----
         }
@@ -158,8 +163,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // ---- JS TO SET LOADING STATE ----
-        if (customerSearchSpinner) {
-            customerSearchSpinner.style.display = 'inline-flex'; // Show spinner
+        if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
+            customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = SPINNER_HTML;
         }
         // Placeholder remains "Ketik nama pelanggan..." from HTML initially.
 
@@ -178,21 +183,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (customerList.length > 0) awesompleteInstance.evaluate();
 
                 // ---- JS TO SET SUCCESS STATE ----
-                if (customerSearchSpinner) {
-                    customerSearchSpinner.style.display = 'none'; // Hide spinner
+                if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
+                    customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = MAGNIFIER_ICON_HTML;
                 }
                 customerSearchInput.placeholder = 'Ketik nama pelanggan...'; // Confirm placeholder
             })
             .catch(error => {
                 console.error('Error fetching customer data for Awesomplete:', error);
                 // ---- JS TO SET ERROR STATE ----
-                if (customerSearchSpinner) {
-                    customerSearchSpinner.style.display = 'none'; // Hide spinner
+                if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
+                    customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = MAGNIFIER_ICON_HTML; // Also revert to magnifier on error
                 }
                 customerSearchInput.placeholder = 'Gagal memuat daftar pelanggan'; // Error placeholder
-                if (customerSearchButton) {
-                    customerSearchButton.disabled = true; // Ensure button is disabled
-                }
             });
 
         customerSearchInput.addEventListener('awesomplete-selectcomplete', function (event) {
