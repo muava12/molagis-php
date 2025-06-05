@@ -449,18 +449,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success && data.deliveries) {
-                        let html = '<table class="table table-vcenter card-table table-selectable">';
+                        let html = '<table class="table table-vcenter card-table table-striped table-selectable">'; // Added table-striped
                         html += `
                             <thead>
                                 <tr>
                                     <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
-                                    <th>Tanggal</th>
                                     <th>Customer</th>
                                     <th>Order ID</th>
                                     <th>Items</th>
+                                    <th>Notes (Dapur/Kurir)</th>
+                                    <th>Kurir</th>
+                                    <th>Pembayaran</th>
                                     <th>Total</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="w-1">Aksi</th>
                                 </tr>
                             </thead>
                         <tbody>`;
@@ -481,59 +483,80 @@ document.addEventListener('DOMContentLoaded', function () {
                             deliveryDateSearchResultsContainer.innerHTML = emptyStateHtml;
                         } else {
                             data.deliveries.forEach(delivery => {
-                                let itemsHtml = '';
-                                let displayedItems = [];
-
-                                // Process package items
+                                let packageItemsHtml = '';
                                 if (delivery.items && delivery.items.items && Array.isArray(delivery.items.items) && delivery.items.items.length > 0) {
+                                    packageItemsHtml = '<ul class="list-unstyled mb-1">';
                                     delivery.items.items.forEach(packageItem => {
-                                        const itemName = packageItem.package_name || `Paket ID: ${packageItem.package_id}`; // Fallback if package_name is somehow missing
+                                        const itemName = packageItem.package_name || 'N/A';
                                         const itemQuantity = packageItem.quantity !== null && packageItem.quantity !== undefined ? packageItem.quantity : 'N/A';
-                                        displayedItems.push(`${itemName} (x${itemQuantity})`);
+                                        packageItemsHtml += `<li>${itemQuantity}x ${itemName}</li>`;
                                     });
+                                    packageItemsHtml += '</ul>';
                                 }
 
-                                // Process additional items
-                                if (delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) && delivery.items.additional_items.length > 0) {
-                                    delivery.items.additional_items.forEach(additionalItem => {
+                                let additionalItemsDisplayHtml = '';
+                                const namedAdditionalItems = (delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items))
+                                    ? delivery.items.additional_items.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '')
+                                    : [];
+
+                                if (namedAdditionalItems.length > 0) {
+                                    additionalItemsDisplayHtml = '<strong class="d-block mt-1">Tambahan:</strong>';
+                                    additionalItemsDisplayHtml += '<ul class="list-unstyled mb-0">';
+                                    namedAdditionalItems.forEach(additionalItem => {
                                         const addQuantity = additionalItem.quantity !== null && additionalItem.quantity !== undefined ? additionalItem.quantity : 'N/A';
-                                        if (additionalItem.item_name && additionalItem.item_name.trim() !== '') {
-                                            displayedItems.push(`${additionalItem.item_name} (x${addQuantity})`);
-                                        } else if (addQuantity !== 'N/A') { // Only add if name is blank but quantity is present
-                                            displayedItems.push(`Tambahan (x${addQuantity})`);
-                                        }
+                                        additionalItemsDisplayHtml += `<li>${addQuantity}x ${additionalItem.item_name}</li>`;
                                     });
+                                    additionalItemsDisplayHtml += '</ul>';
                                 }
 
-                                if (displayedItems.length > 0) {
-                                    itemsHtml = '<ul class="list-unstyled mb-0">';
-                                    displayedItems.forEach(itemText => {
-                                        itemsHtml += `<li>${itemText}</li>`;
-                                    });
-                                    itemsHtml += '</ul>';
+                                let finalItemsCellHtml = '';
+                                if (packageItemsHtml || additionalItemsDisplayHtml) {
+                                    finalItemsCellHtml = packageItemsHtml + additionalItemsDisplayHtml;
                                 } else {
-                                    itemsHtml = 'N/A';
+                                    finalItemsCellHtml = '<span class="text-muted">- No items -</span>';
                                 }
 
-                                let badge_class = 'secondary';
+                                let customerName = delivery.customer_name || 'N/A';
+                                let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
+
+                                let notesCellHtml = '';
+                                let kitchenNoteDisplay = delivery.kitchen_note && delivery.kitchen_note.trim() !== '' ? `<small class="d-block"><strong>Dapur:</strong> ${delivery.kitchen_note}</small>` : '';
+                                let courierNoteDisplay = delivery.courier_note && delivery.courier_note.trim() !== '' ? `<small class="d-block"><strong>Kurir:</strong> ${delivery.courier_note}</small>` : '';
+                                if (kitchenNoteDisplay || courierNoteDisplay) {
+                                    notesCellHtml = kitchenNoteDisplay + courierNoteDisplay;
+                                } else {
+                                    notesCellHtml = '<span class="text-muted">-</span>';
+                                }
+
+                                let courierName = delivery.courier_name || 'N/A';
+                                let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
+                                let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A';
+
+                                let badge_class = 'badge '; // Added space for -lt suffix
                                 const status_lower = delivery.status ? delivery.status.toLowerCase() : '';
-                                if (status_lower === 'completed') badge_class = 'success';
-                                else if (status_lower === 'pending') badge_class = 'warning';
-                                else if (status_lower === 'canceled' || status_lower === 'cancelled') badge_class = 'danger';
-                                else if (status_lower === 'in-progress' || status_lower === 'in_progress') badge_class = 'info';
+                                if (status_lower === 'selesai' || status_lower === 'completed') badge_class += 'bg-success-lt';
+                                else if (status_lower === 'pending' || status_lower === 'terjadwal') badge_class += 'bg-warning-lt';
+                                else if (status_lower === 'dibatalkan' || status_lower === 'cancelled') badge_class += 'bg-danger-lt';
+                                else badge_class += 'bg-secondary-lt';
+                                let statusDisplay = delivery.status ? delivery.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
 
                                 html += `
-                                    <tr>
-                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.id}" aria-label="Select delivery ${delivery.id}"></td>
-                                        <td>${new Date(delivery.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                        <td>${delivery.orders && delivery.orders.customers ? delivery.orders.customers.nama : 'N/A'}</td>
-                                        <td>${delivery.orders ? delivery.orders.id : 'N/A'}</td>
-                                        <td>${itemsHtml}</td>
-                                        <td>${delivery.total_harga_perhari ? Number(delivery.total_harga_perhari).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A'}</td>
-                                        <td><span class="badge bg-${badge_class} me-1"></span> ${delivery.status ? delivery.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}</td>
+                                    <tr id="delivery-row-${delivery.delivery_id}">
+                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.delivery_id}" aria-label="Select delivery ${delivery.delivery_id}"></td>
+                                        <td>${customerName}</td>
+                                        <td>${orderIdLink}</td>
+                                        <td>${finalItemsCellHtml}</td>
+                                        <td>${notesCellHtml}</td>
+                                        <td>${courierName}</td>
+                                        <td>${paymentMethod}</td>
+                                        <td>${subtotalHarga}</td>
+                                        <td><span class="${badge_class}">${statusDisplay}</span></td>
                                         <td>
                                             <div class="btn-list flex-nowrap">
-                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.id}" title="Hapus Pengiriman">
+                                                <button class="btn btn-sm btn-icon btn-outline-primary edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
+                                                </button>
+                                                <button class="btn btn-sm btn-icon btn-outline-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                                                 </button>
                                             </div>
