@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', function () {
+    const CALENDAR_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M4 11h16"></path><path d="M11 15h1"></path><path d="M12 15v3"></path></svg>';
+    const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
     const MAGNIFIER_ICON_HTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path><path d="M21 21l-6 -6"></path></svg>';
     const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
 
-    const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
     const cardTitleElement = document.querySelector('.card .card-header .card-title');
     if (!cardTitleElement) {
         console.error('Card title element (.card .card-header .card-title) not found.');
@@ -449,18 +450,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success && data.deliveries) {
-                        let html = '<table class="table table-vcenter card-table table-selectable">';
+                        let html = '<table class="table table-vcenter card-table table-striped table-selectable">'; // Added table-striped
                         html += `
                             <thead>
                                 <tr>
                                     <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
-                                    <th>Tanggal</th>
                                     <th>Customer</th>
                                     <th>Order ID</th>
                                     <th>Items</th>
+                                    <th>Notes (Dapur/Kurir)</th>
+                                    <th>Kurir</th>
+                                    <th>Pembayaran</th>
                                     <th>Total</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="w-1">Aksi</th>
                                 </tr>
                             </thead>
                         <tbody>`;
@@ -481,36 +484,88 @@ document.addEventListener('DOMContentLoaded', function () {
                             deliveryDateSearchResultsContainer.innerHTML = emptyStateHtml;
                         } else {
                             data.deliveries.forEach(delivery => {
-                                let itemsHtml = '';
-                                if (delivery.orderdetails && delivery.orderdetails.length > 0) {
-                                    itemsHtml += '<ul class="list-unstyled mb-0">'; // Added mb-0 for tighter list
-                                    delivery.orderdetails.forEach(detail => {
-                                        itemsHtml += `<li>${detail.paket.nama} (x${detail.jumlah})</li>`;
+                                let packageItemsHtml = '';
+                                if (delivery.items && delivery.items.items && Array.isArray(delivery.items.items) && delivery.items.items.length > 0) {
+                                    packageItemsHtml = '<ul class="list-unstyled mb-1">';
+                                    delivery.items.items.forEach(packageItem => {
+                                        const itemName = packageItem.package_name || 'N/A';
+                                        const itemQuantity = packageItem.quantity !== null && packageItem.quantity !== undefined ? packageItem.quantity : 'N/A';
+                                        packageItemsHtml += `<li>${itemQuantity}x ${itemName}</li>`;
                                     });
-                                    itemsHtml += '</ul>';
-                                } else {
-                                    itemsHtml = 'N/A';
+                                    packageItemsHtml += '</ul>';
                                 }
 
-                                let badge_class = 'secondary';
-                                const status_lower = delivery.status ? delivery.status.toLowerCase() : '';
-                                if (status_lower === 'completed') badge_class = 'success';
-                                else if (status_lower === 'pending') badge_class = 'warning';
-                                else if (status_lower === 'canceled' || status_lower === 'cancelled') badge_class = 'danger';
-                                else if (status_lower === 'in-progress' || status_lower === 'in_progress') badge_class = 'info';
+                                let additionalItemsDisplayHtml = '';
+                                const namedAdditionalItems = (delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items))
+                                    ? delivery.items.additional_items.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '')
+                                    : [];
+
+                                if (namedAdditionalItems.length > 0) {
+                                    additionalItemsDisplayHtml = '<strong class="d-block mt-1">Tambahan:</strong>';
+                                    additionalItemsDisplayHtml += '<ul class="list-unstyled mb-0">';
+                                    namedAdditionalItems.forEach(additionalItem => {
+                                        const addQuantity = additionalItem.quantity !== null && additionalItem.quantity !== undefined ? additionalItem.quantity : 'N/A';
+                                        additionalItemsDisplayHtml += `<li>${addQuantity}x ${additionalItem.item_name}</li>`;
+                                    });
+                                    additionalItemsDisplayHtml += '</ul>';
+                                }
+
+                                let finalItemsCellHtml = '';
+                                if (packageItemsHtml || additionalItemsDisplayHtml) {
+                                    finalItemsCellHtml = packageItemsHtml + additionalItemsDisplayHtml;
+                                } else {
+                                    finalItemsCellHtml = '<span class="text-muted">- No items -</span>';
+                                }
+
+                                let customerName = delivery.customer_name || 'N/A';
+                                let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
+
+                                let notesCellHtml = '';
+                                let kitchenNoteDisplay = delivery.kitchen_note && delivery.kitchen_note.trim() !== '' ? `<small class="d-block"><strong>Dapur:</strong> ${delivery.kitchen_note}</small>` : '';
+                                let courierNoteDisplay = delivery.courier_note && delivery.courier_note.trim() !== '' ? `<small class="d-block"><strong>Kurir:</strong> ${delivery.courier_note}</small>` : '';
+                                if (kitchenNoteDisplay || courierNoteDisplay) {
+                                    notesCellHtml = kitchenNoteDisplay + courierNoteDisplay;
+                                } else {
+                                    notesCellHtml = '<span class="text-muted">-</span>';
+                                }
+
+                                let courierName = delivery.courier_name || 'N/A';
+                                let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
+                                let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A';
+
+                                let badge_class = 'badge ';
+                                const status_lower = delivery.status ? String(delivery.status).toLowerCase().trim() : ''; // Ensure string and trim
+                                if (status_lower === 'selesai' || status_lower === 'completed') {
+                                    badge_class += 'bg-success-lt';
+                                } else if (status_lower === 'pending' || status_lower === 'terjadwal') {
+                                    badge_class += 'bg-warning-lt';
+                                } else if (status_lower === 'dibatalkan' || status_lower === 'cancelled' || status_lower === 'canceled') {
+                                    badge_class += 'bg-danger-lt';
+                                } else if (status_lower === 'in-progress' || status_lower === 'in_progress' || status_lower === 'sedang dikirim') { // Added 'sedang dikirim'
+                                    badge_class += 'bg-info-lt';
+                                } else {
+                                    badge_class += 'bg-secondary-lt';
+                                }
+                                let statusDisplay = delivery.status ? String(delivery.status).replace(/_/g, ' ') : 'N/A';
+                                statusDisplay = statusDisplay.split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ');
 
                                 html += `
-                                    <tr>
-                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.id}" aria-label="Select delivery ${delivery.id}"></td>
-                                        <td>${new Date(delivery.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                        <td>${delivery.orders && delivery.orders.customers ? delivery.orders.customers.nama : 'N/A'}</td>
-                                        <td>${delivery.orders ? delivery.orders.id : 'N/A'}</td>
-                                        <td>${itemsHtml}</td>
-                                        <td>${delivery.total_harga_perhari ? Number(delivery.total_harga_perhari).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A'}</td>
-                                        <td><span class="badge bg-${badge_class} me-1"></span> ${delivery.status ? delivery.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}</td>
+                                    <tr id="delivery-row-${delivery.delivery_id}">
+                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.delivery_id}" aria-label="Select delivery ${delivery.delivery_id}"></td>
+                                        <td>${customerName}</td>
+                                        <td>${orderIdLink}</td>
+                                        <td>${finalItemsCellHtml}</td>
+                                        <td>${notesCellHtml}</td>
+                                        <td>${courierName}</td>
+                                        <td>${paymentMethod}</td>
+                                        <td>${subtotalHarga}</td>
+                                        <td><span class="${badge_class}">${statusDisplay}</span></td>
                                         <td>
                                             <div class="btn-list flex-nowrap">
-                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.id}" title="Hapus Pengiriman">
+                                                <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                                </button>
+                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                                                 </button>
                                             </div>
@@ -521,8 +576,32 @@ document.addEventListener('DOMContentLoaded', function () {
                             html += '</tbody></table>';
                             deliveryDateSearchResultsContainer.innerHTML = html;
                         }
+                         if (cardTitleElement) { // Check if element exists
+                            if (dateQuery && data.success && data.deliveries && data.deliveries.length > 0) {
+                                try {
+                                    const dateObj = new Date(dateQuery + 'T00:00:00'); // Parse date as local
+                                    const formattedDate = dateObj.toLocaleDateString('id-ID', {
+                                        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                                    });
+                                    cardTitleElement.innerHTML = `${CALENDAR_ICON_SVG} ${formattedDate}`;
+                                    cardTitleElement.classList.add('d-flex', 'align-items-center');
+                                } catch (e) {
+                                    console.error("Error formatting date for card title:", e);
+                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                                }
+                            } else {
+                                // Revert to the default title if no date query, or no success, or empty deliveries
+                                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                            }
+                        }
                     } else {
                         deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
+                         if (cardTitleElement) { // Also revert title on error or no deliveries
+                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                        }
                     }
                 })
                 .catch(error => {
