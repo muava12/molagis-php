@@ -29,7 +29,7 @@
       {# Ensure selected_customer_id is available in this template context.
          If it's not, this might render incorrectly or throw an error.
          Assuming selected_customer_id holds the customer's ID. #}
-      <span class="avatar avatar-sm me-2" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ selected_customer_id | default('defaultSeed') }});"></span>
+      <span class="avatar avatar-sm me-2" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed={{ selected_customer_id | default('defaultSeed') }}&scale=80&backgroundColor=ae5d29,d08b5b,edb98a,fd9841,ffdbb4,f8d25c&backgroundRotation=0,360,50,40,80,110&eyebrows=angryNatural,default,defaultNatural,flatNatural,raisedExcited,raisedExcitedNatural,sadConcerned,sadConcernedNatural,unibrowNatural,upDown,upDownNatural,angry&eyes=cry,default,eyeRoll,happy,side,squint,surprised,wink,winkWacky&mouth=concerned,default,disbelief,eating,grimace,sad,screamOpen,serious,smile,tongue,twinkle);"></span>
       {{ selected_customer_name }}
     {% else %}
       Manajemen Pesanan

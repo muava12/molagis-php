@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 avatarSpan = document.createElement('span');
                                 avatarSpan.className = 'avatar avatar-sm me-2'; // Ensure classes match SSR
                             }
-                            avatarSpan.style.backgroundImage = `url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${customerIdForTitle})`;
+                            avatarSpan.style.backgroundImage = `url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${customerIdForTitle}&scale=80&backgroundColor=ae5d29,d08b5b,edb98a,fd9841,ffdbb4,f8d25c&backgroundRotation=0,360,50,40,80,110&eyebrows=angryNatural,default,defaultNatural,flatNatural,raisedExcited,raisedExcitedNatural,sadConcerned,sadConcernedNatural,unibrowNatural,upDown,upDownNatural,angry&eyes=cry,default,eyeRoll,happy,side,squint,surprised,wink,winkWacky&mouth=concerned,default,disbelief,eating,grimace,sad,screamOpen,serious,smile,tongue,twinkle)`;
                             avatarSpan.style.display = ''; // Ensure it's visible
 
                             // Reconstruct the innerHTML of cardTitleElement to include avatar and name
