@@ -106,15 +106,16 @@ async function fetchDeliveries(date, showSpinner = true, deliveryIds = null, sta
     }
 
     if (!showSpinner) {
+        // Display a loading message appropriate for list group
         tableBody.innerHTML = `
-            <tr>
-                <td colspan="3" class="text-center">
+            <div class="list-group-item">
+                <p class="text-center m-0">
                     <div class="spinner-border spinner-border-sm" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <span class="ms-2">Memuat data...</span>
-                </td>
-            </tr>
+                </p>
+            </div>
         `;
     }
 
@@ -139,41 +140,46 @@ async function fetchDeliveries(date, showSpinner = true, deliveryIds = null, sta
         console.debug('fetchDeliveries API response:', data);
 
         if (response.ok && data.error === null) {
-            tableBody.innerHTML = '';
+            tableBody.innerHTML = ''; // Clear previous items
             if (data.deliveries?.length > 0) {
                 data.deliveries.forEach((delivery) => {
-                    const row = document.createElement('tr');
-                    const avatarStyle =
+                    const listItem = document.createElement('div');
+                    listItem.className = 'list-group-item';
+
+                    const avatarHTML =
                         delivery.kurir_id === null || delivery.kurir_id === 0
                             ? `<span class="avatar avatar-sm bg-pink">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-square-rounded"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
                             </span>`
                             : `<span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${delivery.kurir_id});"></span>`;
-                    row.innerHTML = `
-                        <td>
-                            <div class="d-flex align-items-center">
-                                ${avatarStyle}
-                                <div class="ms-2">${delivery.courier_name}</div>
+
+                    listItem.innerHTML = `
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                ${avatarHTML}
                             </div>
-                        </td>
-                        <td>
-                            ${delivery.jumlah_pengantaran} titik Pengantaran
-                            <div class="text-muted small">${delivery.jumlah_selesai} sudah sampai</div>
-                        </td>
-                        <td class="text-center">
-                            <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="${delivery.kurir_id ?? 'null'}" data-courier-name="${delivery.courier_name}" aria-label="Lihat Antaran">
-                                <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
-                                    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
-                                </svg>
-                            </a>
-                        </td>
+                            <div class="col text-truncate">
+                                <div class="text-body d-block">${delivery.courier_name}</div>
+                                <div class="text-muted text-truncate mt-n1">
+                                    ${delivery.jumlah_pengantaran} titik Pengantaran - ${delivery.jumlah_selesai} sudah sampai
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <a href="#" class="btn btn-icon view-delivery-details" data-courier-id="${delivery.kurir_id ?? 'null'}" data-courier-name="${delivery.courier_name}" aria-label="Lihat Antaran">
+                                    <svg class="icon icon-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
+                                        <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
                     `;
-                    tableBody.appendChild(row);
+                    tableBody.appendChild(listItem);
                 });
             } else {
-                tableBody.innerHTML = '<tr><td colspan="3" class="text-center">Tidak ada pengantaran untuk tanggal ini</td></tr>';
+                // Display "no deliveries" message in a list group item
+                tableBody.innerHTML = '<div class="list-group-item"><p class="text-center m-0">Tidak ada pengantaran untuk tanggal ini</p></div>';
             }
 
             totalBadge.textContent = data.total_deliveries || 0;
@@ -485,7 +491,7 @@ export function initDashboard() {
 
     prevButton = document.getElementById('prev-day');
     nextButton = document.getElementById('next-day');
-    tableBody = document.querySelector('#deliveries-table tbody');
+    tableBody = document.getElementById('deliveries-list-container');
     totalBadge = document.getElementById('total-badge');
     dateSubtitle = document.getElementById('date-subtitle');
     deliveryModal = document.getElementById('delivery-list-modal');
@@ -517,6 +523,25 @@ export function initDashboard() {
         });
         return;
     }
+
+    // ---- START: Fix for initial data load ----
+    // Ensure showDate is set to the server-provided date for the initial load.
+    // The initial value of prevButton.dataset.date is set by the server-side template.
+    if (prevButton && prevButton.dataset.date) {
+        showDate = getValidDate(prevButton.dataset.date);
+    } else {
+        // Fallback if the data attribute isn't there (should not happen normally).
+        // The global showDate is already initialized with getValidDate(new Date()),
+        // so this else block could simply log a warning.
+        showDate = getValidDate(new Date());
+        console.warn('Initial date from prevButton.dataset.date not found, using current client date for initial fetch.');
+    }
+
+    // Call fetchDeliveries to load initial data for the dashboard list.
+    // The `true` is for `showSpinner`.
+    // The three `null`s are for `deliveryIds`, `status`, and `clickedButton`.
+    fetchDeliveries(showDate, true, null, null, null);
+    // ---- END: Fix for initial data load ----
 
     // Fungsi untuk memperbarui tanggal di frontend dan menunda fetch
     const debouncedFetchDeliveries = debounce(({ newDate, clickedButton }) => {
@@ -704,8 +729,6 @@ export function initDashboard() {
         });
     }
 
-    // Tidak perlu fetch data awal karena data sudah di-render oleh Twig
-    // showDate sudah diatur oleh Twig melalui current_date
 }
 
 function initialize() {
