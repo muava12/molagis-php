@@ -3,6 +3,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
 
     const customerSearchInput = document.getElementById('customer_search_orders');
+    let iconAddonSpan = null;
+
+    if (customerSearchInput) {
+        if (customerSearchInput.parentElement && customerSearchInput.parentElement.classList.contains('input-icon')) {
+            iconAddonSpan = customerSearchInput.parentElement.querySelector('.input-icon-addon');
+            if (!iconAddonSpan) {
+                console.error('Icon addon span (.input-icon-addon) not found within the parent of customer_search_orders.');
+            }
+        } else {
+            console.error('Parent of customer_search_orders is not the expected div.input-icon.');
+        }
+    } else {
+        console.error('Customer search input (customer_search_orders) not found.');
+    }
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
     // const customerSearchSpinner = document.getElementById('customer_search_spinner_addon'); // Removed
@@ -73,9 +87,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Moved fetchAndUpdateOrdersView function definition higher up
     async function fetchAndUpdateOrdersView(url) {
         // ---- NEW CODE START ----
-        // const currentInput = document.getElementById('customer_search_orders'); // Using customerSearchInput from outer scope
-        if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
-            customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = SPINNER_HTML;
+        if (iconAddonSpan) {
+            iconAddonSpan.innerHTML = SPINNER_HTML;
         }
         // ---- NEW CODE END ----
 
@@ -141,9 +154,8 @@ document.addEventListener('DOMContentLoaded', function () {
             window.location.href = url; // Existing error handling
         } finally {
             // ---- NEW CODE START ----
-            // const currentInput = document.getElementById('customer_search_orders'); // Using customerSearchInput from outer scope
-            if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
-                customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = MAGNIFIER_ICON_HTML;
+            if (iconAddonSpan) {
+                iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
             }
             // ---- NEW CODE END ----
         }
@@ -163,8 +175,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // ---- JS TO SET LOADING STATE ----
-        if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
-            customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = SPINNER_HTML;
+        if (iconAddonSpan) {
+            iconAddonSpan.innerHTML = SPINNER_HTML;
         }
         // Placeholder remains "Ketik nama pelanggan..." from HTML initially.
 
@@ -183,16 +195,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (customerList.length > 0) awesompleteInstance.evaluate();
 
                 // ---- JS TO SET SUCCESS STATE ----
-                if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
-                    customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = MAGNIFIER_ICON_HTML;
+                if (iconAddonSpan) {
+                    iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
                 }
                 customerSearchInput.placeholder = 'Ketik nama pelanggan...'; // Confirm placeholder
             })
             .catch(error => {
                 console.error('Error fetching customer data for Awesomplete:', error);
                 // ---- JS TO SET ERROR STATE ----
-                if (customerSearchInput && customerSearchInput.parentElement && customerSearchInput.parentElement.querySelector('.input-icon-addon')) {
-                    customerSearchInput.parentElement.querySelector('.input-icon-addon').innerHTML = MAGNIFIER_ICON_HTML; // Also revert to magnifier on error
+                if (iconAddonSpan) {
+                    iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
                 }
                 customerSearchInput.placeholder = 'Gagal memuat daftar pelanggan'; // Error placeholder
             });
