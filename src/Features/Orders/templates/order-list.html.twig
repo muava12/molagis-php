@@ -207,7 +207,7 @@
                                 <td>{{ delivery.tanggal | date("d M Y") }}</td>
                                 <td>{{ delivery.customer_name | default('N/A') }}</td>
                                 <td>
-                                    <a href="{{ path_for('orders.list') }}?view=by_order_id&order_id_query={{ delivery.order_id }}">
+                                    <a href="/orders?view=by_order_id&order_id_query={{ delivery.order_id }}">
                                         #{{ delivery.order_id }}
                                     </a>
                                 </td>
