@@ -131,38 +131,16 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <div class="form-selectgroup">
-                                <label class="form-selectgroup-item">
-                                    <input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#order-notes-collapse" aria-expanded="false" aria-controls="order-notes-collapse" id="order-notes-toggle">
-                                    <span class="form-selectgroup-label">
-                                        {% include 'svg/pencil.svg.twig' %}
-                                        Order Notes
-                                    </span>
-                                </label>
-                                <label class="form-selectgroup-item">
-                                    <input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#kitchen-notes-collapse" aria-expanded="false" aria-controls="kitchen-notes-collapse" id="kitchen-notes-toggle">
-                                    <span class="form-selectgroup-label">
-                                        {% include 'svg/pencil.svg.twig' %}
-                                        Kitchen Notes
-                                    </span>
-                                </label>
-                                <label class="form-selectgroup-item">
-                                    <input type="radio" name="notes-toggle" class="form-selectgroup-input" data-bs-toggle="collapse" data-bs-target="#courier-notes-collapse" aria-expanded="false" aria-controls="courier-notes-collapse" id="courier-notes-toggle">
-                                    <span class="form-selectgroup-label">
-                                        {% include 'svg/pencil.svg.twig' %}
-                                        Courier Notes
-                                    </span>
-                                </label>
-                            </div>
-                            <div class="collapse" id="order-notes-collapse">
-                                <textarea placeholder="Order Notes" class="form-control mt-2" id="order-notes"></textarea>
-                            </div>
-                            <div class="collapse" id="kitchen-notes-collapse">
-                                <textarea placeholder="Kitchen Notes" class="form-control mt-2" id="kitchen-notes"></textarea>
-                            </div>
-                            <div class="collapse" id="courier-notes-collapse">
-                                <textarea placeholder="Courier Notes" class="form-control mt-2" id="courier-notes"></textarea>
-                            </div>
+                            <label for="order-notes" class="form-label">Order Notes</label>
+                            <textarea class="form-control" id="order-notes" rows="3" placeholder="Order Notes"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="kitchen-notes" class="form-label">Kitchen Notes</label>
+                            <textarea class="form-control" id="kitchen-notes" rows="3" placeholder="Kitchen Notes"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="courier-notes" class="form-label">Courier Notes</label>
+                            <textarea class="form-control" id="courier-notes" rows="3" placeholder="Courier Notes"></textarea>
                         </div>
                         <input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
                         <div class="d-grid mt-3">
