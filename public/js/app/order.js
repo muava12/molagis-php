@@ -534,9 +534,7 @@ function collectOrderData() {
                 delivery_index: index,
                 paket_id: pkg.packageId,
                 jumlah: pkg.quantity,
-                subtotal_harga: packageData ? packageData.harga_jual * pkg.quantity : 0,
-                catatan_dapur: document.getElementById('kitchen-notes').value.trim(),
-                catatan_kurir: document.getElementById('courier-notes').value.trim()
+                subtotal_harga: packageData ? packageData.harga_jual * pkg.quantity : 0
             });
         });
     });
@@ -548,6 +546,8 @@ function collectOrderData() {
             tanggal_pesan: format(new Date(), 'yyyy-MM-dd'),
             total_harga: totals.totalPayment,
             notes: document.getElementById('order-notes').value.trim(),
+            catatan_dapur: document.getElementById('kitchen-notes').value.trim(),
+            catatan_kurir: document.getElementById('courier-notes').value.trim(),
             metode_pembayaran: paymentMethod.value
         },
         delivery_dates: deliveryDates,
@@ -694,8 +694,8 @@ function displayConfirmationModal(order) {
     notesContainer.innerHTML = '';
     const notes = [
         { title: 'Catatan Pelanggan', content: order.order_data.notes },
-        { title: 'Catatan Dapur', content: order.order_details[0]?.catatan_dapur },
-        { title: 'Catatan Kurir', content: order.order_details[0]?.catatan_kurir }
+        { title: 'Catatan Dapur', content: order.order_data.catatan_dapur },
+        { title: 'Catatan Kurir', content: order.order_data.catatan_kurir }
     ];
     notes.forEach(note => {
         if (note.content && note.content.trim() !== '') {
@@ -874,40 +874,19 @@ function setupEventListeners() {
     orderForm.removeEventListener('submit', submitOrder);
     orderForm.addEventListener('submit', submitOrder);
 
-    const notesToggles = document.querySelectorAll('.form-selectgroup-input[data-bs-toggle="collapse"]');
-    notesToggles.forEach(toggle => {
-        toggle.addEventListener('change', () => {
-            notesToggles.forEach(otherToggle => {
-                if (otherToggle !== toggle) {
-                    const otherCollapseId = otherToggle.getAttribute('data-bs-target');
-                    const otherCollapse = document.querySelector(otherCollapseId);
-                    if (otherCollapse.classList.contains('show')) {
-                        new bootstrap.Collapse(otherCollapse, { toggle: false }).hide();
-                        otherToggle.checked = false;
-                        otherToggle.setAttribute('aria-expanded', 'false');
+    // Handle autosize for textareas within tabs
+    const noteTabs = document.querySelectorAll('.nav-segmented .nav-link[data-bs-toggle="tab"]');
+    noteTabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', event => {
+            const targetPaneId = event.target.getAttribute('data-bs-target');
+            if (targetPaneId) {
+                const targetPane = document.querySelector(targetPaneId);
+                if (targetPane) {
+                    const textarea = targetPane.querySelector('textarea');
+                    if (textarea) {
+                        autosize.update(textarea);
                     }
                 }
-            });
-            const collapseId = toggle.getAttribute('data-bs-target');
-            const collapse = document.querySelector(collapseId);
-            toggle.setAttribute('aria-expanded', collapse.classList.contains('show') ? 'true' : 'false');
-        });
-    });
-
-    const noteCollapses = document.querySelectorAll('#order-notes-collapse, #kitchen-notes-collapse, #courier-notes-collapse');
-    noteCollapses.forEach(collapse => {
-        collapse.addEventListener('show.bs.collapse', () => {
-            const toggle = document.querySelector(`.form-selectgroup-input[data-bs-target="#${collapse.id}"]`);
-            if (toggle) {
-                toggle.checked = true;
-                toggle.setAttribute('aria-expanded', 'true');
-            }
-        });
-        collapse.addEventListener('hide.bs.collapse', () => {
-            const toggle = document.querySelector(`.form-selectgroup-input[data-bs-target="#${collapse.id}"]`);
-            if (toggle) {
-                toggle.checked = false;
-                toggle.setAttribute('aria-expanded', 'false');
             }
         });
     });
