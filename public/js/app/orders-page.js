@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             const itemQuantity = item.quantity !== null && item.quantity !== undefined ? item.quantity : 'N/A';
                                             let priceString = '';
                                             if (item.price !== null && item.price !== undefined) { // Changed from item.harga_jual to item.price
-                                                priceString = ` @ ${Number(item.price).toLocaleString('id-ID')}`; // Changed from item.harga_jual to item.price
+                                                priceString = ` @ <span class="text-muted">${Number(item.price).toLocaleString('id-ID')}</span>`; // Changed from item.harga_jual to item.price
                                             }
                                             itemsCellHtml += `<li>${itemQuantity}x ${itemName}${priceString}</li>`;
                                         });
@@ -518,14 +518,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                             const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 1; // Default quantity to 1 if not present
                                             let addItemPriceString = '';
                                             if (addItem.price !== null && addItem.price !== undefined && Number(addItem.price) > 0) {
-                                                addItemPriceString = ` @ ${Number(addItem.price).toLocaleString('id-ID')}`;
+                                                addItemPriceString = ` @ <span class="text-muted">${Number(addItem.price).toLocaleString('id-ID')}</span>`;
                                             }
                                             itemsCellHtml += `<li>${addItemQuantity}x ${addItemName}${addItemPriceString}</li>`;
                                         });
                                         itemsCellHtml += '</ul>';
                                     }
 
-                                    itemsCellHtml += `<li class="mt-1"><strong>Subtotal Items: ${subtotalHargaNumber.toLocaleString('id-ID')}</strong></li>`;
+                                    itemsCellHtml += `<li class="mt-1"><strong>Subtotal Items: <span class="text-muted">${subtotalHargaNumber.toLocaleString('id-ID')}</span></strong></li>`;
                                     itemsCellHtml += '</ul>';
                                 } else {
                                     itemsCellHtml = '<span class="text-muted">- No items -</span>';
