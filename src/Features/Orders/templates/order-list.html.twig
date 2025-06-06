@@ -273,7 +273,7 @@
                                 <td>{{ delivery.courier_name | default('N/A') }}</td>
                                 <td>{{ delivery.payment_method | replace({'_': ' '}) | title | default('N/A') }}</td>
                                 <td>{{ delivery.ongkir | number_format(0, ',', '.') }}</td>
-                                <td>{{ delivery.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                <td>{{ (delivery.subtotal_harga + delivery.ongkir) | number_format(0, ',', '.') }}</td>
                                 <td>
                                     {% set status_lower = delivery.status | lower %}
                                     {% set badge_class = 'badge ' %}

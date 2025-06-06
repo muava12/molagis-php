@@ -265,10 +265,10 @@ class OrdersService
                         'order_id' => $item['order_id'],
                         'tanggal' => $item['tanggal'],
                         'kurir_id' => $item['kurir_id'],
-                        'ongkir' => $item['ongkir'],
+                        'ongkir' => (float)($item['ongkir'] ?? 0),
                         'status' => $item['status'],
                         'items' => $itemsArray,
-                        'subtotal_harga' => $item['calculated_subtotal_harga'], // Changed source
+                        'subtotal_harga' => (float)($item['calculated_subtotal_harga'] ?? 0), // Changed source
                         'courier_name' => $item['courier_name'],
                         'customer_name' => $item['customer_name'],
                         'payment_method' => $item['payment_method'],
