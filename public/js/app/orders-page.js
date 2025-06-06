@@ -1183,10 +1183,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (itemTambahanInput) itemTambahanInput.value = deliveryData.item_tambahan || '';
 
         const hargaTambahanInput = document.getElementById('harga-tambahan-input');
-        if (hargaTambahanInput) hargaTambahanInput.value = deliveryData.harga_tambahan || 0;
+        if (hargaTambahanInput) hargaTambahanInput.value = deliveryData.harga_tambahan === null ? '' : deliveryData.harga_tambahan;
 
         const hargaModalTambahanInput = document.getElementById('harga-modal-tambahan-input');
-        if (hargaModalTambahanInput) hargaModalTambahanInput.value = deliveryData.harga_modal_tambahan || 0;
+        if (hargaModalTambahanInput) hargaModalTambahanInput.value = deliveryData.harga_modal_tambahan === null ? '' : deliveryData.harga_modal_tambahan;
 
         // Populate new daily notes fields
         const dailyKitchenNoteEl = document.getElementById('daily-kitchen-note');
