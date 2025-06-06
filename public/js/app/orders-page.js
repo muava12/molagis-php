@@ -484,38 +484,51 @@ document.addEventListener('DOMContentLoaded', function () {
                             deliveryDateSearchResultsContainer.innerHTML = emptyStateHtml;
                         } else {
                             data.deliveries.forEach(delivery => {
-                                let packageItemsHtml = '';
-                                if (delivery.items && delivery.items.items && Array.isArray(delivery.items.items) && delivery.items.items.length > 0) {
-                                    packageItemsHtml = '<ul class="list-unstyled mb-1">';
-                                    delivery.items.items.forEach(packageItem => {
-                                        const itemName = packageItem.package_name || 'N/A';
-                                        const itemQuantity = packageItem.quantity !== null && packageItem.quantity !== undefined ? packageItem.quantity : 'N/A';
-                                        packageItemsHtml += `<li>${itemQuantity}x ${itemName}</li>`;
-                                    });
-                                    packageItemsHtml += '</ul>';
-                                }
+                                // New "Items" cell HTML generation logic
+                                let itemsCellHtml = '';
+                                const packageItems = delivery.items && delivery.items.items && Array.isArray(delivery.items.items) ? delivery.items.items : [];
+                                const additionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
+                                const subtotalHargaNumber = delivery.subtotal_harga !== null && delivery.subtotal_harga !== undefined ? Number(delivery.subtotal_harga) : 0;
 
-                                let additionalItemsDisplayHtml = '';
-                                const namedAdditionalItems = (delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items))
-                                    ? delivery.items.additional_items.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '')
-                                    : [];
+                                if (packageItems.length > 0 || additionalItems.length > 0 || subtotalHargaNumber > 0) {
+                                    itemsCellHtml = '<ul class="list-unstyled mb-0">';
 
-                                if (namedAdditionalItems.length > 0) {
-                                    additionalItemsDisplayHtml = '<strong class="d-block mt-1">Tambahan:</strong>';
-                                    additionalItemsDisplayHtml += '<ul class="list-unstyled mb-0">';
-                                    namedAdditionalItems.forEach(additionalItem => {
-                                        const addQuantity = additionalItem.quantity !== null && additionalItem.quantity !== undefined ? additionalItem.quantity : 'N/A';
-                                        additionalItemsDisplayHtml += `<li>${addQuantity}x ${additionalItem.item_name}</li>`;
-                                    });
-                                    additionalItemsDisplayHtml += '</ul>';
-                                }
+                                    if (packageItems.length > 0) {
+                                        itemsCellHtml += '<li>Paket:</li>';
+                                        itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
+                                        packageItems.forEach(item => {
+                                            const itemName = item.package_name || 'N/A';
+                                            const itemQuantity = item.quantity !== null && item.quantity !== undefined ? item.quantity : 'N/A';
+                                            let priceString = '';
+                                            if (item.harga_jual !== null && item.harga_jual !== undefined) {
+                                                priceString = ` @ ${Number(item.harga_jual).toLocaleString('id-ID')}`;
+                                            }
+                                            itemsCellHtml += `<li>${itemQuantity}x ${itemName}${priceString}</li>`;
+                                        });
+                                        itemsCellHtml += '</ul>';
+                                    }
 
-                                let finalItemsCellHtml = '';
-                                if (packageItemsHtml || additionalItemsDisplayHtml) {
-                                    finalItemsCellHtml = packageItemsHtml + additionalItemsDisplayHtml;
+                                    if (additionalItems.length > 0) {
+                                        itemsCellHtml += '<li>Tambahan:</li>';
+                                        itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
+                                        additionalItems.forEach(addItem => {
+                                            const addItemName = addItem.item_name || 'N/A';
+                                            const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 'N/A';
+                                            let addItemPriceString = '';
+                                            if (addItem.price !== null && addItem.price !== undefined && Number(addItem.price) > 0) {
+                                                addItemPriceString = ` @ ${Number(addItem.price).toLocaleString('id-ID')}`;
+                                            }
+                                            itemsCellHtml += `<li>${addItemQuantity}x ${addItemName}${addItemPriceString}</li>`;
+                                        });
+                                        itemsCellHtml += '</ul>';
+                                    }
+
+                                    itemsCellHtml += `<li class="mt-1"><strong>Subtotal Items: ${subtotalHargaNumber.toLocaleString('id-ID')}</strong></li>`;
+                                    itemsCellHtml += '</ul>';
                                 } else {
-                                    finalItemsCellHtml = '<span class="text-muted">- No items -</span>';
+                                    itemsCellHtml = '<span class="text-muted">- No items -</span>';
                                 }
+                                // End of new "Items" cell HTML generation logic
 
                                 let customerName = delivery.customer_name || 'N/A';
                                 let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
@@ -551,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <tr id="delivery-row-${delivery.delivery_id}">
                                         <td>${customerName}</td>
                                         <td>${orderIdLink}</td>
-                                        <td>${finalItemsCellHtml}</td>
+                                        <td>${itemsCellHtml}</td>
                                         <td>${notesCellHtml}</td>
                                         <td>${courierName}</td>
                                         <td>${paymentMethod}</td>
