@@ -232,11 +232,21 @@
                                                 {% endfor %}
                                             </ul>
                                         {% endif %}
+
+                                        {% set valid_additional_items = [] %}
                                         {% if delivery.items.additional_items is defined and delivery.items.additional_items is not empty %}
+                                            {% for add_item in delivery.items.additional_items %}
+                                                {% if add_item.item_name is defined and add_item.item_name is not null and add_item.item_name != '' and add_item.item_name != 'N/A' %}
+                                                    {% set valid_additional_items = valid_additional_items|merge([add_item]) %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+
+                                        {% if valid_additional_items is not empty %}
                                             <li>Tambahan:</li>
                                             <ul class="list-unstyled ps-3 mb-1">
-                                                {% for add_item in delivery.items.additional_items %}
-                                                    <li>{{ add_item.quantity }}x {{ add_item.item_name }}{% if add_item.price is defined and add_item.price is not null and add_item.price > 0 %} @ {{ add_item.price | number_format(0, ',', '.') }}{% endif %}</li>
+                                                {% for add_item in valid_additional_items %}
+                                                    <li>{{ add_item.quantity | default(1) }}x {{ add_item.item_name }}{% if add_item.price is defined and add_item.price is not null and add_item.price > 0 %} @ {{ add_item.price | number_format(0, ',', '.') }}{% endif %}</li>
                                                 {% endfor %}
                                             </ul>
                                         {% endif %}

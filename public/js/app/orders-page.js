@@ -487,10 +487,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // New "Items" cell HTML generation logic
                                 let itemsCellHtml = '';
                                 const packageItems = delivery.items && delivery.items.items && Array.isArray(delivery.items.items) ? delivery.items.items : [];
-                                const additionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
+                                const rawAdditionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
                                 const subtotalHargaNumber = delivery.subtotal_harga !== null && delivery.subtotal_harga !== undefined ? Number(delivery.subtotal_harga) : 0;
 
-                                if (packageItems.length > 0 || additionalItems.length > 0 || subtotalHargaNumber > 0) {
+                                if (packageItems.length > 0 || rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A').length > 0 || subtotalHargaNumber > 0) {
                                     itemsCellHtml = '<ul class="list-unstyled mb-0">';
 
                                     if (packageItems.length > 0) {
@@ -508,12 +508,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                         itemsCellHtml += '</ul>';
                                     }
 
-                                    if (additionalItems.length > 0) {
+                                    const validAdditionalItems = rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A');
+
+                                    if (validAdditionalItems.length > 0) {
                                         itemsCellHtml += '<li>Tambahan:</li>';
                                         itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
-                                        additionalItems.forEach(addItem => {
-                                            const addItemName = addItem.item_name || 'N/A';
-                                            const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 'N/A';
+                                        validAdditionalItems.forEach(addItem => {
+                                            const addItemName = addItem.item_name; // Use directly, already validated
+                                            const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 1; // Default quantity to 1 if not present
                                             let addItemPriceString = '';
                                             if (addItem.price !== null && addItem.price !== undefined && Number(addItem.price) > 0) {
                                                 addItemPriceString = ` @ ${Number(addItem.price).toLocaleString('id-ID')}`;

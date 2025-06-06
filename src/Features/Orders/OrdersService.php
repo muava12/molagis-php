@@ -232,12 +232,11 @@ class OrdersService
                     $processedPackageItems = [];
                     if (isset($rawItemsJson['items']) && is_array($rawItemsJson['items'])) {
                         foreach ($rawItemsJson['items'] as $rpcPackageItem) {
-                            $hargaJual = $rpcPackageItem['harga_jual'] ?? 0;
+                            $price = $rpcPackageItem['price'] ?? 0; // Read from 'price', default to 0
                             $processedPackageItems[] = [
                                 'package_name' => $rpcPackageItem['package_name'] ?? 'N/A',
                                 'quantity' => $rpcPackageItem['quantity'] ?? 0,
-                                'harga_jual' => $hargaJual, // Keep for Twig compatibility
-                                'price' => $hargaJual,      // Add for JS consistency & future use
+                                'price' => $price,      // Output only 'price'
                                 'paket_id' => $rpcPackageItem['paket_id'] ?? null,
                                 'catatan' => $rpcPackageItem['catatan'] ?? null,
                                 // any other fields like 'catatan_dapur', 'catatan_kurir' if they come from RPC package items
