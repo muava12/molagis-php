@@ -675,18 +675,58 @@ document.addEventListener('DOMContentLoaded', function () {
     tabButtons.forEach(tabButton => {
         tabButton.addEventListener('shown.bs.tab', function (event) {
             const activeTabTarget = event.target.getAttribute('data-bs-target');
+
+            // These should be called first, updateSearchFormVisibility is from outer scope
             updateSearchFormVisibility(activeTabTarget);
             localStorage.setItem('activeOrdersTab', activeTabTarget);
 
-            if (activeTabTarget === '#pane-by-date') {
-                // Check if results container is empty. If so, it implies no server-rendered content for today.
-                // Or, if the input is empty (e.g. user cleared it and switched tabs)
-                if (deliveryDateSearchInput.value === '' || (deliveryDateSearchResultsContainer && deliveryDateSearchResultsContainer.innerHTML.trim() === '')) {
-                    ensureDateInputIsPopulated(true);
+            if (activeTabTarget === '#pane-by-name') {
+                const currentUrlParams = new URLSearchParams(window.location.search);
+                const customerId = currentUrlParams.get('customer_id');
+
+                // Using variables from the outer DOMContentLoaded scope:
+                // customerSearchForm, itemsPerPageSelect, groupingSelect,
+                // cardTitleElement, DEFAULT_CARD_TITLE, contentWrapper.
+
+                if (customerId) {
+                    const baseUrl = customerSearchForm?.action || (window.location.origin + '/orders');
+                    const params = new URLSearchParams();
+                    params.set('view', 'by_name');
+                    params.set('customer_id', customerId);
+
+                    params.set('page', currentUrlParams.get('page') || '1');
+                    params.set('limit', currentUrlParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    params.set('grouping', currentUrlParams.get('grouping') || groupingSelect?.value || 'none');
+
+                    if (typeof fetchAndUpdateOrdersView === 'function') { // fetchAndUpdateOrdersView from outer scope
+                        fetchAndUpdateOrdersView(baseUrl + '?' + params.toString());
+                    } else {
+                        console.error('fetchAndUpdateOrdersView function is not defined. Reloading as fallback.');
+                        window.location.reload();
+                    }
+                } else {
+                    // No customer_id. Reset title and clear previous customer's order list.
+                    if (cardTitleElement) {
+                         cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                         cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                    }
+                    if (contentWrapper) {
+                        contentWrapper.innerHTML = ''; // Clear previous results area
+                    }
                 }
-                 // If there's content (e.g. SSR for today or previous search result),
-                 // and input has a value, don't change it just on tab switch.
-                 // User might be comparing different dates.
+            } else if (activeTabTarget === '#pane-by-date') {
+                // Using variables from outer scope:
+                // deliveryDateSearchInput, deliveryDateSearchResultsContainer, ensureDateInputIsPopulated
+                if (deliveryDateSearchInput && (deliveryDateSearchInput.value === '' || (deliveryDateSearchResultsContainer && deliveryDateSearchResultsContainer.innerHTML.trim() === ''))) {
+                     ensureDateInputIsPopulated(true);
+                }
+            }
+            // No specific 'else if' needed for other tabs like 'by_order_id' as they are full reloads
+            // and their content is server-rendered.
+
+            // This should be called after potential content updates. updateBatchDeleteToast is from outer scope.
+            if (typeof updateBatchDeleteToast === 'function') {
+                updateBatchDeleteToast();
             }
         });
     });
@@ -788,18 +828,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 // No specific URL param for date search shown in controller for page load, it's API driven
             }
 
-            if (viewName === 'by_date') {
+            if (viewName === 'by_date' || viewName === 'by_name') { // Apply to 'by_date' AND 'by_name'
                 if (history.pushState) {
                     history.pushState({ path: currentUrl.toString() }, '', currentUrl.toString());
                     // Bootstrap's default behavior for tabs with data-bs-toggle="tab"
                     // when event.preventDefault() is called, should handle showing the correct tab pane.
-                    // The 'shown.bs.tab' event listener will then take care of content loading for this tab.
+                    // The 'shown.bs.tab' event listener will then take care of content loading.
                 } else {
                     // Fallback for older browsers that don't support history.pushState
                     window.location.href = currentUrl.toString();
                 }
             } else {
-                // For other tabs, maintain the full page reload behavior
+                // For any other tabs (e.g., 'by_order_id'), maintain the full page reload behavior
                 window.location.href = currentUrl.toString();
             }
         });
@@ -924,9 +964,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Ensure view is by_name as this control is specific to it
             currentUrl.searchParams.set('view', 'by_name');
 
-            // The AJAX update was causing issues with state. Full reload is more robust here.
-            window.location.href = currentUrl.toString();
-            // fetchAndUpdateOrdersView(currentUrl.toString()); // Previous AJAX attempt
+            fetchAndUpdateOrdersView(currentUrl.toString());
         });
     }
 
@@ -939,9 +977,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 !clickedLinkElement.closest('.page-item.disabled')) { // Ignore disabled links
                 event.preventDefault();
                 // The pagination links in _orders_table_partial.html.twig should already include all necessary params (view, customer_id, page, limit, grouping)
-                // So, a full navigation is fine. If AJAX is preferred, fetchAndUpdateOrdersView can be used.
-                window.location.href = clickedLinkElement.href;
-                // fetchAndUpdateOrdersView(clickedLinkElement.href); // Previous AJAX attempt
+                fetchAndUpdateOrdersView(clickedLinkElement.href);
             }
         });
     }
@@ -963,7 +999,7 @@ document.addEventListener('DOMContentLoaded', function () {
            // the page will show "by_name" view without a customer selected, prompting to select one.
            // This is generally fine.
 
-           window.location.href = currentUrl.toString();
+           fetchAndUpdateOrdersView(currentUrl.toString());
        });
    }
 
