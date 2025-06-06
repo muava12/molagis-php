@@ -228,7 +228,7 @@
                                             <li>Paket:</li>
                                             <ul class="list-unstyled ps-3 mb-1">
                                                 {% for item in delivery.items.items %}
-                                                    <li>{{ item.quantity }}x {{ item.package_name | default('N/A') }}{% if item.price is defined and item.price is not null %} @ <span class="text-muted">{{ item.price | number_format(0, ',', '.') }}</span>{% else %}{% endif %}</li>
+                                                    <li>{{ item.quantity }}x {{ item.package_name | default('N/A') }}{% if item.price is defined and item.price is not null %} <span class="text-muted">@ {{ item.price | number_format(0, ',', '.') }}</span>{% else %}{% endif %}</li>
                                                 {% endfor %}
                                             </ul>
                                         {% endif %}
@@ -246,11 +246,11 @@
                                             <li>Tambahan:</li>
                                             <ul class="list-unstyled ps-3 mb-1">
                                                 {% for add_item in valid_additional_items %}
-                                                    <li>{{ add_item.quantity | default(1) }}x {{ add_item.item_name }}{% if add_item.price is defined and add_item.price is not null and add_item.price > 0 %} @ <span class="text-muted">{{ add_item.price | number_format(0, ',', '.') }}</span>{% endif %}</li>
+                                                    <li>{{ add_item.quantity | default(1) }}x {{ add_item.item_name }}{% if add_item.price is defined and add_item.price is not null and add_item.price > 0 %} <span class="text-muted">@ {{ add_item.price | number_format(0, ',', '.') }}</span>{% endif %}</li>
                                                 {% endfor %}
                                             </ul>
                                         {% endif %}
-                                        <li class="mt-1"><strong>Subtotal Items: <span class="text-muted">{{ delivery.subtotal_harga | number_format(0, ',', '.') }}</span></strong></li>
+                                        <li class="mt-1 text-muted"><strong>Subtotal Items: {{ delivery.subtotal_harga | number_format(0, ',', '.') }}</strong></li>
                                     </ul>
                                     {# Fallback for when there are absolutely no items, including no subtotal to display meaningful info from #}
                                     {% if (delivery.items.items is empty or delivery.items.items is not defined or delivery.items.items | length == 0) and
