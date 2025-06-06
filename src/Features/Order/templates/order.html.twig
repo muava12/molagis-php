@@ -130,17 +130,30 @@
                                 <option value="belum_bayar">Belum Bayar</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="order-notes" class="form-label">Order Notes</label>
-                            <textarea class="form-control" id="order-notes" rows="3" placeholder="Order Notes"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="kitchen-notes" class="form-label">Kitchen Notes</label>
-                            <textarea class="form-control" id="kitchen-notes" rows="3" placeholder="Kitchen Notes"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="courier-notes" class="form-label">Courier Notes</label>
-                            <textarea class="form-control" id="courier-notes" rows="3" placeholder="Courier Notes"></textarea>
+                        <nav class="nav nav-segmented mb-3" role="tablist">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#order-notes-pane" role="tab" aria-selected="false">
+                                {% include 'svg/clipboard-text.svg.twig' %}
+                                Order Notes
+                            </button>
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#kitchen-notes-pane" role="tab" aria-selected="false">
+                                {% include 'svg/tools-kitchen-2.svg.twig' %}
+                                Kitchen Notes
+                            </button>
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#courier-notes-pane" role="tab" aria-selected="false">
+                                {% include 'svg/truck-delivery.svg.twig' %}
+                                Courier Notes
+                            </button>
+                        </nav>
+                        <div class="tab-content">
+                            <div class="tab-pane fade" id="order-notes-pane" role="tabpanel">
+                                <textarea class="form-control" id="order-notes" rows="3" placeholder="Order Notes"></textarea>
+                            </div>
+                            <div class="tab-pane fade" id="kitchen-notes-pane" role="tabpanel">
+                                <textarea class="form-control" id="kitchen-notes" rows="3" placeholder="Kitchen Notes"></textarea>
+                            </div>
+                            <div class="tab-pane fade" id="courier-notes-pane" role="tabpanel">
+                                <textarea class="form-control" id="courier-notes" rows="3" placeholder="Courier Notes"></textarea>
+                            </div>
                         </div>
                         <input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
                         <div class="d-grid mt-3">

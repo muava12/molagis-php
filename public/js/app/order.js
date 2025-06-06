@@ -873,6 +873,23 @@ function setupEventListeners() {
     document.querySelector('#harga-modal-item-tambahan').addEventListener('input', calculateTotalPayment);
     orderForm.removeEventListener('submit', submitOrder);
     orderForm.addEventListener('submit', submitOrder);
+
+    // Handle autosize for textareas within tabs
+    const noteTabs = document.querySelectorAll('.nav-segmented .nav-link[data-bs-toggle="tab"]');
+    noteTabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', event => {
+            const targetPaneId = event.target.getAttribute('data-bs-target');
+            if (targetPaneId) {
+                const targetPane = document.querySelector(targetPaneId);
+                if (targetPane) {
+                    const textarea = targetPane.querySelector('textarea');
+                    if (textarea) {
+                        autosize.update(textarea);
+                    }
+                }
+            }
+        });
+    });
 }
 
 export { initialize, setupEventListeners, fetchHolidayDates, renderCalendar, fetchCustomers, fetchPackages, calculateTotalPayment, setupAddRemovePackageHandlers, resetForm };
