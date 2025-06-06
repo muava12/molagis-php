@@ -627,12 +627,15 @@ document.addEventListener('DOMContentLoaded', function () {
     } // End if deliveryDateSearchInput
 
     // Function to set today's date if input is empty
-    function ensureDateInputIsPopulated() {
+    function ensureDateInputIsPopulated(triggerChangeEvent) {
         if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
             const today = new Date().toISOString().slice(0, 10);
-            deliveryDateSearchInput.value = today;
+            // deliveryDateSearchInput.value = today; // setDate will update the input's value
             if (deliveryDateFlatpickrInstance) {
-                deliveryDateFlatpickrInstance.setDate(today, true); // true to trigger onChange and auto-search
+                deliveryDateFlatpickrInstance.setDate(today, triggerChangeEvent);
+            } else {
+                // Fallback if flatpickr instance isn't available for some reason
+                deliveryDateSearchInput.value = today;
             }
         }
     }
@@ -675,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Check if results container is empty. If so, it implies no server-rendered content for today.
                 // Or, if the input is empty (e.g. user cleared it and switched tabs)
                 if (deliveryDateSearchInput.value === '' || (deliveryDateSearchResultsContainer && deliveryDateSearchResultsContainer.innerHTML.trim() === '')) {
-                    ensureDateInputIsPopulated();
+                    ensureDateInputIsPopulated(false);
                 }
                  // If there's content (e.g. SSR for today or previous search result),
                  // and input has a value, don't change it just on tab switch.
@@ -726,7 +729,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                                  deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state') !== null;
 
                 if (containerIsEmptyOrInitial) {
-                    ensureDateInputIsPopulated();
+                    ensureDateInputIsPopulated(true);
                 }
             }
         }
