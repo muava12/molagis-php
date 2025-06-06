@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Element selectors for controls
     const groupingSelect = document.getElementById('grouping_select');
     const itemsPerPageSelect = document.getElementById('items_per_page_select');
+    let deliveryDateFlatpickrInstance = null;
 
 
     // Function to update the batch delete toast based on the active tab
@@ -405,7 +406,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- For "By Date" Tab ---
     const deliveryDateSearchInput = document.getElementById('delivery_date_search_input');
     const deliveryDateSearchResultsContainer = document.getElementById('delivery_date_search_results_container');
-    let deliveryDateFlatpickrInstance = null;
     let dateIconAddonSpan = null; // To store the span for the icon
 
     if (deliveryDateSearchInput) {
@@ -629,16 +629,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to set today's date if input is empty
     function ensureDateInputIsPopulated(triggerChangeEvent) {
         if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-            const now = new Date();
-            // WITA is UTC+8. Add 8 hours in milliseconds.
-            const witaOffsetMilliseconds = 8 * 60 * 60 * 1000;
-            // Create a new Date object representing the current time in WITA
-            const dateInWita = new Date(now.getTime() + witaOffsetMilliseconds);
-            // Get the year, month, and day from this WITA-offset date *using UTC methods*
-            // This correctly gives the calendar date parts for the WITA timezone.
-            const year = dateInWita.getUTCFullYear();
-            const month = (dateInWita.getUTCMonth() + 1).toString().padStart(2, '0'); // getUTCMonth is 0-indexed
-            const day = dateInWita.getUTCDate().toString().padStart(2, '0');
+            const localDate = new Date();
+            const year = localDate.getFullYear();
+            const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
+            const day = localDate.getDate().toString().padStart(2, '0');
             const today = `${year}-${month}-${day}`;
             // deliveryDateSearchInput.value = today; // setDate will update the input's value
             if (deliveryDateFlatpickrInstance) {
@@ -688,7 +682,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Check if results container is empty. If so, it implies no server-rendered content for today.
                 // Or, if the input is empty (e.g. user cleared it and switched tabs)
                 if (deliveryDateSearchInput.value === '' || (deliveryDateSearchResultsContainer && deliveryDateSearchResultsContainer.innerHTML.trim() === '')) {
-                    ensureDateInputIsPopulated(false);
+                    ensureDateInputIsPopulated(true);
                 }
                  // If there's content (e.g. SSR for today or previous search result),
                  // and input has a value, don't change it just on tab switch.
@@ -794,7 +788,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 // No specific URL param for date search shown in controller for page load, it's API driven
             }
 
-            window.location.href = currentUrl.toString();
+            if (viewName === 'by_date') {
+                if (history.pushState) {
+                    history.pushState({ path: currentUrl.toString() }, '', currentUrl.toString());
+                    // Bootstrap's default behavior for tabs with data-bs-toggle="tab"
+                    // when event.preventDefault() is called, should handle showing the correct tab pane.
+                    // The 'shown.bs.tab' event listener will then take care of content loading for this tab.
+                } else {
+                    // Fallback for older browsers that don't support history.pushState
+                    window.location.href = currentUrl.toString();
+                }
+            } else {
+                // For other tabs, maintain the full page reload behavior
+                window.location.href = currentUrl.toString();
+            }
         });
     });
 
