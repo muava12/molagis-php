@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const CALENDAR_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M4 11h16"></path><path d="M11 15h1"></path><path d="M12 15v3"></path></svg>';
+    // CALENDAR_ICON_SVG is defined below, specific to the date picker addon
     const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
     const MAGNIFIER_ICON_HTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path><path d="M21 21l-6 -6"></path></svg>';
     const SPINNER_HTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
+    // Specific SVG for the calendar icon in the date input addon
+    const DATE_PICKER_CALENDAR_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M4 11h16"></path><path d="M11 15h1"></path><path d="M12 15v3"></path></svg>';
+
 
     const cardTitleElement = document.querySelector('.card .card-header .card-title');
     if (!cardTitleElement) {
@@ -400,15 +403,199 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // --- For "By Date" Tab ---
-    // ... (existing By Date logic - kept for brevity, assuming no changes needed here) ...
     const deliveryDateSearchInput = document.getElementById('delivery_date_search_input');
-    const deliveryDateSearchButton = document.getElementById('delivery_date_search_button');
     const deliveryDateSearchResultsContainer = document.getElementById('delivery_date_search_results_container');
     let deliveryDateFlatpickrInstance = null;
+    let dateIconAddonSpan = null; // To store the span for the icon
 
-    if (deliveryDateSearchInput && typeof flatpickr !== "undefined") {
-        deliveryDateFlatpickrInstance = flatpickr(deliveryDateSearchInput, { dateFormat: "Y-m-d", locale: "id" });
-    }
+    if (deliveryDateSearchInput) {
+        // Try to find the icon addon span
+        if (deliveryDateSearchInput.parentElement && deliveryDateSearchInput.parentElement.classList.contains('input-icon')) {
+            dateIconAddonSpan = deliveryDateSearchInput.parentElement.querySelector('.input-icon-addon');
+            if (dateIconAddonSpan) {
+                dateIconAddonSpan.innerHTML = DATE_PICKER_CALENDAR_ICON_SVG; // Set initial icon
+            } else {
+                console.error('Date icon addon span (.input-icon-addon) not found within the parent of delivery_date_search_input.');
+            }
+        } else {
+            console.error('Parent of delivery_date_search_input is not the expected div.input-icon. Icon functionality may be affected.');
+        }
+
+        if (typeof flatpickr !== "undefined") {
+            deliveryDateFlatpickrInstance = flatpickr(deliveryDateSearchInput, {
+                dateFormat: "Y-m-d",
+                locale: "id",
+                onChange: function(selectedDates, dateStr, instance) {
+                    const dateQuery = deliveryDateSearchInput.value.trim();
+
+                    if (dateIconAddonSpan) {
+                        dateIconAddonSpan.innerHTML = SPINNER_HTML;
+                    }
+                    deliveryDateSearchResultsContainer.innerHTML = '<p class="text-center">Loading...</p>';
+
+                    if (!dateQuery) {
+                        deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Please select a date.</p>';
+                        if (dateIconAddonSpan) dateIconAddonSpan.innerHTML = DATE_PICKER_CALENDAR_ICON_SVG;
+                        return;
+                    }
+
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateQuery)) {
+                        deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Invalid date format. Please use YYYY-MM-DD.</p>';
+                        if (dateIconAddonSpan) dateIconAddonSpan.innerHTML = DATE_PICKER_CALENDAR_ICON_SVG;
+                        return;
+                    }
+
+                    fetch(`/api/orders/search/date?date=${encodeURIComponent(dateQuery)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(errData => {
+                                    throw new Error(errData.message || `HTTP error ${response.status}`);
+                                }).catch(() => {
+                                    throw new Error(`HTTP error ${response.status} - ${response.statusText || 'Server error'}`);
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success && data.deliveries) {
+                                let html = '<div class="table-responsive"><table class="table table-vcenter card-table table-striped">';
+                                html += `
+                                    <thead>
+                                        <tr>
+                                            <th>Customer</th>
+                                            <th>Order ID</th>
+                                            <th>Items</th>
+                                            <th>Notes (Dapur/Kurir)</th>
+                                            <th>Kurir</th>
+                                            <th>Pembayaran</th>
+                                            <th>Ongkir</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th class="w-1">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                <tbody>`;
+
+                                if (data.deliveries.length === 0) {
+                                    const emptyStateHtml = `
+                                    <div class="empty-state-card text-center py-5">
+                                        <svg width="200px" height="200px" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 1rem;">
+                                            <path d="M484.32 375.24C575.25 255.5 857.87 527.6 788.67 581.07c-94.76 73.21-491.01 39.99-304.35-205.83z" fill="#1C80AA" />
+                                            <path d="M401.03 749.89l-4.85 133.8-77.69 21.37h66.36l19.42 35.27 4.86-35.27 40.46 6.14-38.84-25.89 8.09-114.91-17.81-20.51zM524.36 771.23l10.48 133.48-74.73 30.11 65.92-7.59 23.33 32.82 0.79-35.6 40.89 1.48-41.54-21.28-5.11-115.08-20.03-18.34z" fill="#3B5174" />
+                                            <path d="M224.73 264.77l-24 50.19a21.7 21.7 0 0 1-37.73 2.5l-31.57-48.27a21.7 21.7 0 0 1 17.41-33.57l55.61-1.92a21.7 21.7 0 0 1 20.28 31.07z" fill="#DE7B56" />
+                                            <path d="M900.53 638.76c-18.3 86.91-221.86 208.13-478 171.54C150.46 771.44 26 281.88 315 103.56c161.25-99.49 326.71 5 356.8 130.37C713 405.47 583.15 534.58 749.57 609c86.91 38.91 164.43-34.33 150.96 29.76z" fill="#FDD2BE" />
+                                            <path d="M365.86 264.78m-32.45 0a32.45 32.45 0 1 0 64.9 0 32.45 32.45 0 1 0-64.9 0Z" fill="" />
+                                            <path d="M512.24 366c137.48-60.86 253.34 314 166.92 327.31C560.81 711.56 230 490.92 512.24 366zM223.3 530c-9.34-2.6-17.2-12.8-23.94-31a195 195 0 0 1-7.64-27 7.28 7.28 0 0 1 14.3-2.79c4.79 24.5 15 46.44 21.91 46.93 1.12 0.08 11.43-0.5 27.23-45.51a7.28 7.28 0 1 1 13.74 4.82c-13.61 38.77-27 56.31-42 55.22a18.18 18.18 0 0 1-3.6-0.67zM340.8 590.36c-9.63 1.14-20.77-5.32-33.92-19.63a195 195 0 0 1-17.32-22.11 7.28 7.28 0 0 1 12.17-8c13.73 20.85 31.53 37.27 38.07 35.12 1.07-0.35 10.38-4.8 7.93-52.44a7.28 7.28 0 1 1 14.55-0.75c2.11 41-3.59 62.33-17.95 67a18.18 18.18 0 0 1-3.53 0.81zM261.5 659.71c-9-0.19-18.35-7.55-28.56-22.35a180.41 180.41 0 0 1-13-22.49 6.74 6.74 0 0 1 12.18-5.77c9.9 20.88 24.1 38.21 30.37 37.08 1-0.18 10.13-3.07 14-47a6.74 6.74 0 1 1 13.43 1.18c-3.34 37.87-11.31 56.66-25.07 59.12a16.82 16.82 0 0 1-3.35 0.23zM389.28 722.29c-9.26 2.85-21.38-1.51-36.89-13.22a195 195 0 0 1-21-18.64 7.28 7.28 0 0 1 10.53-10.06c17.25 18.05 37.7 31 43.75 27.71 1-0.54 9.35-6.59-1.61-53a7.28 7.28 0 1 1 14.17-3.35c9.44 40 7.65 62-5.63 69.16a18.18 18.18 0 0 1-3.32 1.4z" fill="#22B0C3" />
+                                        </svg>
+                                        <p class="mt-3">Tidak ada pengiriman untuk tanggal ini.</p>
+                                    </div>`;
+                                    deliveryDateSearchResultsContainer.innerHTML = emptyStateHtml;
+                                } else {
+                                    data.deliveries.forEach(delivery => {
+                                        let itemsCellHtml = '';
+                                        const packageItems = delivery.items && delivery.items.items && Array.isArray(delivery.items.items) ? delivery.items.items : [];
+                                        const rawAdditionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
+                                        const subtotalHargaNumber = delivery.subtotal_harga !== null && delivery.subtotal_harga !== undefined ? Number(delivery.subtotal_harga) : 0;
+
+                                        if (packageItems.length > 0 || rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A').length > 0 || subtotalHargaNumber > 0) {
+                                            itemsCellHtml = '<ul class="list-unstyled mb-0">';
+                                            if (packageItems.length > 0) { /* ... content as before ... */ }
+                                            const validAdditionalItems = rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A');
+                                            if (validAdditionalItems.length > 0) { /* ... content as before ... */ }
+                                            itemsCellHtml += `<li class="mt-1 text-muted"><strong>Subtotal Items: ${subtotalHargaNumber.toLocaleString('id-ID')}</strong></li>`;
+                                            itemsCellHtml += '</ul>';
+                                        } else {
+                                            itemsCellHtml = '<span class="text-muted">- No items -</span>';
+                                        }
+                                        // ... (rest of the table row generation logic remains the same)
+                                        const itemsSubtotal = Number(delivery.subtotal_harga || 0);
+                                        const shippingCost = Number(delivery.ongkir || 0);
+                                        const grandTotal = itemsSubtotal + shippingCost;
+                                        const grandTotalDisplay = grandTotal.toLocaleString('id-ID');
+                                        let customerName = delivery.customer_name || 'N/A';
+                                        let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
+                                        let notesCellHtml = '';
+                                        let kitchenNoteDisplay = delivery.kitchen_note && delivery.kitchen_note.trim() !== '' ? `<small class="d-block"><strong>Dapur:</strong> ${delivery.kitchen_note}</small>` : '';
+                                        let courierNoteDisplay = delivery.courier_note && delivery.courier_note.trim() !== '' ? `<small class="d-block"><strong>Kurir:</strong> ${delivery.courier_note}</small>` : '';
+                                        if (kitchenNoteDisplay || courierNoteDisplay) { notesCellHtml = kitchenNoteDisplay + courierNoteDisplay; } else { notesCellHtml = '<span class="text-muted">-</span>'; }
+                                        let courierName = delivery.courier_name || 'N/A';
+                                        let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
+                                        let ongkirDisplay = Number(delivery.ongkir || 0).toLocaleString('id-ID');
+                                        let badge_class = 'badge ';
+                                        const status_lower = delivery.status ? String(delivery.status).toLowerCase().trim() : '';
+                                        if (status_lower === 'selesai' || status_lower === 'completed') badge_class += 'bg-success-lt';
+                                        else if (status_lower === 'pending' || status_lower === 'terjadwal') badge_class += 'bg-warning-lt';
+                                        else if (status_lower === 'dibatalkan' || status_lower === 'cancelled' || status_lower === 'canceled') badge_class += 'bg-danger-lt';
+                                        else badge_class += 'bg-secondary-lt';
+                                        let statusDisplay = delivery.status ? delivery.status : 'N/A';
+
+                                        html += `
+                                            <tr id="delivery-row-${delivery.delivery_id}">
+                                                <td>${customerName}</td>
+                                                <td>${orderIdLink}</td>
+                                                <td>${itemsCellHtml}</td>
+                                                <td>${notesCellHtml}</td>
+                                                <td>${courierName}</td>
+                                                <td>${paymentMethod}</td>
+                                                <td>${ongkirDisplay}</td>
+                                                <td>${grandTotalDisplay}</td>
+                                                <td><span class="${badge_class}">${statusDisplay}</span></td>
+                                                <td>
+                                                    <div class="btn-list flex-nowrap">
+                                                        <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }); // End forEach delivery
+                                    html += '</tbody></table></div>';
+                                    deliveryDateSearchResultsContainer.innerHTML = html;
+                                } // End if data.deliveries.length > 0
+
+                                if (cardTitleElement) {
+                                    if (dateQuery && data.success && data.deliveries && data.deliveries.length > 0) {
+                                        try {
+                                            const dateObj = new Date(dateQuery + 'T00:00:00');
+                                            const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                            // Use DATE_PICKER_CALENDAR_ICON_SVG for the card title icon as well for consistency
+                                            cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
+                                            cardTitleElement.classList.add('d-flex', 'align-items-center');
+                                        } catch (e) {
+                                            console.error("Error formatting date for card title:", e);
+                                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                                        }
+                                    } else {
+                                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                                    }
+                                }
+                            } else {
+                                deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
+                                if (cardTitleElement) {
+                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching deliveries by date:', error);
+                            deliveryDateSearchResultsContainer.innerHTML = `<p class="text-danger text-center">Error: ${error.message}</p>`;
+                        })
+                        .finally(() => {
+                            if (dateIconAddonSpan) {
+                                dateIconAddonSpan.innerHTML = DATE_PICKER_CALENDAR_ICON_SVG;
+                            }
+                        });
+                } // End onChange
+            }); // End flatpickr init
+        } // End if flatpickr undefined
+    } // End if deliveryDateSearchInput
 
     // Function to set today's date if input is empty
     function ensureDateInputIsPopulated() {
@@ -416,222 +603,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const today = new Date().toISOString().slice(0, 10);
             deliveryDateSearchInput.value = today;
             if (deliveryDateFlatpickrInstance) {
-                deliveryDateFlatpickrInstance.setDate(today, false); // false to not trigger onChange
+                deliveryDateFlatpickrInstance.setDate(today, true); // true to trigger onChange and auto-search
             }
         }
     }
-
-    if (deliveryDateSearchButton && deliveryDateSearchInput && deliveryDateSearchResultsContainer) {
-        deliveryDateSearchButton.addEventListener('click', function() {
-            const dateQuery = deliveryDateSearchInput.value.trim();
-            deliveryDateSearchResultsContainer.innerHTML = '<p class="text-center">Loading...</p>'; // Basic loading indicator
-
-            if (!dateQuery) {
-                deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Please select a date.</p>';
-                return;
-            }
-
-            // Validate date format YYYY-MM-DD (basic regex)
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateQuery)) {
-                deliveryDateSearchResultsContainer.innerHTML = '<p class="text-danger text-center">Invalid date format. Please use YYYY-MM-DD.</p>';
-                return;
-            }
-
-            fetch(`/api/orders/search/date?date=${encodeURIComponent(dateQuery)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(errData => {
-                            throw new Error(errData.message || `HTTP error ${response.status}`);
-                        }).catch(() => {
-                            throw new Error(`HTTP error ${response.status} - ${response.statusText || 'Server error'}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.deliveries) {
-                        let html = '<div class="table-responsive"><table class="table table-vcenter card-table table-striped">'; // Removed table-selectable, Added div
-                        html += `
-                            <thead>
-                                <tr>
-                                    <th>Customer</th>
-                                    <th>Order ID</th>
-                                    <th>Items</th>
-                                    <th>Notes (Dapur/Kurir)</th>
-                                    <th>Kurir</th>
-                                    <th>Pembayaran</th>
-                                    <th>Ongkir</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                    <th class="w-1">Aksi</th>
-                                </tr>
-                            </thead>
-                        <tbody>`;
-
-                        if (data.deliveries.length === 0) {
-                            const emptyStateHtml = `
-                            <div class="empty-state-card text-center py-5">
-                <svg width="200px" height="200px" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 1rem;">
-                                    <path d="M484.32 375.24C575.25 255.5 857.87 527.6 788.67 581.07c-94.76 73.21-491.01 39.99-304.35-205.83z" fill="#1C80AA" />
-                                    <path d="M401.03 749.89l-4.85 133.8-77.69 21.37h66.36l19.42 35.27 4.86-35.27 40.46 6.14-38.84-25.89 8.09-114.91-17.81-20.51zM524.36 771.23l10.48 133.48-74.73 30.11 65.92-7.59 23.33 32.82 0.79-35.6 40.89 1.48-41.54-21.28-5.11-115.08-20.03-18.34z" fill="#3B5174" />
-                                    <path d="M224.73 264.77l-24 50.19a21.7 21.7 0 0 1-37.73 2.5l-31.57-48.27a21.7 21.7 0 0 1 17.41-33.57l55.61-1.92a21.7 21.7 0 0 1 20.28 31.07z" fill="#DE7B56" />
-                                    <path d="M900.53 638.76c-18.3 86.91-221.86 208.13-478 171.54C150.46 771.44 26 281.88 315 103.56c161.25-99.49 326.71 5 356.8 130.37C713 405.47 583.15 534.58 749.57 609c86.91 38.91 164.43-34.33 150.96 29.76z" fill="#FDD2BE" />
-                                    <path d="M365.86 264.78m-32.45 0a32.45 32.45 0 1 0 64.9 0 32.45 32.45 0 1 0-64.9 0Z" fill="" />
-                                    <path d="M512.24 366c137.48-60.86 253.34 314 166.92 327.31C560.81 711.56 230 490.92 512.24 366zM223.3 530c-9.34-2.6-17.2-12.8-23.94-31a195 195 0 0 1-7.64-27 7.28 7.28 0 0 1 14.3-2.79c4.79 24.5 15 46.44 21.91 46.93 1.12 0.08 11.43-0.5 27.23-45.51a7.28 7.28 0 1 1 13.74 4.82c-13.61 38.77-27 56.31-42 55.22a18.18 18.18 0 0 1-3.6-0.67zM340.8 590.36c-9.63 1.14-20.77-5.32-33.92-19.63a195 195 0 0 1-17.32-22.11 7.28 7.28 0 0 1 12.17-8c13.73 20.85 31.53 37.27 38.07 35.12 1.07-0.35 10.38-4.8 7.93-52.44a7.28 7.28 0 1 1 14.55-0.75c2.11 41-3.59 62.33-17.95 67a18.18 18.18 0 0 1-3.53 0.81zM261.5 659.71c-9-0.19-18.35-7.55-28.56-22.35a180.41 180.41 0 0 1-13-22.49 6.74 6.74 0 0 1 12.18-5.77c9.9 20.88 24.1 38.21 30.37 37.08 1-0.18 10.13-3.07 14-47a6.74 6.74 0 1 1 13.43 1.18c-3.34 37.87-11.31 56.66-25.07 59.12a16.82 16.82 0 0 1-3.35 0.23zM389.28 722.29c-9.26 2.85-21.38-1.51-36.89-13.22a195 195 0 0 1-21-18.64 7.28 7.28 0 0 1 10.53-10.06c17.25 18.05 37.7 31 43.75 27.71 1-0.54 9.35-6.59-1.61-53a7.28 7.28 0 1 1 14.17-3.35c9.44 40 7.65 62-5.63 69.16a18.18 18.18 0 0 1-3.32 1.4z" fill="#22B0C3" />
-                                </svg>
-                                <p class="mt-3">Tidak ada pengiriman untuk tanggal ini.</p>
-                            </div>`;
-                            deliveryDateSearchResultsContainer.innerHTML = emptyStateHtml;
-                        } else {
-                            data.deliveries.forEach(delivery => {
-                                // New "Items" cell HTML generation logic
-                                let itemsCellHtml = '';
-                                const packageItems = delivery.items && delivery.items.items && Array.isArray(delivery.items.items) ? delivery.items.items : [];
-                                const rawAdditionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
-                                const subtotalHargaNumber = delivery.subtotal_harga !== null && delivery.subtotal_harga !== undefined ? Number(delivery.subtotal_harga) : 0;
-
-                                if (packageItems.length > 0 || rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A').length > 0 || subtotalHargaNumber > 0) {
-                                    itemsCellHtml = '<ul class="list-unstyled mb-0">';
-
-                                    if (packageItems.length > 0) {
-                                        itemsCellHtml += '<li>Paket:</li>';
-                                        itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
-                                        packageItems.forEach(item => {
-                                            const itemName = item.package_name || 'N/A';
-                                            const itemQuantity = item.quantity !== null && item.quantity !== undefined ? item.quantity : 'N/A';
-                                            let priceString = '';
-                                            if (item.price !== null && item.price !== undefined) { // Changed from item.harga_jual to item.price
-                                                priceString = ` <span class="text-muted">@ ${Number(item.price).toLocaleString('id-ID')}</span>`; // Changed from item.harga_jual to item.price
-                                            }
-                                            itemsCellHtml += `<li>${itemQuantity}x ${itemName}${priceString}</li>`;
-                                        });
-                                        itemsCellHtml += '</ul>';
-                                    }
-
-                                    const validAdditionalItems = rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A');
-
-                                    if (validAdditionalItems.length > 0) {
-                                        itemsCellHtml += '<li>Tambahan:</li>';
-                                        itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
-                                        validAdditionalItems.forEach(addItem => {
-                                            const addItemName = addItem.item_name; // Use directly, already validated
-                                            const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 1; // Default quantity to 1 if not present
-                                            let addItemPriceString = '';
-                                            if (addItem.price !== null && addItem.price !== undefined && Number(addItem.price) > 0) {
-                                                addItemPriceString = ` <span class="text-muted">@ ${Number(addItem.price).toLocaleString('id-ID')}</span>`;
-                                            }
-                                            itemsCellHtml += `<li>${addItemQuantity}x ${addItemName}${addItemPriceString}</li>`;
-                                        });
-                                        itemsCellHtml += '</ul>';
-                                    }
-
-                                    itemsCellHtml += `<li class="mt-1 text-muted"><strong>Subtotal Items: ${subtotalHargaNumber.toLocaleString('id-ID')}</strong></li>`;
-                                    itemsCellHtml += '</ul>';
-                                } else {
-                                    itemsCellHtml = '<span class="text-muted">- No items -</span>';
-                                }
-                                // End of new "Items" cell HTML generation logic
-
-                                console.log('JS Total Calc - Incoming data: delivery.subtotal_harga:', delivery.subtotal_harga, 'delivery.ongkir:', delivery.ongkir);
-                                const itemsSubtotal = Number(delivery.subtotal_harga || 0);
-                                const shippingCost = Number(delivery.ongkir || 0);
-                                console.log('JS Total Calc - Numeric values: itemsSubtotal:', itemsSubtotal, 'shippingCost:', shippingCost);
-                                const grandTotal = itemsSubtotal + shippingCost;
-                                const grandTotalDisplay = grandTotal.toLocaleString('id-ID');
-                                console.log('JS Total Calc - Final grandTotalDisplay:', grandTotalDisplay);
-
-                                let customerName = delivery.customer_name || 'N/A';
-                                let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
-
-                                let notesCellHtml = '';
-                                let kitchenNoteDisplay = delivery.kitchen_note && delivery.kitchen_note.trim() !== '' ? `<small class="d-block"><strong>Dapur:</strong> ${delivery.kitchen_note}</small>` : '';
-                                let courierNoteDisplay = delivery.courier_note && delivery.courier_note.trim() !== '' ? `<small class="d-block"><strong>Kurir:</strong> ${delivery.courier_note}</small>` : '';
-                                if (kitchenNoteDisplay || courierNoteDisplay) {
-                                    notesCellHtml = kitchenNoteDisplay + courierNoteDisplay;
-                                } else {
-                                    notesCellHtml = '<span class="text-muted">-</span>';
-                                }
-
-                                let courierName = delivery.courier_name || 'N/A';
-                                let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
-                                let ongkirDisplay = Number(delivery.ongkir || 0).toLocaleString('id-ID'); // Retain for "Ongkir" column
-                                // let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A'; // Replaced by grandTotalDisplay for the "Total" column
-
-                                let badge_class = 'badge ';
-                                const status_lower = delivery.status ? String(delivery.status).toLowerCase().trim() : ''; // Ensure string and trim
-                                if (status_lower === 'selesai' || status_lower === 'completed') {
-                                    badge_class += 'bg-success-lt';
-                                } else if (status_lower === 'pending' || status_lower === 'terjadwal') {
-                                    badge_class += 'bg-warning-lt';
-                                } else if (status_lower === 'dibatalkan' || status_lower === 'cancelled' || status_lower === 'canceled') {
-                                    badge_class += 'bg-danger-lt';
-                                } else { // All other statuses, including 'in-progress', 'sedang dikirim', etc.
-                                    badge_class += 'bg-secondary-lt';
-                                }
-                                let statusDisplay = delivery.status ? delivery.status : 'N/A'; // Use raw status or N/A
-
-                                html += `
-                                    <tr id="delivery-row-${delivery.delivery_id}">
-                                        <td>${customerName}</td>
-                                        <td>${orderIdLink}</td>
-                                        <td>${itemsCellHtml}</td>
-                                        <td>${notesCellHtml}</td>
-                                        <td>${courierName}</td>
-                                        <td>${paymentMethod}</td>
-                                        <td>${ongkirDisplay}</td>
-                                        <td>${grandTotalDisplay}</td>
-                                        <td><span class="${badge_class}">${statusDisplay}</span></td>
-                                        <td>
-                                            <div class="btn-list flex-nowrap">
-                                                <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
-                                                </button>
-                                                <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `;
-                            });
-                            html += '</tbody></table></div>'; // Added closing div
-                            deliveryDateSearchResultsContainer.innerHTML = html;
-                        }
-                         if (cardTitleElement) { // Check if element exists
-                            if (dateQuery && data.success && data.deliveries && data.deliveries.length > 0) {
-                                try {
-                                    const dateObj = new Date(dateQuery + 'T00:00:00'); // Parse date as local
-                                    const formattedDate = dateObj.toLocaleDateString('id-ID', {
-                                        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-                                    });
-                                    cardTitleElement.innerHTML = `${CALENDAR_ICON_SVG} ${formattedDate}`;
-                                    cardTitleElement.classList.add('d-flex', 'align-items-center');
-                                } catch (e) {
-                                    console.error("Error formatting date for card title:", e);
-                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                                }
-                            } else {
-                                // Revert to the default title if no date query, or no success, or empty deliveries
-                                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                            }
-                        }
-                    } else {
-                        deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
-                         if (cardTitleElement) { // Also revert title on error or no deliveries
-                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching deliveries by date:', error);
-                    deliveryDateSearchResultsContainer.innerHTML = `<p class="text-danger text-center">Error: ${error.message}</p>`;
-                });
-        });
-    }
-
+    // The event listener for deliveryDateSearchButton is removed as the button is removed.
 
     // --- Tab Management & Visibility ---
     // ... (existing tab logic - kept for brevity) ...
