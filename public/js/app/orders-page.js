@@ -629,7 +629,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to set today's date if input is empty
     function ensureDateInputIsPopulated(triggerChangeEvent) {
         if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-            const today = new Date().toISOString().slice(0, 10);
+            const now = new Date();
+            // WITA is UTC+8. Add 8 hours in milliseconds.
+            const witaOffsetMilliseconds = 8 * 60 * 60 * 1000;
+            // Create a new Date object representing the current time in WITA
+            const dateInWita = new Date(now.getTime() + witaOffsetMilliseconds);
+            // Get the year, month, and day from this WITA-offset date *using UTC methods*
+            // This correctly gives the calendar date parts for the WITA timezone.
+            const year = dateInWita.getUTCFullYear();
+            const month = (dateInWita.getUTCMonth() + 1).toString().padStart(2, '0'); // getUTCMonth is 0-indexed
+            const day = dateInWita.getUTCDate().toString().padStart(2, '0');
+            const today = `${year}-${month}-${day}`;
             // deliveryDateSearchInput.value = today; // setDate will update the input's value
             if (deliveryDateFlatpickrInstance) {
                 deliveryDateFlatpickrInstance.setDate(today, triggerChangeEvent);
