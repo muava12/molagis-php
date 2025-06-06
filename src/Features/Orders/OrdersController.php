@@ -141,7 +141,8 @@ class OrdersController
         $byDateError = null;
 
         if ($view === 'by_date') {
-            $default_date = date('Y-m-d'); // Today's date
+            $dateTimeWita = new \DateTime('now', new \DateTimeZone('Asia/Makassar'));
+            $default_date = $dateTimeWita->format('Y-m-d');
             $deliveriesResponse = $this->ordersService->getDeliveriesByDate($default_date, $accessToken);
 
             if (isset($deliveriesResponse['error'])) {
