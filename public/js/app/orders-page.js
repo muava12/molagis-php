@@ -450,11 +450,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success && data.deliveries) {
-                        let html = '<table class="table table-vcenter card-table table-striped table-selectable">'; // Added table-striped
+                        let html = '<table class="table table-vcenter card-table table-striped">'; // Removed table-selectable
                         html += `
                             <thead>
                                 <tr>
-                                    <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
                                     <th>Customer</th>
                                     <th>Order ID</th>
                                     <th>Items</th>
@@ -471,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (data.deliveries.length === 0) {
                             const emptyStateHtml = `
                             <div class="empty-state-card text-center py-5">
-                <svg width="250px" height="250px" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 1rem;">
+                <svg width="200px" height="200px" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 1rem;">
                                     <path d="M484.32 375.24C575.25 255.5 857.87 527.6 788.67 581.07c-94.76 73.21-491.01 39.99-304.35-205.83z" fill="#1C80AA" />
                                     <path d="M401.03 749.89l-4.85 133.8-77.69 21.37h66.36l19.42 35.27 4.86-35.27 40.46 6.14-38.84-25.89 8.09-114.91-17.81-20.51zM524.36 771.23l10.48 133.48-74.73 30.11 65.92-7.59 23.33 32.82 0.79-35.6 40.89 1.48-41.54-21.28-5.11-115.08-20.03-18.34z" fill="#3B5174" />
                                     <path d="M224.73 264.77l-24 50.19a21.7 21.7 0 0 1-37.73 2.5l-31.57-48.27a21.7 21.7 0 0 1 17.41-33.57l55.61-1.92a21.7 21.7 0 0 1 20.28 31.07z" fill="#DE7B56" />
@@ -541,17 +540,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                     badge_class += 'bg-warning-lt';
                                 } else if (status_lower === 'dibatalkan' || status_lower === 'cancelled' || status_lower === 'canceled') {
                                     badge_class += 'bg-danger-lt';
-                                } else if (status_lower === 'in-progress' || status_lower === 'in_progress' || status_lower === 'sedang dikirim') { // Added 'sedang dikirim'
-                                    badge_class += 'bg-info-lt';
-                                } else {
+                                } else { // All other statuses, including 'in-progress', 'sedang dikirim', etc.
                                     badge_class += 'bg-secondary-lt';
                                 }
-                                let statusDisplay = delivery.status ? String(delivery.status).replace(/_/g, ' ') : 'N/A';
-                                statusDisplay = statusDisplay.split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ');
+                                let statusDisplay = delivery.status ? delivery.status : 'N/A'; // Use raw status or N/A
 
                                 html += `
                                     <tr id="delivery-row-${delivery.delivery_id}">
-                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.delivery_id}" aria-label="Select delivery ${delivery.delivery_id}"></td>
                                         <td>${customerName}</td>
                                         <td>${orderIdLink}</td>
                                         <td>${finalItemsCellHtml}</td>
@@ -562,10 +557,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <td><span class="${badge_class}">${statusDisplay}</span></td>
                                         <td>
                                             <div class="btn-list flex-nowrap">
-                                                <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
+                                                <button class="btn btn-sm btn-icon btn-outline-primary edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
                                                 </button>
-                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
+                                                <button class="btn btn-sm btn-icon btn-outline-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                                                 </button>
                                             </div>
@@ -626,9 +621,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (form) form.style.display = 'none';
         });
         let formToShow = null;
-        if (activeTabTarget === '#pane-by-name') formToShow = customerSearchForm;
-        else if (activeTabTarget === '#pane-by-order-id') formToShow = formSearchByOrderId;
-        else if (activeTabTarget === '#pane-by-date') formToShow = formSearchByDate;
+        if (activeTabTarget === '#pane-by-name') {
+            formToShow = customerSearchForm;
+            if (groupingSelect) groupingSelect.style.display = ''; // Show for By Name
+        } else if (activeTabTarget === '#pane-by-order-id') {
+            formToShow = formSearchByOrderId;
+            if (groupingSelect) groupingSelect.style.display = 'none'; // Hide for By Order ID
+        } else if (activeTabTarget === '#pane-by-date') {
+            formToShow = formSearchByDate;
+            if (groupingSelect) groupingSelect.style.display = 'none'; // Hide for By Date
+        }
         if (formToShow) formToShow.style.display = 'flex'; // Assuming flex is desired for visible forms
     }
 

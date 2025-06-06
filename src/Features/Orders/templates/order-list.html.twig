@@ -180,7 +180,9 @@
     {% elseif order_id_query_value and (orders_by_id_result is empty or orders_by_id_result is null) and view == 'by_order_id' %}
       {# This is the case where a search was made (order_id_query_value exists) but no results were found #}
       <div class="empty-state-card text-center py-5"> {# Use common class for styling #}
-          {% include 'svg/bird.svg.twig' %}
+          <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+              {% include 'svg/bird.svg.twig' %}
+          </div>
           <p class="mt-3">Pencarian tidak menemukan data.</p>
       </div>
               {% endif %}
@@ -287,7 +289,9 @@
         {% elseif deliveries_for_today is defined and deliveries_for_today is empty %}
             {# Case where controller passed empty array for today's deliveries #}
             <div class="empty-state-card text-center py-5">
-                {% include 'svg/bird.svg.twig' %}
+                <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+                    {% include 'svg/bird.svg.twig' %}
+                </div>
                 <p class="mt-3">Tidak ada pengiriman yang dijadwalkan untuk tanggal <strong id="searched_date_display_ssr">{{ default_date | date("d M Y") }}</strong>.</p>
                 <p class="text-muted">Anda bisa mencoba mencari tanggal lain.</p>
             </div>
@@ -298,7 +302,9 @@
                So this state is more of a fallback or for when JS takes over.
             #}
             <div class="empty-state-card text-center py-5" id="initial-by-date-empty-state">
-                {% include 'svg/bird.svg.twig' %}
+                <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+                    {% include 'svg/bird.svg.twig' %}
+                </div>
                 <p class="mt-3">Pilih tanggal di atas untuk melihat daftar pengiriman.</p>
             </div>
         {% endif %}
