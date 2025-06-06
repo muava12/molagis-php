@@ -212,78 +212,42 @@ class OrdersService
     public function getDeliveriesByDate(string $date, ?string $accessToken = null): array
     {
         try {
+            // Call the user's RPC function
             $rpcParams = ['p_tanggal' => $date];
             $response = $this->supabaseClient->rpc('get_deliveries_by_date', $rpcParams, [], $accessToken);
 
             if (isset($response['error'])) {
                 $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
                 error_log('Supabase RPC get_deliveries_by_date error: ' . $errorMessage);
-                // Consider returning a more specific status code if available from $response
                 return ['data' => [], 'error' => $errorMessage, 'status_code' => $response['status'] ?? 500];
             }
 
             $formattedData = [];
             if (isset($response['data']) && is_array($response['data'])) {
                 foreach ($response['data'] as $item) {
-                    // The 'items' field from RPC is now expected to be an already structured array/object.
-                    // Assign it directly. Ensure it's an array, default to an empty structure if not.
-                    $rawItemsJson = $item['items'] ?? []; // This comes from items_json in RPC
-
-                    $processedPackageItems = [];
-                    if (isset($rawItemsJson['items']) && is_array($rawItemsJson['items'])) {
-                        foreach ($rawItemsJson['items'] as $rpcPackageItem) {
-                            $price = $rpcPackageItem['price'] ?? 0; // Read from 'price', default to 0
-                            $processedPackageItems[] = [
-                                'package_name' => $rpcPackageItem['package_name'] ?? 'N/A',
-                                'quantity' => $rpcPackageItem['quantity'] ?? 0,
-                                'price' => $price,      // Output only 'price'
-                                'paket_id' => $rpcPackageItem['paket_id'] ?? null,
-                                'catatan' => $rpcPackageItem['catatan'] ?? null,
-                                // any other fields like 'catatan_dapur', 'catatan_kurir' if they come from RPC package items
-                            ];
-                        }
-                    }
-
-                    $processedAdditionalItems = [];
-                    if (isset($rawItemsJson['additional_items']) && is_array($rawItemsJson['additional_items'])) {
-                        foreach ($rawItemsJson['additional_items'] as $rpcAdditionalItem) {
-                            $processedAdditionalItems[] = [
-                                'item_name' => $rpcAdditionalItem['item_name'] ?? 'N/A',
-                                'quantity' => $rpcAdditionalItem['quantity'] ?? 1, // Default quantity to 1
-                                'price' => $rpcAdditionalItem['price'] ?? 0,
-                            ];
-                        }
-                    }
-
-                    $itemsArray = [
-                        'items' => $processedPackageItems,
-                        'additional_items' => $processedAdditionalItems,
-                    ];
-
+                    // Directly map fields from the RPC response
+                    // The 'items' field from RPC is assumed to be structured correctly for the frontend.
                     $formattedData[] = [
-                        'delivery_id' => $item['delivery_id_result'], // Changed source
-                        'order_id' => $item['order_id'],
-                        'tanggal' => $item['tanggal'],
-                        'kurir_id' => $item['kurir_id'],
+                        'delivery_id' => $item['delivery_id_result'] ?? null,
+                        'order_id' => $item['order_id'] ?? null,
+                        'tanggal' => $item['tanggal'] ?? null, // RPC provides this, assumed to be correctly formatted/timezoned
+                        'kurir_id' => $item['kurir_id'] ?? null,
                         'ongkir' => (float)($item['ongkir'] ?? 0),
-                        'status' => $item['status'],
-                        'items' => $itemsArray,
-                        'subtotal_harga' => (float)($item['calculated_subtotal_harga'] ?? 0), // Changed source
-                        'courier_name' => $item['courier_name'],
-                        'customer_name' => $item['customer_name'],
-                        'payment_method' => $item['payment_method'],
-                        'courier_note' => $item['courier_note'],
-                        'kitchen_note' => $item['kitchen_note'],
-                        // Ensure all other fields required by the frontend are mapped
-                        // Add any missing fields from $item if they are directly available
-                        // and expected in the output structure.
+                        'status' => $item['status'] ?? null,
+                        'items' => $item['items'] ?? ['items' => [], 'additional_items' => []], // Direct assignment
+                        'subtotal_harga' => (float)($item['calculated_subtotal_harga'] ?? 0),
+                        'courier_name' => $item['courier_name'] ?? null,
+                        'customer_name' => $item['customer_name'] ?? null,
+                        'payment_method' => $item['payment_method'] ?? null,
+                        'courier_note' => $item['courier_note'] ?? null,
+                        'kitchen_note' => $item['kitchen_note'] ?? null,
                     ];
                 }
             }
-            // Even if $response['data'] is empty, return success with empty data array
             return ['data' => $formattedData, 'error' => null, 'status_code' => 200];
 
         } catch (\Exception $e) {
+            // Catching potential exceptions from the rpc call itself or other unforeseen issues
             error_log('Exception in getDeliveriesByDate calling RPC: ' . $e->getMessage());
             return ['data' => [], 'error' => 'Exception occurred: ' . $e->getMessage(), 'status_code' => 500];
         }

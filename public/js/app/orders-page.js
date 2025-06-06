@@ -497,17 +497,46 @@ document.addEventListener('DOMContentLoaded', function () {
                                         const rawAdditionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
                                         const subtotalHargaNumber = delivery.subtotal_harga !== null && delivery.subtotal_harga !== undefined ? Number(delivery.subtotal_harga) : 0;
 
-                                        if (packageItems.length > 0 || rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A').length > 0 || subtotalHargaNumber > 0) {
+                                        // Determine validAdditionalItems first to use in the main if condition
+                                        const validAdditionalItems = rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A');
+
+                                        if (packageItems.length > 0 || validAdditionalItems.length > 0 || subtotalHargaNumber > 0) {
                                             itemsCellHtml = '<ul class="list-unstyled mb-0">';
-                                            if (packageItems.length > 0) { /* ... content as before ... */ }
-                                            const validAdditionalItems = rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A');
-                                            if (validAdditionalItems.length > 0) { /* ... content as before ... */ }
+                                            if (packageItems.length > 0) {
+                                                itemsCellHtml += '<li>Paket:</li>';
+                                                itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
+                                                packageItems.forEach(item => {
+                                                    const itemName = item.package_name || 'N/A';
+                                                    const itemQuantity = item.quantity !== null && item.quantity !== undefined ? item.quantity : 'N/A';
+                                                    let priceString = '';
+                                                    if (item.price !== null && item.price !== undefined) {
+                                                        priceString = ` <span class="text-muted">@ ${Number(item.price).toLocaleString('id-ID')}</span>`;
+                                                    }
+                                                    itemsCellHtml += `<li>${itemQuantity}x ${itemName}${priceString}</li>`;
+                                                });
+                                                itemsCellHtml += '</ul>';
+                                            }
+
+                                            if (validAdditionalItems.length > 0) {
+                                                itemsCellHtml += '<li>Tambahan:</li>';
+                                                itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
+                                                validAdditionalItems.forEach(addItem => {
+                                                    const addItemName = addItem.item_name;
+                                                    const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 1;
+                                                    let addItemPriceString = '';
+                                                    if (addItem.price !== null && addItem.price !== undefined && Number(addItem.price) > 0) {
+                                                        addItemPriceString = ` <span class="text-muted">@ ${Number(addItem.price).toLocaleString('id-ID')}</span>`;
+                                                    }
+                                                    itemsCellHtml += `<li>${addItemQuantity}x ${addItemName}${addItemPriceString}</li>`;
+                                                });
+                                                itemsCellHtml += '</ul>';
+                                            }
                                             itemsCellHtml += `<li class="mt-1 text-muted"><strong>Subtotal Items: ${subtotalHargaNumber.toLocaleString('id-ID')}</strong></li>`;
                                             itemsCellHtml += '</ul>';
                                         } else {
                                             itemsCellHtml = '<span class="text-muted">- No items -</span>';
                                         }
-                                        // ... (rest of the table row generation logic remains the same)
+
                                         const itemsSubtotal = Number(delivery.subtotal_harga || 0);
                                         const shippingCost = Number(delivery.ongkir || 0);
                                         const grandTotal = itemsSubtotal + shippingCost;
