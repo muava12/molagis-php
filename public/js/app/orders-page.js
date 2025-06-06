@@ -532,6 +532,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                 }
                                 // End of new "Items" cell HTML generation logic
 
+                                console.log('JS Total Calc - Incoming data: delivery.subtotal_harga:', delivery.subtotal_harga, 'delivery.ongkir:', delivery.ongkir);
+                                const itemsSubtotal = Number(delivery.subtotal_harga || 0);
+                                const shippingCost = Number(delivery.ongkir || 0);
+                                console.log('JS Total Calc - Numeric values: itemsSubtotal:', itemsSubtotal, 'shippingCost:', shippingCost);
+                                const grandTotal = itemsSubtotal + shippingCost;
+                                const grandTotalDisplay = grandTotal.toLocaleString('id-ID');
+                                console.log('JS Total Calc - Final grandTotalDisplay:', grandTotalDisplay);
+
                                 let customerName = delivery.customer_name || 'N/A';
                                 let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
 
@@ -546,8 +554,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 let courierName = delivery.courier_name || 'N/A';
                                 let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
-                                let ongkirDisplay = Number(delivery.ongkir || 0).toLocaleString('id-ID');
-                                let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A';
+                                let ongkirDisplay = Number(delivery.ongkir || 0).toLocaleString('id-ID'); // Retain for "Ongkir" column
+                                // let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A'; // Replaced by grandTotalDisplay for the "Total" column
 
                                 let badge_class = 'badge ';
                                 const status_lower = delivery.status ? String(delivery.status).toLowerCase().trim() : ''; // Ensure string and trim
@@ -571,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <td>${courierName}</td>
                                         <td>${paymentMethod}</td>
                                         <td>${ongkirDisplay}</td>
-                                        <td>${subtotalHarga}</td>
+                                        <td>${grandTotalDisplay}</td>
                                         <td><span class="${badge_class}">${statusDisplay}</span></td>
                                         <td>
                                             <div class="btn-list flex-nowrap">
