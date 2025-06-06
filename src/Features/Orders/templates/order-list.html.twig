@@ -232,10 +232,9 @@
                                         </ul>
                                     {% endif %}
                                     {% if delivery.items.additional_items is defined and delivery.items.additional_items is not empty %}
-                                        <strong class="d-block mt-1">Tambahan:</strong>
                                         <ul class="list-unstyled mb-0">
                                         {% for add_item in delivery.items.additional_items %}
-                                            <li>{{ add_item.quantity }}x {{ add_item.item_name }} (+{{ add_item.price | number_format(0, ',', '.') }})</li>
+                                            <li>{{ add_item.quantity }}x {{ add_item.item_name }}</li>
                                         {% endfor %}
                                         </ul>
                                     {% endif %}

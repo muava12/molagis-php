@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success && data.deliveries) {
-                        let html = '<table class="table table-vcenter card-table table-striped">'; // Removed table-selectable
+                        let html = '<div class="table-responsive"><table class="table table-vcenter card-table table-striped">'; // Removed table-selectable, Added div
                         html += `
                             <thead>
                                 <tr>
@@ -568,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     </tr>
                                 `;
                             });
-                            html += '</tbody></table>';
+                            html += '</tbody></table></div>'; // Added closing div
                             deliveryDateSearchResultsContainer.innerHTML = html;
                         }
                          if (cardTitleElement) { // Check if element exists
