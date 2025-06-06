@@ -228,7 +228,7 @@
                                             <li>Paket:</li>
                                             <ul class="list-unstyled ps-3 mb-1">
                                                 {% for item in delivery.items.items %}
-                                                    <li>{{ item.quantity }}x {{ item.package_name | default('N/A') }}{% if item.harga_jual is defined and item.harga_jual is not null %} @ {{ item.harga_jual | number_format(0, ',', '.') }}{% else %}{% endif %}</li>
+                                                    <li>{{ item.quantity }}x {{ item.package_name | default('N/A') }}{% if item.price is defined and item.price is not null %} @ {{ item.price | number_format(0, ',', '.') }}{% else %}{% endif %}</li>
                                                 {% endfor %}
                                             </ul>
                                         {% endif %}

@@ -500,8 +500,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                             const itemName = item.package_name || 'N/A';
                                             const itemQuantity = item.quantity !== null && item.quantity !== undefined ? item.quantity : 'N/A';
                                             let priceString = '';
-                                            if (item.harga_jual !== null && item.harga_jual !== undefined) {
-                                                priceString = ` @ ${Number(item.harga_jual).toLocaleString('id-ID')}`;
+                                            if (item.price !== null && item.price !== undefined) { // Changed from item.harga_jual to item.price
+                                                priceString = ` @ ${Number(item.price).toLocaleString('id-ID')}`; // Changed from item.harga_jual to item.price
                                             }
                                             itemsCellHtml += `<li>${itemQuantity}x ${itemName}${priceString}</li>`;
                                         });
