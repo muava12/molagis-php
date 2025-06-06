@@ -450,17 +450,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success && data.deliveries) {
-                        let html = '<table class="table table-vcenter card-table table-striped table-selectable">'; // Added table-striped
+                        let html = '<div class="table-responsive"><table class="table table-vcenter card-table table-striped">'; // Removed table-selectable, Added div
                         html += `
                             <thead>
                                 <tr>
-                                    <th><input class="form-check-input" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries for this date"></th>
                                     <th>Customer</th>
                                     <th>Order ID</th>
                                     <th>Items</th>
                                     <th>Notes (Dapur/Kurir)</th>
                                     <th>Kurir</th>
                                     <th>Pembayaran</th>
+                                    <th>Ongkir</th>
                                     <th>Total</th>
                                     <th>Status</th>
                                     <th class="w-1">Aksi</th>
@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (data.deliveries.length === 0) {
                             const emptyStateHtml = `
                             <div class="empty-state-card text-center py-5">
-                <svg width="250px" height="250px" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 1rem;">
+                <svg width="200px" height="200px" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 1rem;">
                                     <path d="M484.32 375.24C575.25 255.5 857.87 527.6 788.67 581.07c-94.76 73.21-491.01 39.99-304.35-205.83z" fill="#1C80AA" />
                                     <path d="M401.03 749.89l-4.85 133.8-77.69 21.37h66.36l19.42 35.27 4.86-35.27 40.46 6.14-38.84-25.89 8.09-114.91-17.81-20.51zM524.36 771.23l10.48 133.48-74.73 30.11 65.92-7.59 23.33 32.82 0.79-35.6 40.89 1.48-41.54-21.28-5.11-115.08-20.03-18.34z" fill="#3B5174" />
                                     <path d="M224.73 264.77l-24 50.19a21.7 21.7 0 0 1-37.73 2.5l-31.57-48.27a21.7 21.7 0 0 1 17.41-33.57l55.61-1.92a21.7 21.7 0 0 1 20.28 31.07z" fill="#DE7B56" />
@@ -484,38 +484,61 @@ document.addEventListener('DOMContentLoaded', function () {
                             deliveryDateSearchResultsContainer.innerHTML = emptyStateHtml;
                         } else {
                             data.deliveries.forEach(delivery => {
-                                let packageItemsHtml = '';
-                                if (delivery.items && delivery.items.items && Array.isArray(delivery.items.items) && delivery.items.items.length > 0) {
-                                    packageItemsHtml = '<ul class="list-unstyled mb-1">';
-                                    delivery.items.items.forEach(packageItem => {
-                                        const itemName = packageItem.package_name || 'N/A';
-                                        const itemQuantity = packageItem.quantity !== null && packageItem.quantity !== undefined ? packageItem.quantity : 'N/A';
-                                        packageItemsHtml += `<li>${itemQuantity}x ${itemName}</li>`;
-                                    });
-                                    packageItemsHtml += '</ul>';
-                                }
+                                // New "Items" cell HTML generation logic
+                                let itemsCellHtml = '';
+                                const packageItems = delivery.items && delivery.items.items && Array.isArray(delivery.items.items) ? delivery.items.items : [];
+                                const rawAdditionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
+                                const subtotalHargaNumber = delivery.subtotal_harga !== null && delivery.subtotal_harga !== undefined ? Number(delivery.subtotal_harga) : 0;
 
-                                let additionalItemsDisplayHtml = '';
-                                const namedAdditionalItems = (delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items))
-                                    ? delivery.items.additional_items.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '')
-                                    : [];
+                                if (packageItems.length > 0 || rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A').length > 0 || subtotalHargaNumber > 0) {
+                                    itemsCellHtml = '<ul class="list-unstyled mb-0">';
 
-                                if (namedAdditionalItems.length > 0) {
-                                    additionalItemsDisplayHtml = '<strong class="d-block mt-1">Tambahan:</strong>';
-                                    additionalItemsDisplayHtml += '<ul class="list-unstyled mb-0">';
-                                    namedAdditionalItems.forEach(additionalItem => {
-                                        const addQuantity = additionalItem.quantity !== null && additionalItem.quantity !== undefined ? additionalItem.quantity : 'N/A';
-                                        additionalItemsDisplayHtml += `<li>${addQuantity}x ${additionalItem.item_name}</li>`;
-                                    });
-                                    additionalItemsDisplayHtml += '</ul>';
-                                }
+                                    if (packageItems.length > 0) {
+                                        itemsCellHtml += '<li>Paket:</li>';
+                                        itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
+                                        packageItems.forEach(item => {
+                                            const itemName = item.package_name || 'N/A';
+                                            const itemQuantity = item.quantity !== null && item.quantity !== undefined ? item.quantity : 'N/A';
+                                            let priceString = '';
+                                            if (item.price !== null && item.price !== undefined) { // Changed from item.harga_jual to item.price
+                                                priceString = ` <span class="text-muted">@ ${Number(item.price).toLocaleString('id-ID')}</span>`; // Changed from item.harga_jual to item.price
+                                            }
+                                            itemsCellHtml += `<li>${itemQuantity}x ${itemName}${priceString}</li>`;
+                                        });
+                                        itemsCellHtml += '</ul>';
+                                    }
 
-                                let finalItemsCellHtml = '';
-                                if (packageItemsHtml || additionalItemsDisplayHtml) {
-                                    finalItemsCellHtml = packageItemsHtml + additionalItemsDisplayHtml;
+                                    const validAdditionalItems = rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A');
+
+                                    if (validAdditionalItems.length > 0) {
+                                        itemsCellHtml += '<li>Tambahan:</li>';
+                                        itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
+                                        validAdditionalItems.forEach(addItem => {
+                                            const addItemName = addItem.item_name; // Use directly, already validated
+                                            const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 1; // Default quantity to 1 if not present
+                                            let addItemPriceString = '';
+                                            if (addItem.price !== null && addItem.price !== undefined && Number(addItem.price) > 0) {
+                                                addItemPriceString = ` <span class="text-muted">@ ${Number(addItem.price).toLocaleString('id-ID')}</span>`;
+                                            }
+                                            itemsCellHtml += `<li>${addItemQuantity}x ${addItemName}${addItemPriceString}</li>`;
+                                        });
+                                        itemsCellHtml += '</ul>';
+                                    }
+
+                                    itemsCellHtml += `<li class="mt-1 text-muted"><strong>Subtotal Items: ${subtotalHargaNumber.toLocaleString('id-ID')}</strong></li>`;
+                                    itemsCellHtml += '</ul>';
                                 } else {
-                                    finalItemsCellHtml = '<span class="text-muted">- No items -</span>';
+                                    itemsCellHtml = '<span class="text-muted">- No items -</span>';
                                 }
+                                // End of new "Items" cell HTML generation logic
+
+                                console.log('JS Total Calc - Incoming data: delivery.subtotal_harga:', delivery.subtotal_harga, 'delivery.ongkir:', delivery.ongkir);
+                                const itemsSubtotal = Number(delivery.subtotal_harga || 0);
+                                const shippingCost = Number(delivery.ongkir || 0);
+                                console.log('JS Total Calc - Numeric values: itemsSubtotal:', itemsSubtotal, 'shippingCost:', shippingCost);
+                                const grandTotal = itemsSubtotal + shippingCost;
+                                const grandTotalDisplay = grandTotal.toLocaleString('id-ID');
+                                console.log('JS Total Calc - Final grandTotalDisplay:', grandTotalDisplay);
 
                                 let customerName = delivery.customer_name || 'N/A';
                                 let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
@@ -531,7 +554,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 let courierName = delivery.courier_name || 'N/A';
                                 let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
-                                let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A';
+                                let ongkirDisplay = Number(delivery.ongkir || 0).toLocaleString('id-ID'); // Retain for "Ongkir" column
+                                // let subtotalHarga = delivery.subtotal_harga ? Number(delivery.subtotal_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) : 'N/A'; // Replaced by grandTotalDisplay for the "Total" column
 
                                 let badge_class = 'badge ';
                                 const status_lower = delivery.status ? String(delivery.status).toLowerCase().trim() : ''; // Ensure string and trim
@@ -541,31 +565,28 @@ document.addEventListener('DOMContentLoaded', function () {
                                     badge_class += 'bg-warning-lt';
                                 } else if (status_lower === 'dibatalkan' || status_lower === 'cancelled' || status_lower === 'canceled') {
                                     badge_class += 'bg-danger-lt';
-                                } else if (status_lower === 'in-progress' || status_lower === 'in_progress' || status_lower === 'sedang dikirim') { // Added 'sedang dikirim'
-                                    badge_class += 'bg-info-lt';
-                                } else {
+                                } else { // All other statuses, including 'in-progress', 'sedang dikirim', etc.
                                     badge_class += 'bg-secondary-lt';
                                 }
-                                let statusDisplay = delivery.status ? String(delivery.status).replace(/_/g, ' ') : 'N/A';
-                                statusDisplay = statusDisplay.split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ');
+                                let statusDisplay = delivery.status ? delivery.status : 'N/A'; // Use raw status or N/A
 
                                 html += `
                                     <tr id="delivery-row-${delivery.delivery_id}">
-                                        <td><input class="form-check-input select-delivery-item" type="checkbox" value="${delivery.delivery_id}" aria-label="Select delivery ${delivery.delivery_id}"></td>
                                         <td>${customerName}</td>
                                         <td>${orderIdLink}</td>
-                                        <td>${finalItemsCellHtml}</td>
+                                        <td>${itemsCellHtml}</td>
                                         <td>${notesCellHtml}</td>
                                         <td>${courierName}</td>
                                         <td>${paymentMethod}</td>
-                                        <td>${subtotalHarga}</td>
+                                        <td>${ongkirDisplay}</td>
+                                        <td>${grandTotalDisplay}</td>
                                         <td><span class="${badge_class}">${statusDisplay}</span></td>
                                         <td>
                                             <div class="btn-list flex-nowrap">
                                                 <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
                                                 </button>
-                                                <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
+                                                <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                                                 </button>
                                             </div>
@@ -573,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     </tr>
                                 `;
                             });
-                            html += '</tbody></table>';
+                            html += '</tbody></table></div>'; // Added closing div
                             deliveryDateSearchResultsContainer.innerHTML = html;
                         }
                          if (cardTitleElement) { // Check if element exists
@@ -626,9 +647,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (form) form.style.display = 'none';
         });
         let formToShow = null;
-        if (activeTabTarget === '#pane-by-name') formToShow = customerSearchForm;
-        else if (activeTabTarget === '#pane-by-order-id') formToShow = formSearchByOrderId;
-        else if (activeTabTarget === '#pane-by-date') formToShow = formSearchByDate;
+        if (activeTabTarget === '#pane-by-name') {
+            formToShow = customerSearchForm;
+            if (groupingSelect) groupingSelect.style.display = ''; // Show for By Name
+        } else if (activeTabTarget === '#pane-by-order-id') {
+            formToShow = formSearchByOrderId;
+            if (groupingSelect) groupingSelect.style.display = 'none'; // Hide for By Order ID
+        } else if (activeTabTarget === '#pane-by-date') {
+            formToShow = formSearchByDate;
+            if (groupingSelect) groupingSelect.style.display = 'none'; // Hide for By Date
+        }
         if (formToShow) formToShow.style.display = 'flex'; // Assuming flex is desired for visible forms
     }
 

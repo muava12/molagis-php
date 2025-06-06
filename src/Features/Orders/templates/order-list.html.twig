@@ -180,7 +180,9 @@
     {% elseif order_id_query_value and (orders_by_id_result is empty or orders_by_id_result is null) and view == 'by_order_id' %}
       {# This is the case where a search was made (order_id_query_value exists) but no results were found #}
       <div class="empty-state-card text-center py-5"> {# Use common class for styling #}
-          {% include 'svg/bird.svg.twig' %}
+          <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+              {% include 'svg/bird.svg.twig' %}
+          </div>
           <p class="mt-3">Pencarian tidak menemukan data.</p>
       </div>
               {% endif %}
@@ -199,13 +201,13 @@
                 <table class="table table-vcenter card-table table-striped">
                     <thead>
                         <tr>
-                            <th>Tanggal</th>
                             <th>Customer</th>
                             <th>Order ID</th>
                             <th>Items</th>
                             <th>Notes (Dapur/Kurir)</th>
                             <th>Kurir</th>
                             <th>Pembayaran</th>
+                            <th>Ongkir</th>
                             <th>Total</th>
                             <th>Status</th>
                             <th class="w-1">Aksi</th>
@@ -214,7 +216,6 @@
                     <tbody>
                         {% for delivery in deliveries_for_today %}
                             <tr id="delivery-row-{{ delivery.delivery_id }}">
-                                <td>{{ delivery.tanggal | date("d M Y") }}</td>
                                 <td>{{ delivery.customer_name | default('N/A') }}</td>
                                 <td>
                                     <a href="/orders?view=by_order_id&order_id_query={{ delivery.order_id }}">
@@ -222,22 +223,39 @@
                                     </a>
                                 </td>
                                 <td>
-                                    {% if delivery.items.items is defined and delivery.items.items is not empty %}
-                                        <ul class="list-unstyled mb-1">
-                                        {% for item in delivery.items.items %}
-                                            <li>{{ item.quantity }}x {{ item.package_name | default('N/A') }}</li>
-                                        {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                    {% if delivery.items.additional_items is defined and delivery.items.additional_items is not empty %}
-                                        <strong class="d-block mt-1">Tambahan:</strong>
-                                        <ul class="list-unstyled mb-0">
-                                        {% for add_item in delivery.items.additional_items %}
-                                            <li>{{ add_item.quantity }}x {{ add_item.item_name }} (+{{ add_item.price | number_format(0, ',', '.') }})</li>
-                                        {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                    {% if (delivery.items.items is empty or delivery.items.items is not defined) and (delivery.items.additional_items is empty or delivery.items.additional_items is not defined) %}
+                                    <ul class="list-unstyled mb-0">
+                                        {% if delivery.items.items is defined and delivery.items.items is not empty %}
+                                            <li>Paket:</li>
+                                            <ul class="list-unstyled ps-3 mb-1">
+                                                {% for item in delivery.items.items %}
+                                                    <li>{{ item.quantity }}x {{ item.package_name | default('N/A') }}{% if item.price is defined and item.price is not null %} <span class="text-muted">@ {{ item.price | number_format(0, ',', '.') }}</span>{% else %}{% endif %}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+
+                                        {% set valid_additional_items = [] %}
+                                        {% if delivery.items.additional_items is defined and delivery.items.additional_items is not empty %}
+                                            {% for add_item in delivery.items.additional_items %}
+                                                {% if add_item.item_name is defined and add_item.item_name is not null and add_item.item_name != '' and add_item.item_name != 'N/A' %}
+                                                    {% set valid_additional_items = valid_additional_items|merge([add_item]) %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+
+                                        {% if valid_additional_items is not empty %}
+                                            <li>Tambahan:</li>
+                                            <ul class="list-unstyled ps-3 mb-1">
+                                                {% for add_item in valid_additional_items %}
+                                                    <li>{{ add_item.quantity | default(1) }}x {{ add_item.item_name }}{% if add_item.price is defined and add_item.price is not null and add_item.price > 0 %} <span class="text-muted">@ {{ add_item.price | number_format(0, ',', '.') }}</span>{% endif %}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                        <li class="mt-1 text-muted"><strong>Subtotal Items: {{ delivery.subtotal_harga | number_format(0, ',', '.') }}</strong></li>
+                                    </ul>
+                                    {# Fallback for when there are absolutely no items, including no subtotal to display meaningful info from #}
+                                    {% if (delivery.items.items is empty or delivery.items.items is not defined or delivery.items.items | length == 0) and
+                                           (delivery.items.additional_items is empty or delivery.items.additional_items is not defined or delivery.items.additional_items | length == 0) and
+                                           (delivery.subtotal_harga is null or delivery.subtotal_harga == 0) %}
                                         <span class="text-muted">- No items -</span>
                                     {% endif %}
                                 </td>
@@ -254,7 +272,8 @@
                                 </td>
                                 <td>{{ delivery.courier_name | default('N/A') }}</td>
                                 <td>{{ delivery.payment_method | replace({'_': ' '}) | title | default('N/A') }}</td>
-                                <td>{{ delivery.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                <td>{{ delivery.ongkir | number_format(0, ',', '.') }}</td>
+                                <td>{{ (delivery.subtotal_harga + delivery.ongkir) | number_format(0, ',', '.') }}</td>
                                 <td>
                                     {% set status_lower = delivery.status | lower %}
                                     {% set badge_class = 'badge ' %}
@@ -271,10 +290,10 @@
                                 </td>
                                 <td>
                                     <div class="btn-list flex-nowrap">
-                                        <button class="btn btn-sm btn-icon btn-outline-primary edit-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Edit Pengiriman">
+                                        <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Edit Pengiriman">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
                                         </button>
-                                        <button class="btn btn-sm btn-icon btn-outline-danger delete-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Hapus Pengiriman">
+                                        <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Hapus Pengiriman">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                                         </button>
                                     </div>
@@ -287,7 +306,9 @@
         {% elseif deliveries_for_today is defined and deliveries_for_today is empty %}
             {# Case where controller passed empty array for today's deliveries #}
             <div class="empty-state-card text-center py-5">
-                {% include 'svg/bird.svg.twig' %}
+                <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+                    {% include 'svg/bird.svg.twig' %}
+                </div>
                 <p class="mt-3">Tidak ada pengiriman yang dijadwalkan untuk tanggal <strong id="searched_date_display_ssr">{{ default_date | date("d M Y") }}</strong>.</p>
                 <p class="text-muted">Anda bisa mencoba mencari tanggal lain.</p>
             </div>
@@ -298,7 +319,9 @@
                So this state is more of a fallback or for when JS takes over.
             #}
             <div class="empty-state-card text-center py-5" id="initial-by-date-empty-state">
-                {% include 'svg/bird.svg.twig' %}
+                <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+                    {% include 'svg/bird.svg.twig' %}
+                </div>
                 <p class="mt-3">Pilih tanggal di atas untuk melihat daftar pengiriman.</p>
             </div>
         {% endif %}

@@ -12,7 +12,9 @@
 
     {% if not has_data_to_display %}
         <div class="empty-state-card text-center py-5"> {# Ensure this class is defined in CSS later #}
-            {% include 'svg/bird.svg.twig' %}
+            <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+                {% include 'svg/bird.svg.twig' %}
+            </div>
             <p class="mt-3">Tidak ada data untuk ditampilkan.</p>
         </div>
     {% else %}

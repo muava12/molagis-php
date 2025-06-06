@@ -227,33 +227,48 @@ class OrdersService
                 foreach ($response['data'] as $item) {
                     // The 'items' field from RPC is now expected to be an already structured array/object.
                     // Assign it directly. Ensure it's an array, default to an empty structure if not.
-                    $itemsArray = null;
-                    if (isset($item['items']) && is_array($item['items'])) {
-                        $itemsArray = $item['items'];
-                        // Further validation: ensure the expected sub-keys 'items' and 'additional_items' exist.
-                        if (!isset($itemsArray['items']) || !is_array($itemsArray['items'])) {
-                            $itemsArray['items'] = [];
-                            error_log('Warning: `items.items` was missing or not an array in get_deliveries_by_date for delivery_id ' . ($item['delivery_id'] ?? 'unknown'));
+                    $rawItemsJson = $item['items'] ?? []; // This comes from items_json in RPC
+
+                    $processedPackageItems = [];
+                    if (isset($rawItemsJson['items']) && is_array($rawItemsJson['items'])) {
+                        foreach ($rawItemsJson['items'] as $rpcPackageItem) {
+                            $price = $rpcPackageItem['price'] ?? 0; // Read from 'price', default to 0
+                            $processedPackageItems[] = [
+                                'package_name' => $rpcPackageItem['package_name'] ?? 'N/A',
+                                'quantity' => $rpcPackageItem['quantity'] ?? 0,
+                                'price' => $price,      // Output only 'price'
+                                'paket_id' => $rpcPackageItem['paket_id'] ?? null,
+                                'catatan' => $rpcPackageItem['catatan'] ?? null,
+                                // any other fields like 'catatan_dapur', 'catatan_kurir' if they come from RPC package items
+                            ];
                         }
-                        if (!isset($itemsArray['additional_items']) || !is_array($itemsArray['additional_items'])) {
-                            $itemsArray['additional_items'] = [];
-                             error_log('Warning: `items.additional_items` was missing or not an array in get_deliveries_by_date for delivery_id ' . ($item['delivery_id'] ?? 'unknown'));
-                        }
-                    } else {
-                        error_log('Error: `items` field was missing, not an array, or null in get_deliveries_by_date for delivery_id ' . ($item['delivery_id'] ?? 'unknown') . '. Raw item data: ' . json_encode($item));
-                        // Provide a default structure that the frontend expects to prevent further errors
-                        $itemsArray = ['items' => [], 'additional_items' => []];
                     }
 
+                    $processedAdditionalItems = [];
+                    if (isset($rawItemsJson['additional_items']) && is_array($rawItemsJson['additional_items'])) {
+                        foreach ($rawItemsJson['additional_items'] as $rpcAdditionalItem) {
+                            $processedAdditionalItems[] = [
+                                'item_name' => $rpcAdditionalItem['item_name'] ?? 'N/A',
+                                'quantity' => $rpcAdditionalItem['quantity'] ?? 1, // Default quantity to 1
+                                'price' => $rpcAdditionalItem['price'] ?? 0,
+                            ];
+                        }
+                    }
+
+                    $itemsArray = [
+                        'items' => $processedPackageItems,
+                        'additional_items' => $processedAdditionalItems,
+                    ];
+
                     $formattedData[] = [
-                        'delivery_id' => $item['delivery_id'],
+                        'delivery_id' => $item['delivery_id_result'], // Changed source
                         'order_id' => $item['order_id'],
                         'tanggal' => $item['tanggal'],
                         'kurir_id' => $item['kurir_id'],
-                        'ongkir' => $item['ongkir'],
+                        'ongkir' => (float)($item['ongkir'] ?? 0),
                         'status' => $item['status'],
-                        'items' => $itemsArray, // This should now be the decoded array
-                        'subtotal_harga' => $item['subtotal_harga'],
+                        'items' => $itemsArray,
+                        'subtotal_harga' => (float)($item['calculated_subtotal_harga'] ?? 0), // Changed source
                         'courier_name' => $item['courier_name'],
                         'customer_name' => $item['customer_name'],
                         'payment_method' => $item['payment_method'],
