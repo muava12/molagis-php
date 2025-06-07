@@ -133,12 +133,14 @@
                 </div>
             </div>
             <input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
+            {% if show_submit_button %}
             <div class="d-grid mt-3">
                 <button type="submit" class="btn btn-primary">
                     {% include 'svg/check.svg.twig' %}
                     Simpan Pesanan
                 </button>
             </div>
+            {% endif %}
         </form>
     </div>
 </div>
