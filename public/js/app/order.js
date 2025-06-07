@@ -875,7 +875,7 @@ function setupEventListeners() {
     orderForm.addEventListener('submit', submitOrder);
 
     // Handle autosize for textareas within tabs
-    const noteTabs = document.querySelectorAll('#order-form .nav-tabs .nav-link[data-bs-toggle="tab"]');
+    const noteTabs = document.querySelectorAll('#order-form .nav-segmented .nav-link[data-bs-toggle="tab"]');
     noteTabs.forEach(tab => {
         tab.addEventListener('shown.bs.tab', event => {
             const targetPaneId = event.target.getAttribute('data-bs-target');
@@ -888,6 +888,13 @@ function setupEventListeners() {
                     }
                 }
             }
+        });
+    });
+
+    // Prevent default for button-based tabs, Bootstrap still handles switching
+    noteTabs.forEach(tabButton => {
+        tabButton.addEventListener('click', function(event) {
+            event.preventDefault();
         });
     });
 }

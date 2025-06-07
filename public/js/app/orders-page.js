@@ -647,8 +647,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Tab Management & Visibility ---
     // ... (existing tab logic - kept for brevity) ...
-    const tabButtons = document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]');
-    const byDateTabButton = document.querySelector('.nav-link[data-bs-target="#pane-by-date"]');
+    const tabButtons = document.querySelectorAll('#orders-view-tabs button.nav-link[data-bs-toggle="tab"]'); // Ensure buttons are selected
+    const byDateTabButton = document.querySelector('#orders-view-tabs button.nav-link[data-bs-target="#pane-by-date"]'); // Ensure button is selected
     // const formSearchByName = document.getElementById('form_search_by_name'); // Already defined as customerSearchForm
     const formSearchByOrderId = document.getElementById('form_search_by_order_id');
     const formSearchByDate = document.getElementById('form_search_by_date');
@@ -812,36 +812,40 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    // Tab switching logic: click listener for specific override (by_order_id full reload)
-    // General tab switching relies on Bootstrap's default behavior + 'shown.bs.tab' for AJAX and URL updates.
-    document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('click', function(event) {
+    // Tab switching logic for button-based nav-segmented
+    tabButtons.forEach(tabButton => {
+        tabButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent default button action
+
             const viewTarget = this.getAttribute('data-bs-target');
-            let viewName = 'by_name'; // Default, though not strictly needed here if only handling by_order_id
 
             if (viewTarget === '#pane-by-order-id') {
-                viewName = 'by_order_id';
-                event.preventDefault(); // Prevent Bootstrap's default AJAX/tab-showing behavior ONLY for this view
-
+                // Logic for "By Order ID" tab (full page reload)
                 const currentUrl = new URL(window.location.href);
-                currentUrl.searchParams.set('view', viewName);
+                currentUrl.searchParams.set('view', 'by_order_id');
                 currentUrl.searchParams.delete('page');
                 currentUrl.searchParams.delete('grouping');
-                currentUrl.searchParams.delete('customer_id'); // Clear customer_id when switching to by_order_id
-                currentUrl.searchParams.delete('order_id_query'); // Clear previous order_id_query
+                currentUrl.searchParams.delete('customer_id');
+                currentUrl.searchParams.delete('order_id_query');
 
-                // Clear visual inputs from other tabs
                 const customerSearchBox = document.getElementById('customer_search_orders');
                 if(customerSearchBox) customerSearchBox.value = '';
                 const dateInput = document.getElementById('delivery_date_search_input');
                 if(dateInput) dateInput.value = '';
-                // order_id_search_input will be handled by the user or its own logic for this view.
 
-                window.location.href = currentUrl.toString(); // Full page reload
+                window.location.href = currentUrl.toString();
+            } else {
+                // Logic for AJAX tabs ("By Name", "By Date")
+                // Manually trigger Bootstrap tab showing because we prevented default
+                if (bootstrap && bootstrap.Tab) {
+                    const tab = bootstrap.Tab.getOrCreateInstance(this);
+                    tab.show();
+                } else {
+                    console.error("Bootstrap Tab component not found. Cannot switch tabs.");
+                }
+                // The 'shown.bs.tab' event listener (defined elsewhere in the file)
+                // will handle URL updates (history.pushState) and content loading for these tabs.
             }
-            // For 'by_name' and 'by_date', Bootstrap's default tab showing mechanism is allowed.
-            // The 'shown.bs.tab' event listener will handle URL updates (history.pushState) and content loading.
-            // It will also clear other tab's specific URL params like 'customer_id' or 'order_id_query' as needed.
         });
     });
 
@@ -1138,12 +1142,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Activate the determined tab using Bootstrap's API
     // This will also trigger the 'shown.bs.tab' event for the initial load if the tab changes from a default (or no) active state
-    const activeTabButtonSelector = `.nav-link[data-bs-target="${activeTabTargetOnLoad}"]`;
+    const activeTabButtonSelector = `#orders-view-tabs button.nav-link[data-bs-target="${activeTabTargetOnLoad}"]`; // Ensure button is selected
     const activeTabButtonElement = document.querySelector(activeTabButtonSelector);
 
     if (activeTabButtonElement) {
         // Before showing, ensure no other tab has 'active' class from server rendering if it mismatches.
-        document.querySelectorAll('#orders-view-tabs .nav-link.active').forEach(activeLink => {
+        document.querySelectorAll('#orders-view-tabs button.nav-link.active').forEach(activeLink => { // Ensure button is selected
             if (activeLink !== activeTabButtonElement) {
                 activeLink.classList.remove('active');
                 const paneId = activeLink.getAttribute('data-bs-target');
