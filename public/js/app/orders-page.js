@@ -1128,7 +1128,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Determine initial active tab based on URL or localStorage
     const currentUrlOnLoad = new URL(window.location.href);
     const urlViewOnLoad = currentUrlOnLoad.searchParams.get('view');
-    let activeTabTargetOnLoad = localStorage.getItem('activeOrdersTab') || '#pane-by-name';
+    // NOTE: activeTabTargetOnLoad is already declared much earlier (around line 727)
+    // let activeTabTSRgetOnLoad = localStorage.getItem('activeOrdersTab') || '#pane-by-name'; // This was a duplicate declaration
 
     if (urlViewOnLoad) {
         if (urlViewOnLoad === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
