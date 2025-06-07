@@ -37,8 +37,9 @@
     {% endif %}
   </h3>
         <div class="ms-auto">
-          <nav class="nav nav-segmented" role="tablist" id="orders-view-tabs">
-              <button class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" type="button" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">
+          <ul class="nav nav-tabs" role="tablist" id="orders-view-tabs">
+            <li class="nav-item" role="presentation">
+              <a href="#pane-by-name" class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">
                   <!-- SVG for List icon -->
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
                     <path d="M9 6l11 0"></path>
@@ -49,8 +50,10 @@
                     <path d="M5 18l0 .01"></path>
                   </svg>
                   By Name
-              </button>
-              <button class="nav-link {{ view == 'by_date' ? 'active' : '' }}" id="tab-by-date-button" data-bs-toggle="tab" data-bs-target="#pane-by-date" type="button" role="tab" aria-controls="pane-by-date" aria-selected="{{ view == 'by_date' ? 'true' : 'false' }}">
+              </a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a href="#pane-by-date" class="nav-link {{ view == 'by_date' ? 'active' : '' }}" id="tab-by-date-button" data-bs-toggle="tab" data-bs-target="#pane-by-date" role="tab" aria-controls="pane-by-date" aria-selected="{{ view == 'by_date' ? 'true' : 'false' }}">
                   <!-- SVG for Calendar icon -->
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
                     <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path>
@@ -61,14 +64,17 @@
                     <path d="M12 15v3"></path>
                   </svg>
                   By Date
-              </button>
+              </a>
+            </li>
               {# Example of a disabled tab as in user's reference - adapt if needed, or remove if not applicable #}
-              {# <button class="nav-link disabled" role="tab" data-bs-toggle="tab" aria-selected="false" aria-disabled="true" tabindex="-1">
+              {# <li class="nav-item" role="presentation">
+                <a href="#" class="nav-link disabled" role="tab" data-bs-toggle="tab" aria-selected="false" aria-disabled="true" tabindex="-1">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
                   </svg>
                   Other (Disabled)
-              </button> #}
-          </nav>
+                </a>
+              </li> #}
+          </ul>
         </div>
       </div>
       {# New Control Bar - Below the card-header with tabs, but before the card-body with tab-content #}

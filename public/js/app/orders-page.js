@@ -648,7 +648,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Tab Management & Visibility ---
     // ... (existing tab logic - kept for brevity) ...
     const tabButtons = document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]');
-    const byDateTabButton = document.querySelector('button[data-bs-target="#pane-by-date"]');
+    const byDateTabButton = document.querySelector('.nav-link[data-bs-target="#pane-by-date"]');
     // const formSearchByName = document.getElementById('form_search_by_name'); // Already defined as customerSearchForm
     const formSearchByOrderId = document.getElementById('form_search_by_order_id');
     const formSearchByDate = document.getElementById('form_search_by_date');
@@ -674,35 +674,64 @@ document.addEventListener('DOMContentLoaded', function () {
 
     tabButtons.forEach(tabButton => {
         tabButton.addEventListener('shown.bs.tab', function (event) {
-            const activeTabTarget = event.target.getAttribute('data-bs-target');
+            const activeTabTarget = event.target.getAttribute('data-bs-target'); // e.g. #pane-by-name
+            let viewName = 'by_name';
+            if (activeTabTarget === '#pane-by-order-id') viewName = 'by_order_id';
+            else if (activeTabTarget === '#pane-by-date') viewName = 'by_date';
 
-            // These should be called first, updateSearchFormVisibility is from outer scope
-            updateSearchFormVisibility(activeTabTarget);
+            // Update URL and localStorage
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('view', viewName);
+            currentUrl.searchParams.delete('page'); // Reset page on tab switch
+
+            if (viewName === 'by_name') {
+                const groupingValue = groupingSelect ? groupingSelect.value : currentUrl.searchParams.get('grouping') || 'none';
+                currentUrl.searchParams.set('grouping', groupingValue);
+                // customer_id is preserved if already in URL
+            } else {
+                currentUrl.searchParams.delete('grouping');
+                // Clear customer_id if not switching to by_name,
+                // but preserve if switching from by_order_id back to by_name with a customer_id in URL
+                if (viewName !== 'by_name' && currentUrl.searchParams.get('customer_id')) {
+                    // currentUrl.searchParams.delete('customer_id'); // Keep customer_id if present for by_name
+                }
+            }
+
+            // Clear specific search query parameters from URL when switching tabs
+            if (viewName !== 'by_order_id') currentUrl.searchParams.delete('order_id_query');
+            // Date is not a URL search param for tab load, so no need to clear here.
+
+            // Only use pushState for non-by_order_id views as by_order_id uses full reload handled by its click listener
+            if (viewName !== 'by_order_id') {
+                if (history.pushState) {
+                    history.pushState({path: currentUrl.toString()}, '', currentUrl.toString());
+                } else {
+                    // Fallback if pushState is not supported means the URL won't update for AJAX tabs without reload.
+                    // Consider if a reload is acceptable here: window.location.href = currentUrl.toString();
+                }
+            }
+
             localStorage.setItem('activeOrdersTab', activeTabTarget);
+            updateSearchFormVisibility(activeTabTarget); // Update visible search forms
 
+            // Content loading / state adjustment logic based on the activated tab
             if (activeTabTarget === '#pane-by-name') {
-                const currentUrlParams = new URLSearchParams(window.location.search);
-                const customerId = currentUrlParams.get('customer_id');
-
-                // Using variables from the outer DOMContentLoaded scope:
-                // customerSearchForm, itemsPerPageSelect, groupingSelect,
-                // cardTitleElement, DEFAULT_CARD_TITLE, contentWrapper.
+                const customerId = currentUrl.searchParams.get('customer_id'); // Use updated currentUrl
 
                 if (customerId) {
-                    const baseUrl = customerSearchForm?.action || (window.location.origin + '/orders');
-                    const params = new URLSearchParams();
-                    params.set('view', 'by_name');
-                    params.set('customer_id', customerId);
+                    // Construct the URL for fetching view with all necessary parameters from the *current* URL object
+                    const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
+                    fetchUrl.searchParams.set('view', 'by_name');
+                    fetchUrl.searchParams.set('customer_id', customerId);
+                    fetchUrl.searchParams.set('page', currentUrl.searchParams.get('page') || '1');
+                    fetchUrl.searchParams.set('limit', currentUrl.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    fetchUrl.searchParams.set('grouping', currentUrl.searchParams.get('grouping') || groupingSelect?.value || 'none');
 
-                    params.set('page', currentUrlParams.get('page') || '1');
-                    params.set('limit', currentUrlParams.get('limit') || itemsPerPageSelect?.value || '100');
-                    params.set('grouping', currentUrlParams.get('grouping') || groupingSelect?.value || 'none');
-
-                    if (typeof fetchAndUpdateOrdersView === 'function') { // fetchAndUpdateOrdersView from outer scope
-                        fetchAndUpdateOrdersView(baseUrl + '?' + params.toString());
+                    if (typeof fetchAndUpdateOrdersView === 'function') {
+                        fetchAndUpdateOrdersView(fetchUrl.toString());
                     } else {
                         console.error('fetchAndUpdateOrdersView function is not defined. Reloading as fallback.');
-                        window.location.reload();
+                        // window.location.href = fetchUrl.toString(); // Avoid reload if pushState worked
                     }
                 } else {
                     // No customer_id. Reset title and clear previous customer's order list.
@@ -710,8 +739,8 @@ document.addEventListener('DOMContentLoaded', function () {
                          cardTitleElement.classList.remove('d-flex', 'align-items-center');
                          cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
                     }
-                    if (contentWrapper) {
-                        contentWrapper.innerHTML = ''; // Clear previous results area
+                    if (contentWrapper) { // contentWrapper is byNameContainer
+                        contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
                     }
                 }
             } else if (activeTabTarget === '#pane-by-date') {
@@ -783,65 +812,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    // Tab switching logic (full page reload)
-    document.querySelectorAll('#orders-view-tabs .nav-link').forEach(tab => {
+    // Tab switching logic: click listener for specific override (by_order_id full reload)
+    // General tab switching relies on Bootstrap's default behavior + 'shown.bs.tab' for AJAX and URL updates.
+    document.querySelectorAll('#orders-view-tabs .nav-link[data-bs-toggle="tab"]').forEach(tab => {
         tab.addEventListener('click', function(event) {
-            event.preventDefault();
-            const viewTarget = this.getAttribute('data-bs-target'); // e.g., #pane-by-name
-            let viewName = 'by_name'; // Default
+            const viewTarget = this.getAttribute('data-bs-target');
+            let viewName = 'by_name'; // Default, though not strictly needed here if only handling by_order_id
+
             if (viewTarget === '#pane-by-order-id') {
                 viewName = 'by_order_id';
-            } else if (viewTarget === '#pane-by-date') {
-                viewName = 'by_date';
-            }
+                event.preventDefault(); // Prevent Bootstrap's default AJAX/tab-showing behavior ONLY for this view
 
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('view', viewName);
-            currentUrl.searchParams.delete('page'); // Reset page
-
-            if (viewName === 'by_name') {
-                const groupingValue = groupingSelect ? groupingSelect.value : currentUrl.searchParams.get('grouping') || 'none';
-                currentUrl.searchParams.set('grouping', groupingValue);
-                // customer_id is preserved if already in URL (e.g. from a previous selection)
-            } else {
-                // For other views, grouping is not applicable, so remove it.
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('view', viewName);
+                currentUrl.searchParams.delete('page');
                 currentUrl.searchParams.delete('grouping');
-                // Also clear customer_id as it's specific to by_name view when switching away
-                currentUrl.searchParams.delete('customer_id');
-            }
+                currentUrl.searchParams.delete('customer_id'); // Clear customer_id when switching to by_order_id
+                currentUrl.searchParams.delete('order_id_query'); // Clear previous order_id_query
 
-            // Clear specific search inputs of other views to avoid confusion
-            if (viewName !== 'by_order_id') {
-                const orderIdInput = document.getElementById('order_id_search_input');
-                if (orderIdInput) orderIdInput.value = '';
-                 currentUrl.searchParams.delete('order_id_query'); // Also remove from URL if it was there
-            }
-            if (viewName !== 'by_name') {
-                 const customerSearchBox = document.getElementById('customer_search_orders');
-                 if(customerSearchBox) customerSearchBox.value = '';
-                 // selected_customer_id_hidden is tied to form_search_by_name, not directly to URL by this tab switch
-                 // customer_id is cleared from URL above if switching away from by_name
-            }
-            if (viewName !== 'by_date') {
+                // Clear visual inputs from other tabs
+                const customerSearchBox = document.getElementById('customer_search_orders');
+                if(customerSearchBox) customerSearchBox.value = '';
                 const dateInput = document.getElementById('delivery_date_search_input');
                 if(dateInput) dateInput.value = '';
-                // No specific URL param for date search shown in controller for page load, it's API driven
-            }
+                // order_id_search_input will be handled by the user or its own logic for this view.
 
-            if (viewName === 'by_date' || viewName === 'by_name') { // Apply to 'by_date' AND 'by_name'
-                if (history.pushState) {
-                    history.pushState({ path: currentUrl.toString() }, '', currentUrl.toString());
-                    // Bootstrap's default behavior for tabs with data-bs-toggle="tab"
-                    // when event.preventDefault() is called, should handle showing the correct tab pane.
-                    // The 'shown.bs.tab' event listener will then take care of content loading.
-                } else {
-                    // Fallback for older browsers that don't support history.pushState
-                    window.location.href = currentUrl.toString();
-                }
-            } else {
-                // For any other tabs (e.g., 'by_order_id'), maintain the full page reload behavior
-                window.location.href = currentUrl.toString();
+                window.location.href = currentUrl.toString(); // Full page reload
             }
+            // For 'by_name' and 'by_date', Bootstrap's default tab showing mechanism is allowed.
+            // The 'shown.bs.tab' event listener will handle URL updates (history.pushState) and content loading.
+            // It will also clear other tab's specific URL params like 'customer_id' or 'order_id_query' as needed.
         });
     });
 
@@ -1118,40 +1118,100 @@ document.addEventListener('DOMContentLoaded', function () {
         console.warn("Main tab content area ('orders-tab-content') not found. Checkbox functionality might be affected.");
     }
 
-    // Ensure toast is updated when tabs change
-    tabButtons.forEach(tabButton => {
-        tabButton.addEventListener('shown.bs.tab', function (event) {
-            // event.target // newly activated tab
-            // event.relatedTarget // previous active tab
-            updateSearchFormVisibility(event.target.getAttribute('data-bs-target'));
+    // Initial toast update on page load logic (from end of file) is moved up to be part of initial setup block
+    // ... (The initialActiveTab logic and updateBatchDeleteToast call will be covered by the existing block below)
 
-            // Reset "Select All" for the tab that is becoming inactive (event.relatedTarget)
-            const previousActivePaneTarget = event.relatedTarget ? event.relatedTarget.getAttribute('data-bs-target') : null;
-            if (previousActivePaneTarget) {
-                const previousPane = document.querySelector(previousActivePaneTarget);
-                if (previousPane) {
-                    const selectAllInPrevious = previousPane.querySelector('#select-all-deliveries, #select-all-deliveries-by-date');
-                    if (selectAllInPrevious && selectAllInPrevious.checked) {
-                        // selectAllInPrevious.checked = false; // Optionally uncheck all when tab becomes inactive
-                        // selectAllInPrevious.indeterminate = false;
-                        // const itemsInPrevious = previousPane.querySelectorAll('.select-delivery-item');
-                        // itemsInPrevious.forEach(item => item.checked = false);
+    // Determine initial active tab based on URL or localStorage
+    const currentUrlOnLoad = new URL(window.location.href);
+    const urlViewOnLoad = currentUrlOnLoad.searchParams.get('view');
+    let activeTabTargetOnLoad = localStorage.getItem('activeOrdersTab') || '#pane-by-name';
+
+    if (urlViewOnLoad) {
+        if (urlViewOnLoad === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
+        else if (urlViewOnLoad === 'by_order_id') activeTabTargetOnLoad = '#pane-by-order-id';
+        else if (urlViewOnLoad === 'by_date') activeTabTargetOnLoad = '#pane-by-date';
+        // If view in URL doesn't match localStorage, URL takes precedence
+        if (localStorage.getItem('activeOrdersTab') !== activeTabTargetOnLoad) {
+             localStorage.setItem('activeOrdersTab', activeTabTargetOnLoad);
+        }
+    }
+
+    // Activate the determined tab using Bootstrap's API
+    // This will also trigger the 'shown.bs.tab' event for the initial load if the tab changes from a default (or no) active state
+    const activeTabButtonSelector = `.nav-link[data-bs-target="${activeTabTargetOnLoad}"]`;
+    const activeTabButtonElement = document.querySelector(activeTabButtonSelector);
+
+    if (activeTabButtonElement) {
+        // Before showing, ensure no other tab has 'active' class from server rendering if it mismatches.
+        document.querySelectorAll('#orders-view-tabs .nav-link.active').forEach(activeLink => {
+            if (activeLink !== activeTabButtonElement) {
+                activeLink.classList.remove('active');
+                const paneId = activeLink.getAttribute('data-bs-target');
+                if(paneId) {
+                    const paneEl = document.querySelector(paneId);
+                    if(paneEl) paneEl.classList.remove('show', 'active');
+                }
+            }
+        });
+
+        const tabPane = document.querySelector(activeTabTargetOnLoad);
+        // Check if the target tab OR its pane is not active.
+        if (!activeTabButtonElement.classList.contains('active') || (tabPane && !tabPane.classList.contains('active'))) {
+            if (bootstrap && typeof bootstrap.Tab === 'function') {
+                const tabInstance = bootstrap.Tab.getInstance(activeTabButtonElement) || new bootstrap.Tab(activeTabButtonElement);
+                tabInstance.show(); // This will trigger 'shown.bs.tab'
+            } else {
+                 console.warn("Bootstrap Tab instance couldn't be created for initial tab. Manual activation attempt.");
+                 activeTabButtonElement.classList.add('active');
+                 if(tabPane) tabPane.classList.add('show', 'active');
+                 // Manually call visibility update if Bootstrap event won't fire from .show()
+                 updateSearchFormVisibility(activeTabTargetOnLoad);
+                 // Manually trigger content loading logic if needed (e.g. for by_date if it's the target and needs initial load)
+                 if (activeTabTargetOnLoad === '#pane-by-date' && deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
+                    ensureDateInputIsPopulated(true);
+                 } else if (activeTabTargetOnLoad === '#pane-by-name' && !currentUrlOnLoad.searchParams.get('customer_id')) {
+                    if (contentWrapper) contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
+                 }
+                 updateBatchDeleteToast(); // Also update toast manually
+            }
+        } else {
+            // If the target tab and pane are already active (e.g. from SSR correctly matching URL view)
+            // 'shown.bs.tab' might not have fired if no change in tab. So, manually call necessary setup functions.
+            updateSearchFormVisibility(activeTabTargetOnLoad);
+            if (activeTabTargetOnLoad === '#pane-by-date') {
+                if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
+                    const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer ||
+                                                     deliveryDateSearchResultsContainer.innerHTML.trim() === '' ||
+                                                     deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state') !== null;
+                    if (containerIsEmptyOrInitial) ensureDateInputIsPopulated(true);
+                }
+            } else if (activeTabTargetOnLoad === '#pane-by-name') {
+                if (!currentUrlOnLoad.searchParams.get('customer_id') && contentWrapper) {
+                     contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
+                } else if (currentUrlOnLoad.searchParams.get('customer_id') && contentWrapper && contentWrapper.innerHTML.trim() === ''){
+                    // If customer_id is present but content is empty (e.g. user navigated back to this state)
+                    // We might need to re-trigger the view update from 'shown.bs.tab' logic
+                    const customerId = currentUrlOnLoad.searchParams.get('customer_id');
+                    const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
+                    fetchUrl.searchParams.set('view', 'by_name');
+                    fetchUrl.searchParams.set('customer_id', customerId);
+                    fetchUrl.searchParams.set('page', currentUrlOnLoad.searchParams.get('page') || '1');
+                    fetchUrl.searchParams.set('limit', currentUrlOnLoad.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    fetchUrl.searchParams.set('grouping', currentUrlOnLoad.searchParams.get('grouping') || groupingSelect?.value || 'none');
+                    if (typeof fetchAndUpdateOrdersView === 'function') {
+                        fetchAndUpdateOrdersView(fetchUrl.toString());
                     }
                 }
             }
-            updateBatchDeleteToast(); // Update toast based on the new active tab's selection state
-        });
-    });
-
-    // Initial toast update on page load, considering the initially active tab
-    // This ensures the toast is correctly shown/hidden if the page loads with an active tab that might have selections
-    // (though currently selections are client-side only).
-    const initialActiveTab = document.querySelector('#orders-view-tabs .nav-link.active');
-    if (initialActiveTab) {
-        updateSearchFormVisibility(initialActiveTab.getAttribute('data-bs-target')); // Ensure correct form visibility
+            updateBatchDeleteToast();
+        }
+    } else {
+         // Fallback if target tab button doesn't exist for some reason
+         updateSearchFormVisibility('#pane-by-name'); // Default to showing by_name form
+         if (contentWrapper) contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
+         updateBatchDeleteToast();
     }
-    updateBatchDeleteToast(); // Update toast for the initially active tab
-
+    // The 'shown.bs.tab' listener on tabButtons (defined much earlier) handles updating toast for subsequent tab changes.
 
     // --- Edit Order Modal Logic ---
 

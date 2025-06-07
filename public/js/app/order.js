@@ -875,7 +875,7 @@ function setupEventListeners() {
     orderForm.addEventListener('submit', submitOrder);
 
     // Handle autosize for textareas within tabs
-    const noteTabs = document.querySelectorAll('.nav-segmented .nav-link[data-bs-toggle="tab"]');
+    const noteTabs = document.querySelectorAll('#order-form .nav-tabs .nav-link[data-bs-toggle="tab"]');
     noteTabs.forEach(tab => {
         tab.addEventListener('shown.bs.tab', event => {
             const targetPaneId = event.target.getAttribute('data-bs-target');
