@@ -156,7 +156,14 @@ class OrdersController
 
         $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
 
-        $finalError = $deliveriesError ?? $orderByIdError ?? $byDateError ?? $couriersResult['error'] ?? null;
+        // Fetch default_courier and default_shipping_cost settings
+        $defaultCourierResponse = $this->settingsService->getSettingByKey('default_courier', $accessToken);
+        $defaultCourierSetting = $defaultCourierResponse['data'] ?? null;
+
+        $defaultShippingCostResponse = $this->settingsService->getSettingByKey('default_shipping_cost', $accessToken);
+        $defaultShippingCostSetting = $defaultShippingCostResponse['data'] ?? '5000'; // Fallback
+
+        $finalError = $deliveriesError ?? $orderByIdError ?? $byDateError ?? $couriersResult['error'] ?? $defaultCourierResponse['error'] ?? $defaultShippingCostResponse['error'] ?? null;
 
         $twigData = [
             'title' => 'Manajemen Pesanan',
@@ -171,7 +178,9 @@ class OrdersController
             'orders_by_id_result' => $orderByIdResult,
             'order_id_query_value' => $orderIdQueryValue,
             'business_name' => $businessName,
-            'couriers' => $couriersResult['data'] ?? [],
+            'active_couriers' => $couriersResult['data'] ?? [], // Renamed from 'couriers'
+            'default_courier' => $defaultCourierSetting,
+            'default_shipping_cost' => $defaultShippingCostSetting,
             'user_id' => $userId,
             'view' => $view,
             'error' => $finalError,
