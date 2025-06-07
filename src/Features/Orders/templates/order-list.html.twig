@@ -6,6 +6,7 @@
   {{ parent() }}
   <link rel="stylesheet" href="/css/flatpickr.min.css">
   <link rel="stylesheet" href="/css/app/awesomplete.css" />
+  <link rel="stylesheet" href="/css/app/input-order-page.css?v={{ 'now'|date('U') }}">
 {% endblock %}
 
 {% block content %}
@@ -16,6 +17,33 @@
         <h2 class="page-title">
           {{ title | default("Riwayat Pengiriman Pelanggan") }}
         </h2>
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <!-- Tombol Create new order - Desktop -->
+          <a href="#" class="btn btn-primary btn-5 d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-add-order">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-shopping-cart-plus">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M4 19a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
+                  <path d="M12.5 17h-6.5v-14h-2"/>
+                  <path d="M6 5l14 1l-.86 6.017m-2.64 .983h-10.5"/>
+                  <path d="M16 19h6"/>
+                  <path d="M19 16v6"/>
+              </svg>
+              Input Pesanan
+          </a>
+          <!-- Tombol Create new order - Mobile -->
+          <a href="#" class="btn btn-primary btn-6 d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-add-order" aria-label="Create new report">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-shopping-cart-plus">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M4 19a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
+                  <path d="M12.5 17h-6.5v-14h-2"/>
+                  <path d="M6 5l14 1l-.86 6.017m-2.64 .983h-10.5"/>
+                  <path d="M16 19h6"/>
+                  <path d="M19 16v6"/>
+              </svg>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -426,6 +454,33 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Create New Order -->
+<div class="modal modal-blur fade" id="modal-add-order" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-fullscreen-md-down" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Input Pesanan Baru</h5>
+                <button type="button" class="btn-close modal-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                {% include 'partials/_order_form_partial.html.twig' with { show_submit_button: false } %}
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
+                <button type="submit" class="btn btn-primary ms-auto" form="order-form">
+                    {% include 'svg/check.svg.twig' %}
+                    Simpan Pesanan
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% include 'order-confirmation.html.twig' %}
+
 {% endblock %}
 
 {% block javascripts %}
@@ -434,4 +489,23 @@
   <script src="/js/flatpickr-l10n/id.js"></script>
   <script src="/js/awesomplete.min.js"></script>
   <script type="module" src="/js/app/orders-page.js?v={{ 'now'|date('U') }}"></script>
+  <script type="module" src="/js/app/order.js?v={{ 'now'|date('U') }}"></script>
+  <script type="module">
+    import { initialize as initOrder, fetchCustomers, resetForm } from '/js/app/order.js';
+    document.addEventListener('DOMContentLoaded', () => {
+      initOrder(); // Initialize the order form logic
+
+      const orderModal = document.getElementById('modal-add-order');
+      if (orderModal) {
+        orderModal.addEventListener('shown.bs.modal', () => {
+          console.log('Order modal shown on orders-page, fetching customers.');
+          fetchCustomers();
+        });
+        orderModal.addEventListener('hidden.bs.modal', () => {
+          console.log('Order modal hidden on orders-page, resetting form.');
+          resetForm();
+        });
+      }
+    });
+  </script>
 {% endblock %}
