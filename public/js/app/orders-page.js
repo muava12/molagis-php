@@ -478,164 +478,30 @@ document.addEventListener('DOMContentLoaded', function () {
                         })
                         .then(data => {
                             if (data.success && data.deliveries) {
-                                let html = '<div class="table-responsive"><table class="table table-vcenter card-table table-striped">';
-                                html += `
-                                    <thead>
-                                        <tr>
-                                            <th>Customer</th>
-                                            <th>Order ID</th>
-                                            <th>Items</th>
-                                            <th>Notes (Dapur/Kurir)</th>
-                                            <th>Kurir</th>
-                                            <th>Pembayaran</th>
-                                            <th>Ongkir</th>
-                                            <th>Total</th>
-                                            <th>Status</th>
-                                            <th class="w-1">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                <tbody>`;
+                                // Use the same rendering logic as navigation buttons
+                                renderDeliveriesTable(data.deliveries, dateQuery);
 
-                                if (data.deliveries.length === 0) {
-                                    const emptyStateHtml = `
-                                    <div class="empty-state-card text-center py-5">
-                                        <div style="width: 200px; height: 200px; margin: 0 auto 1rem;">
-                                            <svg viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M484.32 375.24C575.25 255.5 857.87 527.6 788.67 581.07c-94.76 73.21-491.01 39.99-304.35-205.83z" fill="#1C80AA" />
-                                                <path d="M401.03 749.89l-4.85 133.8-77.69 21.37h66.36l19.42 35.27 4.86-35.27 40.46 6.14-38.84-25.89 8.09-114.91-17.81-20.51zM524.36 771.23l10.48 133.48-74.73 30.11 65.92-7.59 23.33 32.82 0.79-35.6 40.89 1.48-41.54-21.28-5.11-115.08-20.03-18.34z" fill="#3B5174" />
-                                                <path d="M224.73 264.77l-24 50.19a21.7 21.7 0 0 1-37.73 2.5l-31.57-48.27a21.7 21.7 0 0 1 17.41-33.57l55.61-1.92a21.7 21.7 0 0 1 20.28 31.07z" fill="#DE7B56" />
-                                                <path d="M900.53 638.76c-18.3 86.91-221.86 208.13-478 171.54C150.46 771.44 26 281.88 315 103.56c161.25-99.49 326.71 5 356.8 130.37C713 405.47 583.15 534.58 749.57 609c86.91 38.91 164.43-34.33 150.96 29.76z" fill="#FDD2BE" />
-                                                <path d="M365.86 264.78m-32.45 0a32.45 32.45 0 1 0 64.9 0 32.45 32.45 0 1 0-64.9 0Z" fill="" />
-                                                <path d="M512.24 366c137.48-60.86 253.34 314 166.92 327.31C560.81 711.56 230 490.92 512.24 366zM223.3 530c-9.34-2.6-17.2-12.8-23.94-31a195 195 0 0 1-7.64-27 7.28 7.28 0 0 1 14.3-2.79c4.79 24.5 15 46.44 21.91 46.93 1.12 0.08 11.43-0.5 27.23-45.51a7.28 7.28 0 1 1 13.74 4.82c-13.61 38.77-27 56.31-42 55.22a18.18 18.18 0 0 1-3.6-0.67zM340.8 590.36c-9.63 1.14-20.77-5.32-33.92-19.63a195 195 0 0 1-17.32-22.11 7.28 7.28 0 0 1 12.17-8c13.73 20.85 31.53 37.27 38.07 35.12 1.07-0.35 10.38-4.8 7.93-52.44a7.28 7.28 0 1 1 14.55-0.75c2.11 41-3.59 62.33-17.95 67a18.18 18.18 0 0 1-3.53 0.81zM261.5 659.71c-9-0.19-18.35-7.55-28.56-22.35a180.41 180.41 0 0 1-13-22.49 6.74 6.74 0 0 1 12.18-5.77c9.9 20.88 24.1 38.21 30.37 37.08 1-0.18 10.13-3.07 14-47a6.74 6.74 0 1 1 13.43 1.18c-3.34 37.87-11.31 56.66-25.07 59.12a16.82 16.82 0 0 1-3.35 0.23zM389.28 722.29c-9.26 2.85-21.38-1.51-36.89-13.22a195 195 0 0 1-21-18.64 7.28 7.28 0 0 1 10.53-10.06c17.25 18.05 37.7 31 43.75 27.71 1-0.54 9.35-6.59-1.61-53a7.28 7.28 0 1 1 14.17-3.35c9.44 40 7.65 62-5.63 69.16a18.18 18.18 0 0 1-3.32 1.4z" fill="#22B0C3" />
-                                            </svg>
-                                        </div>
-                                        <p class="mt-3">Tidak ada pengiriman untuk tanggal ini.</p>
-                                    </div>`;
-                                    deliveryDateSearchResultsContainer.innerHTML = emptyStateHtml;
-                                } else {
-                                    data.deliveries.forEach(delivery => {
-                                        let itemsCellHtml = '';
-                                        const packageItems = delivery.items && delivery.items.items && Array.isArray(delivery.items.items) ? delivery.items.items : [];
-                                        const rawAdditionalItems = delivery.items && delivery.items.additional_items && Array.isArray(delivery.items.additional_items) ? delivery.items.additional_items : [];
-                                        const subtotalHargaNumber = delivery.subtotal_harga !== null && delivery.subtotal_harga !== undefined ? Number(delivery.subtotal_harga) : 0;
-
-                                        // Determine validAdditionalItems first to use in the main if condition
-                                        const validAdditionalItems = rawAdditionalItems.filter(addItem => addItem.item_name && addItem.item_name.trim() !== '' && addItem.item_name.trim().toUpperCase() !== 'N/A');
-
-                                        if (packageItems.length > 0 || validAdditionalItems.length > 0 || subtotalHargaNumber > 0) {
-                                            itemsCellHtml = '<ul class="list-unstyled mb-0">';
-                                            if (packageItems.length > 0) {
-                                                itemsCellHtml += '<li>Paket:</li>';
-                                                itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
-                                                packageItems.forEach(item => {
-                                                    const itemName = item.package_name || 'N/A';
-                                                    const itemQuantity = item.quantity !== null && item.quantity !== undefined ? item.quantity : 'N/A';
-                                                    let priceString = '';
-                                                    if (item.price !== null && item.price !== undefined) {
-                                                        priceString = ` <span class="text-muted">@ ${Number(item.price).toLocaleString('id-ID')}</span>`;
-                                                    }
-                                                    itemsCellHtml += `<li>${itemQuantity}x ${itemName}${priceString}</li>`;
-                                                });
-                                                itemsCellHtml += '</ul>';
-                                            }
-
-                                            if (validAdditionalItems.length > 0) {
-                                                itemsCellHtml += '<li>Tambahan:</li>';
-                                                itemsCellHtml += '<ul class="list-unstyled ps-3 mb-1">';
-                                                validAdditionalItems.forEach(addItem => {
-                                                    const addItemName = addItem.item_name;
-                                                    const addItemQuantity = addItem.quantity !== null && addItem.quantity !== undefined ? addItem.quantity : 1;
-                                                    let addItemPriceString = '';
-                                                    if (addItem.price !== null && addItem.price !== undefined && Number(addItem.price) > 0) {
-                                                        addItemPriceString = ` <span class="text-muted">@ ${Number(addItem.price).toLocaleString('id-ID')}</span>`;
-                                                    }
-                                                    itemsCellHtml += `<li>${addItemQuantity}x ${addItemName}${addItemPriceString}</li>`;
-                                                });
-                                                itemsCellHtml += '</ul>';
-                                            }
-                                            itemsCellHtml += `<li class="mt-1 text-muted"><strong>Subtotal Items: ${subtotalHargaNumber.toLocaleString('id-ID')}</strong></li>`;
-                                            itemsCellHtml += '</ul>';
-                                        } else {
-                                            itemsCellHtml = '<span class="text-muted">- No items -</span>';
-                                        }
-
-                                        const itemsSubtotal = Number(delivery.subtotal_harga || 0);
-                                        const shippingCost = Number(delivery.ongkir || 0);
-                                        const grandTotal = itemsSubtotal + shippingCost;
-                                        const grandTotalDisplay = grandTotal.toLocaleString('id-ID');
-                                        let customerName = delivery.customer_name || 'N/A';
-                                        let orderIdLink = delivery.order_id ? `<a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>` : 'N/A';
-                                        let notesCellHtml = '';
-                                        let kitchenNoteDisplay = delivery.kitchen_note && delivery.kitchen_note.trim() !== '' ? `<small class="d-block"><strong>Dapur:</strong> ${delivery.kitchen_note}</small>` : '';
-                                        let courierNoteDisplay = delivery.courier_note && delivery.courier_note.trim() !== '' ? `<small class="d-block"><strong>Kurir:</strong> ${delivery.courier_note}</small>` : '';
-                                        if (kitchenNoteDisplay || courierNoteDisplay) { notesCellHtml = kitchenNoteDisplay + courierNoteDisplay; } else { notesCellHtml = '<span class="text-muted">-</span>'; }
-                                        let courierName = delivery.courier_name || 'N/A';
-                                        let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
-                                        let ongkirDisplay = Number(delivery.ongkir || 0).toLocaleString('id-ID');
-                                        
-                                        let statusText = delivery.status ? delivery.status : 'N/A';
-                                        let statusLowerForClass = statusText.toLowerCase().trim();
-                                        let dotBadgeColorClass = 'bg-secondary'; // Default color
-
-                                        if (statusLowerForClass === 'selesai' || statusLowerForClass === 'completed') {
-                                            dotBadgeColorClass = 'bg-success';
-                                        } else if (statusLowerForClass === 'pending' || statusLowerForClass === 'terjadwal') {
-                                            dotBadgeColorClass = 'bg-warning';
-                                        } else if (statusLowerForClass === 'dibatalkan' || statusLowerForClass === 'cancelled' || statusLowerForClass === 'canceled') {
-                                            dotBadgeColorClass = 'bg-danger';
-                                        } else if (statusLowerForClass === 'dalam perjalanan' || statusLowerForClass === 'in progress' || statusLowerForClass === 'otw') {
-                                            dotBadgeColorClass = 'bg-info';
-                                        }
-                                        let formattedStatusText = statusText.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-                                        html += `
-                                            <tr id="delivery-row-${delivery.delivery_id}">
-                                                <td>${customerName}</td>
-                                                <td>${orderIdLink}</td>
-                                                <td>${itemsCellHtml}</td>
-                                                <td>${notesCellHtml}</td>
-                                                <td>${courierName}</td>
-                                                <td>${paymentMethod}</td>
-                                                <td>${ongkirDisplay}</td>
-                                                <td>${grandTotalDisplay}</td>
-                                                <td><span class="badge ${dotBadgeColorClass} me-1"></span>${formattedStatusText}</td>
-                                                <td>
-                                                    <div class="btn-list flex-nowrap">
-                                                        <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        `;
-                                    }); // End forEach delivery
-                                    html += '</tbody></table></div>';
-                                    deliveryDateSearchResultsContainer.innerHTML = html;
-                                } // End if data.deliveries.length > 0
-
-                                if (cardTitleElement) {
-                                    if (dateQuery && data.success && data.deliveries && data.deliveries.length > 0) {
-                                        try {
-                                            const dateObj = new Date(dateQuery + 'T00:00:00');
-                                            const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                                            // Use DATE_PICKER_CALENDAR_ICON_SVG for the card title icon as well for consistency
-                                            cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
-                                            cardTitleElement.classList.add('d-flex', 'align-items-center');
-                                        } catch (e) {
-                                            console.error("Error formatting date for card title:", e);
-                                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                                        }
-                                    } else {
+                                // Update card title if there are deliveries
+                                if (cardTitleElement && data.deliveries.length > 0) {
+                                    try {
+                                        const dateObj = new Date(dateQuery + 'T00:00:00');
+                                        const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                        // Use DATE_PICKER_CALENDAR_ICON_SVG for the card title icon as well for consistency
+                                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
+                                        cardTitleElement.classList.add('d-flex', 'align-items-center');
+                                    } catch (e) {
+                                        console.error("Error formatting date for card title:", e);
                                         cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
                                         cardTitleElement.classList.remove('d-flex', 'align-items-center');
                                     }
+                                } else if (cardTitleElement) {
+                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
                                 }
                             } else {
-                                deliveryDateSearchResultsContainer.innerHTML = `<p class="text-warning text-center">${data.message || 'No deliveries found or error fetching data.'}</p>`;
+                                // Show empty state with appropriate SVG based on day of week
+                                renderEmptyState(dateQuery);
+
                                 if (cardTitleElement) {
                                     cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
                                     cardTitleElement.classList.remove('d-flex', 'align-items-center');
@@ -675,8 +541,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     // The event listener for deliveryDateSearchButton is removed as the button is removed.
 
-    // Date navigation functionality
-    function navigateDate(direction) {
+    // Debounce function for date navigation
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Date navigation functionality with debounce
+    const debouncedDateSearch = debounce(({ date, clickedButton }) => {
+        console.log('Debounced date search triggered for:', date);
+        performDateSearch(date, clickedButton);
+    }, 200);
+
+    function navigateDate(direction, clickedButton) {
         if (!deliveryDateSearchInput || !deliveryDateFlatpickrInstance) return;
 
         let currentDate;
@@ -708,21 +592,339 @@ document.addEventListener('DOMContentLoaded', function () {
             String(newDate.getMonth() + 1).padStart(2, '0') + '-' +
             String(newDate.getDate()).padStart(2, '0');
 
-        // Set the date in flatpickr (this will trigger onChange)
-        deliveryDateFlatpickrInstance.setDate(formattedDate);
+        // Update input value and flatpickr
+        deliveryDateSearchInput.value = formattedDate;
+        deliveryDateFlatpickrInstance.setDate(formattedDate, false); // false = don't trigger onChange
+
+        // Add loading state to clicked button
+        if (clickedButton) {
+            clickedButton.classList.add('disabled', 'btn-loading');
+        }
+
+        // Disable all navigation buttons during search
+        if (dateNavPrev) dateNavPrev.classList.add('disabled');
+        if (dateNavToday) dateNavToday.classList.add('disabled');
+        if (dateNavNext) dateNavNext.classList.add('disabled');
+
+        // Trigger debounced search
+        debouncedDateSearch({ date: formattedDate, clickedButton });
+    }
+
+    function performDateSearch(date, clickedButton) {
+        console.log('Performing date search for:', date);
+
+        // Show loading state in results container
+        if (deliveryDateSearchResultsContainer) {
+            deliveryDateSearchResultsContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Memuat data...</span>
+                </div>
+            `;
+        }
+
+        // Use the correct API endpoint for date search
+        const apiUrl = `/api/orders/search/date?date=${encodeURIComponent(date)}`;
+
+        fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || `HTTP error ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Date search API response:', data);
+
+            if (data.success && data.deliveries) {
+                // Render the deliveries data into HTML table
+                renderDeliveriesTable(data.deliveries, date);
+            } else {
+                // Show empty state with appropriate SVG based on day of week
+                renderEmptyState(date);
+            }
+        })
+        .catch(error => {
+            console.error('Error performing date search:', error);
+            if (deliveryDateSearchResultsContainer) {
+                deliveryDateSearchResultsContainer.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <strong>Gagal memuat data:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        })
+        .finally(() => {
+            // Remove loading states
+            if (clickedButton) {
+                clickedButton.classList.remove('disabled', 'btn-loading');
+            }
+
+            // Re-enable all navigation buttons
+            if (dateNavPrev) dateNavPrev.classList.remove('disabled');
+            if (dateNavToday) dateNavToday.classList.remove('disabled');
+            if (dateNavNext) dateNavNext.classList.remove('disabled');
+        });
+    }
+
+    // Helper function to render empty state based on day of week
+    function renderEmptyState(date) {
+        if (!deliveryDateSearchResultsContainer) return;
+
+        // Check if the date is Sunday
+        const dateObj = new Date(date + 'T00:00:00');
+        const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const isSunday = dayOfWeek === 0;
+
+        let svgContent, title, subtitle;
+
+        if (isSunday) {
+            // Beach SVG for Sunday (holiday)
+            svgContent = `
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 439.48 439.48" xml:space="preserve" width="200" height="200" style="margin: auto; display: block; margin-bottom: 1rem;">
+                    <g>
+                        <path style="fill:#FFD039;" d="M112.14,148.92C65.39,133.73,15.18,159.32,0,206.06l47.45,15.42l47.29,4.53l27.1,19.63v0.01   l47.45,15.41C184.47,214.31,158.89,164.11,112.14,148.92z"/>
+                        <path style="fill:#3B9DFF;" d="M125.1,126.84l-11.67,35.9c-0.63,1.96-2.28,3.31-4.17,3.69l2.65,0.85l-1.26,3.9l-25.67,79.38   l-43.3,133.88l-10.47-3.39l43.3-133.89l26.93-83.26l2.73,0.88c-0.35-0.38-0.65-0.81-0.88-1.28c-0.63-1.24-0.79-2.73-0.32-4.16   l11.66-35.9c0.94-2.89,4.05-4.47,6.93-3.53C124.45,120.85,126.03,123.95,125.1,126.84z"/>
+                        <path style="fill:#CCCCCC;" d="M218.4,347.9h-26.77l-6.2-16.77c-1.09-2.94-3.89-4.9-7.03-4.9h-45c-3.14,0-5.95,1.96-7.04,4.9   l-6.2,16.77h-10.92l-22.76-31.56c-2.42-3.35-7.11-4.11-10.47-1.69c-3.36,2.42-4.12,7.11-1.7,10.47l25,34.67   c1.41,1.95,3.68,3.11,6.09,3.11h9.22l-1.7,4.61l-3.56,9.62c-1.43,3.89,0.55,8.2,4.44,9.64c3.89,1.43,8.2-0.55,9.63-4.44l5.48-14.82   l1.7-4.61h50.57l1.7,4.61l5.48,14.82c1.12,3.03,3.99,4.9,7.04,4.9c0.86,0,1.74-0.15,2.6-0.46c3.88-1.44,5.87-5.75,4.43-9.64   l-3.56-9.62l-1.7-4.61h21.23c4.14,0,7.5-3.36,7.5-7.5C225.9,351.26,222.54,347.9,218.4,347.9z M136.16,347.9l2.46-6.67h34.55   l2.47,6.67H136.16z"/>
+                        <polygon style="fill:#B3B3B3;" points="112.92,367.51 128.91,367.51 130.61,362.9 114.62,362.9  "/>
+                        <polygon style="fill:#B3B3B3;" points="198.87,367.51 182.88,367.51 181.18,362.9 197.17,362.9  "/>
+                        <path style="fill:#FFD039;" d="M268.74,396.51l-12.32,10.39H0c0-4.06,0.85-7.91,2.38-11.4c1.43-3.29,3.47-6.25,5.97-8.75   c5.15-5.16,12.28-8.35,20.15-8.35h227.92l11.63,17.1L268.74,396.51z"/>
+                        <path style="fill:#EAB932;" d="M268.74,396.51l-12.32,10.39H0c0-4.06,0.85-7.91,2.38-11.4h265.67L268.74,396.51z"/>
+                        <path style="fill:#EAB932;" d="M352.79,32.58c-27.75,0-50.24,22.5-50.24,50.25s22.49,50.25,50.24,50.25s50.25-22.5,50.25-50.25   S380.54,32.58,352.79,32.58z"/>
+                        <path style="fill:#1E79C4;" d="M110.65,171.18l-25.67,79.38l-10.47-3.4l26.93-83.26l2.73,0.88c-0.35-0.38-0.65-0.81-0.88-1.28   C106.15,165.26,108.6,167.87,110.65,171.18z"/>
+                        <path style="fill:#ED2E2E;" d="M112.14,148.92c20.54,6.67,24.88,49.97,9.7,96.72l-74.39-24.16   C62.64,174.73,91.6,142.25,112.14,148.92z"/>
+                        <path style="fill:#3B9DFF;" d="M439.48,406.684v0.216H256.42v-28.5c5.08,2.5,10.17,5,20.34,5c20.34,0,20.34-10,40.68-10   c20.33,0,20.33,10,40.67,10c20.34,0,20.34-10,40.69-10c12.077,0,16.983,3.525,23.234,6.39   C432.599,384.631,439.48,395.063,439.48,406.684z"/>
+                        <rect x="256.42" y="395.5" style="fill:#1E79C4;" width="183.06" height="11.4"/>
+                        <path style="fill:#666666;" d="M386.318,181.904c-0.537,0.636-1.039,1.296-1.508,1.977c-1.005-1.486-2.146-2.875-3.443-4.094   c-6.334-5.954-14.966-9.021-23.547-6.685c2.593,0.995,5.167,1.807,7.585,3.208c3.423,1.984,6.505,4.539,8.906,7.699   c1.694,2.229,3.109,4.744,4.02,7.398c0.739,2.153,1.261,4.43,1.415,6.706c0.028,0.408-0.148,1.465,0.067,1.809   c0.012,0.019,0.01,0.02,0.018,0.034c-0.002,0.098-0.014,0.195-0.015,0.292c-0.045,3.215,2.923,5.751,6.107,5.034   c2.622-0.59,3.835-2.854,3.853-5.316c0.234-0.58,0.229-2.82,0.315-3.476c0.811-6.127,3.895-11.518,8.24-15.799   c1.906-1.878,4.199-3.512,6.57-4.733c2.251-1.16,4.553-1.959,6.916-2.857C402.327,170.454,392.506,174.569,386.318,181.904z"/>
+                        <path style="fill:#FFD039;" d="M302.55,82.83c0,27.75,22.49,50.25,50.24,50.25c6.12,0,11.98-1.09,17.4-3.1   c2.01-5.42,3.1-11.28,3.1-17.4c0-27.75-22.49-50.25-50.25-50.25c-6.11,0-11.97,1.09-17.39,3.09   C303.64,70.85,302.55,76.71,302.55,82.83z"/>
+                    </g>
+                </svg>
+            `;
+            title = 'Minggu Ceria!';
+            subtitle = 'Tidak ada jadwal pengiriman pada hari Minggu.';
+        } else {
+            // Bird SVG for other days
+            svgContent = `
+                <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200" style="margin: auto; display: block; margin-bottom: 1rem;">
+                    <path d="M484.32 375.24C575.25 255.5 857.87 527.6 788.67 581.07c-94.76 73.21-491.01 39.99-304.35-205.83z" fill="#1C80AA" />
+                    <path d="M401.03 749.89l-4.85 133.8-77.69 21.37h66.36l19.42 35.27 4.86-35.27 40.46 6.14-38.84-25.89 8.09-114.91-17.81-20.51zM524.36 771.23l10.48 133.48-74.73 30.11 65.92-7.59 23.33 32.82 0.79-35.6 40.89 1.48-41.54-21.28-5.11-115.08-20.03-18.34z" fill="#3B5174" />
+                    <path d="M224.73 264.77l-24 50.19a21.7 21.7 0 0 1-37.73 2.5l-31.57-48.27a21.7 21.7 0 0 1 17.41-33.57l55.61-1.92a21.7 21.7 0 0 1 20.28 31.07z" fill="#DE7B56" />
+                    <path d="M900.53 638.76c-18.3 86.91-221.86 208.13-478 171.54C150.46 771.44 26 281.88 315 103.56c161.25-99.49 326.71 5 356.8 130.37C713 405.47 583.15 534.58 749.57 609c86.91 38.91 164.43-34.33 150.96 29.76z" fill="#FDD2BE" />
+                    <path d="M365.86 264.78m-32.45 0a32.45 32.45 0 1 0 64.9 0 32.45 32.45 0 1 0-64.9 0Z" fill="" />
+                    <path d="M512.24 366c137.48-60.86 253.34 314 166.92 327.31C560.81 711.56 230 490.92 512.24 366zM223.3 530c-9.34-2.6-17.2-12.8-23.94-31a195 195 0 0 1-7.64-27 7.28 7.28 0 0 1 14.3-2.79c4.79 24.5 15 46.44 21.91 46.93 1.12 0.08 11.43-0.5 27.23-45.51a7.28 7.28 0 1 1 13.74 4.82c-13.61 38.77-27 56.31-42 55.22a18.18 18.18 0 0 1-3.6-0.67zM340.8 590.36c-9.63 1.14-20.77-5.32-33.92-19.63a195 195 0 0 1-17.32-22.11 7.28 7.28 0 0 1 12.17-8c13.73 20.85 31.53 37.27 38.07 35.12 1.07-0.35 10.38-4.8 7.93-52.44a7.28 7.28 0 1 1 14.55-0.75c2.11 41-3.59 62.33-17.95 67a18.18 18.18 0 0 1-3.53 0.81zM261.5 659.71c-9-0.19-18.35-7.55-28.56-22.35a180.41 180.41 0 0 1-13-22.49 6.74 6.74 0 0 1 12.18-5.77c9.9 20.88 24.1 38.21 30.37 37.08 1-0.18 10.13-3.07 14-47a6.74 6.74 0 1 1 13.43 1.18c-3.34 37.87-11.31 56.66-25.07 59.12a16.82 16.82 0 0 1-3.35 0.23zM389.28 722.29c-9.26 2.85-21.38-1.51-36.89-13.22a195 195 0 0 1-21-18.64 7.28 7.28 0 0 1 10.53-10.06c17.25 18.05 37.7 31 43.75 27.71 1-0.54 9.35-6.59-1.61-53a7.28 7.28 0 1 1 14.17-3.35c9.44 40 7.65 62-5.63 69.16a18.18 18.18 0 0 1-3.32 1.4z" fill="#22B0C3" />
+                </svg>
+            `;
+            title = `Tidak ada pengiriman yang dijadwalkan untuk tanggal <strong>${formatDateDisplay(date)}</strong>.`;
+            subtitle = 'Anda bisa mencoba mencari tanggal lain.';
+        }
+
+        deliveryDateSearchResultsContainer.innerHTML = `
+            <div class="empty-state-card text-center py-5">
+                <div style="width: 200px; height: 200px; margin: 0 auto 1rem auto;">
+                    ${svgContent}
+                </div>
+                <p class="mt-3">${title}</p>
+                <p class="text-muted">${subtitle}</p>
+            </div>
+        `;
+    }
+
+    // Helper function to render deliveries table
+    function renderDeliveriesTable(deliveries, date) {
+        if (!deliveryDateSearchResultsContainer) return;
+
+        if (deliveries.length === 0) {
+            renderEmptyState(date);
+            return;
+        }
+
+        // Build the table HTML
+        let tableHTML = `
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Order ID</th>
+                            <th>Items</th>
+                            <th>Notes (Dapur/Kurir)</th>
+                            <th>Kurir</th>
+                            <th>Pembayaran</th>
+                            <th>Ongkir</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th class="w-1">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        deliveries.forEach(delivery => {
+            const statusClass = getStatusBadgeClass(delivery.status);
+            const items = delivery.items || {};
+
+            tableHTML += `
+                <tr id="delivery-row-${delivery.delivery_id}">
+                    <td>${delivery.customer_name || 'N/A'}</td>
+                    <td>
+                        <a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">
+                            #${delivery.order_id}
+                        </a>
+                    </td>
+                    <td>${renderItemsColumn(items, delivery.subtotal_harga)}</td>
+                    <td>${renderNotesColumn(delivery.kitchen_note, delivery.courier_note)}</td>
+                    <td>${delivery.courier_name || 'N/A'}</td>
+                    <td>${formatPaymentMethod(delivery.payment_method)}</td>
+                    <td>${formatCurrency(delivery.ongkir)}</td>
+                    <td>${formatCurrency((delivery.subtotal_harga || 0) + (delivery.ongkir || 0))}</td>
+                    <td>
+                        <span class="badge ${statusClass} me-1"></span>${formatStatus(delivery.status)}
+                    </td>
+                    <td>
+                        <div class="btn-list flex-nowrap">
+                            <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+                                    <path d="M13.5 6.5l4 4" />
+                                </svg>
+                            </button>
+                            <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M4 7l16 0" />
+                                    <path d="M10 11l0 6" />
+                                    <path d="M14 11l0 6" />
+                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        deliveryDateSearchResultsContainer.innerHTML = tableHTML;
+    }
+
+    // Helper functions for rendering table content
+    function formatDateDisplay(dateStr) {
+        try {
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+
+    function getStatusBadgeClass(status) {
+        const statusLower = (status || '').toLowerCase().trim();
+        if (statusLower === 'selesai' || statusLower === 'completed') return 'bg-success';
+        if (statusLower === 'pending' || statusLower === 'terjadwal') return 'bg-warning';
+        if (statusLower === 'dibatalkan' || statusLower === 'cancelled' || statusLower === 'canceled') return 'bg-danger';
+        if (statusLower === 'dalam perjalanan' || statusLower === 'in progress' || statusLower === 'otw') return 'bg-info';
+        return 'bg-secondary';
+    }
+
+    function formatStatus(status) {
+        return (status || 'N/A').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function formatPaymentMethod(method) {
+        return (method || 'N/A').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('id-ID').format(amount || 0);
+    }
+
+    function renderItemsColumn(items, subtotalHarga) {
+        let html = '<ul class="list-unstyled mb-0">';
+
+        // Render package items
+        if (items.items && items.items.length > 0) {
+            html += '<li>Paket:</li><ul class="list-unstyled ps-3 mb-1">';
+            items.items.forEach(item => {
+                const price = item.price ? ` <span class="text-muted">@ ${formatCurrency(item.price)}</span>` : '';
+                html += `<li>${item.quantity}x ${item.package_name || 'N/A'}${price}</li>`;
+            });
+            html += '</ul>';
+        }
+
+        // Render additional items
+        if (items.additional_items && items.additional_items.length > 0) {
+            const validItems = items.additional_items.filter(item =>
+                item.item_name && item.item_name !== '' && item.item_name !== 'N/A'
+            );
+            if (validItems.length > 0) {
+                html += '<li>Tambahan:</li><ul class="list-unstyled ps-3 mb-1">';
+                validItems.forEach(item => {
+                    const price = item.price && item.price > 0 ? ` <span class="text-muted">@ ${formatCurrency(item.price)}</span>` : '';
+                    html += `<li>${item.quantity || 1}x ${item.item_name}${price}</li>`;
+                });
+                html += '</ul>';
+            }
+        }
+
+        html += `<li class="mt-1 text-muted"><strong>Subtotal Items: ${formatCurrency(subtotalHarga)}</strong></li>`;
+        html += '</ul>';
+
+        return html;
+    }
+
+    function renderNotesColumn(kitchenNote, courierNote) {
+        let html = '';
+        if (kitchenNote && kitchenNote.trim()) {
+            html += `<small class="d-block"><strong>Dapur:</strong> ${kitchenNote}</small>`;
+        }
+        if (courierNote && courierNote.trim()) {
+            html += `<small class="d-block"><strong>Kurir:</strong> ${courierNote}</small>`;
+        }
+        return html || '<span class="text-muted">-</span>';
     }
 
     // Add event listeners for date navigation buttons
     if (dateNavPrev) {
-        dateNavPrev.addEventListener('click', () => navigateDate('prev'));
+        dateNavPrev.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateDate('prev', dateNavPrev);
+        });
     }
 
     if (dateNavToday) {
-        dateNavToday.addEventListener('click', () => navigateDate('today'));
+        dateNavToday.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateDate('today', dateNavToday);
+        });
     }
 
     if (dateNavNext) {
-        dateNavNext.addEventListener('click', () => navigateDate('next'));
+        dateNavNext.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateDate('next', dateNavNext);
+        });
     }
 
     // --- Tab Management & Visibility ---
