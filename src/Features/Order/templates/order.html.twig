@@ -4,6 +4,7 @@
 {% block twitter_title %}{{ business_name ? business_name ~ ' - Input Pesanan' : 'Input Pesanan Catering Harian' }}{% endblock %}
 {% block stylesheets %}
     {{ parent() }}
+    <link rel="stylesheet" href="/css/awesomplete.min.css">
     <link rel="stylesheet" href="/css/app/awesomplete.css?v={{ 'now'|date('U') }}">
     <link rel="stylesheet" href="/css/app/input-order.css?v={{ 'now'|date('U') }}">
     <link rel="stylesheet" href="/css/app/order.modal-summary.css?v={{ 'now'|date('U') }}">
