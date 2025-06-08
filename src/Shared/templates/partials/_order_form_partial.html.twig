@@ -6,6 +6,10 @@
                 <button class="btn" id="next-month-btn">Bulan Depan</button>
                 <button class="btn" id="clear-btn">Clear</button>
             </div>
+            <div class="date-picker-quick-actions">
+                <button class="btn btn-sm" id="next-7-days-btn">7 Hari</button>
+                <button class="btn btn-sm" id="next-14-days-btn">14 Hari</button>
+            </div>
             <div class="date-picker-header">
                 <button class="btn btn-icon" id="prev-month">
                     {% include 'svg/chevron-left.svg.twig' %}
@@ -36,6 +40,7 @@
             <div class="mb-3">
                 <label for="customer-input" class="form-label text-muted">Pelanggan</label>
                 <input class="form-control" type="text" id="customer-input" placeholder="Ketik Nama Pelanggan" autocomplete="off" required>
+                <div class="invalid-feedback" id="customer-input-feedback"></div>
             </div>
             <div class="row g-2 mb-3 package-list">
                 <div class="col-7">
@@ -44,12 +49,15 @@
                         <option value="" disabled selected>Pilih Paket Makanan</option>
                         <!-- Options populated by JS -->
                     </select>
+                    <div class="invalid-feedback" id="package-select-feedback"></div>
                 </div>
                 <div class="col-3">
                     <label class="form-label">Jumlah</label>
                     <input class="form-control" type="number" id="order-quantity" min="1" value="1" placeholder="Jumlah Pesanan" required>
+                    <div class="invalid-feedback" id="order-quantity-feedback"></div>
                 </div>
-                <div class="col-2 align-self-end">
+                <div class="col-2">
+                    <label class="form-label">&nbsp;</label>
                     <button type="button" class="btn btn-icon btn-outline-primary add-package w-100" aria-label="Tambah paket">
                         {% include 'svg/plus.svg.twig' %}
                     </button>
@@ -135,7 +143,7 @@
             <input type="hidden" id="selected-dates-hidden" name="selectedDates"/>
             {% if show_submit_button %}
             <div class="d-grid mt-3">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="submit-order-btn">
                     {% include 'svg/check.svg.twig' %}
                     Simpan Pesanan
                 </button>

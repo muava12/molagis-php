@@ -21,9 +21,13 @@
         </div>
     </div>
     <div class="page-body">
-        <div class="container-md">
-            <div class="row">
-                <div class="col-12 col-sm-6">
+        <div class="container-md input-order-container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10 col-xl-8 input-order-form-wrapper">
+                    <!-- Progress Indicator -->
+                    <div class="form-progress mb-4">
+                        <div class="form-progress-bar" id="form-progress-bar" style="width: 0%"></div>
+                    </div>
                     {% include 'partials/_order_form_partial.html.twig' with { show_submit_button: true } %}
                 </div>
             </div>

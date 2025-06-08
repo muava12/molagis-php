@@ -1,6 +1,19 @@
 /* CSS untuk komponen Input Order - digunakan di halaman order, dashboard modal, dan orders modal */
 /* Note: Awesomplete customer input styling is handled in awesomplete.css */
 
+/* Layout Improvements */
+.input-order-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (min-width: 992px) {
+  .input-order-form-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
 /* Package List Components */
 .package-list {
   display: flex;
@@ -16,6 +29,8 @@
   align-self: flex-end;
   width: 3em;
 }
+
+
 
 /* Toggle Container Components */
 .toggle-container {
@@ -101,6 +116,195 @@
   transform: rotate(90deg);
 }
 
+/* Form Validation & Feedback */
+.form-control.is-invalid {
+  border-color: var(--tblr-danger);
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.is-valid {
+  border-color: var(--tblr-success);
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.invalid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--tblr-danger);
+}
+
+.valid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--tblr-success);
+}
+
+/* Loading States */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+  height: 38px;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.form-control.loading {
+  background: linear-gradient(90deg, #f8f9fa 25%, #e9ecef 50%, #f8f9fa 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  pointer-events: none;
+}
+
+/* Progress Indicator */
+.form-progress {
+  height: 4px;
+  background: var(--tblr-border-color);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.form-progress-bar {
+  height: 100%;
+  background: var(--tblr-primary);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+/* Form Validation & Feedback */
+.form-control.is-invalid {
+  border-color: var(--tblr-danger);
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.is-valid {
+  border-color: var(--tblr-success);
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.invalid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--tblr-danger);
+}
+
+.valid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--tblr-success);
+}
+
+/* Loading States */
+.loading-skeleton {
+  background: linear-gradient(90deg, var(--tblr-bg-surface-secondary) 25%, var(--tblr-border-color) 50%, var(--tblr-bg-surface-secondary) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+  height: 38px;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.form-control.loading {
+  background: linear-gradient(90deg, var(--tblr-bg-surface) 25%, var(--tblr-bg-surface-secondary) 50%, var(--tblr-bg-surface) 75%) !important;
+  background-size: 200% 100% !important;
+  animation: loading 1.5s infinite;
+  pointer-events: none;
+  color: transparent !important;
+}
+
+/* Prevent white flash on form controls during loading */
+.form-control {
+  background-color: var(--tblr-bg-surface);
+  color: var(--tblr-body-color);
+  border-color: var(--tblr-border-color);
+}
+
+.form-select {
+  background-color: var(--tblr-bg-surface);
+  color: var(--tblr-body-color);
+  border-color: var(--tblr-border-color);
+}
+
+/* Specific loading state improvements for dark mode */
+.form-control.loading,
+.form-select.loading {
+  background: linear-gradient(90deg, var(--tblr-bg-surface) 25%, var(--tblr-bg-surface-secondary) 50%, var(--tblr-bg-surface) 75%) !important;
+  background-size: 200% 100% !important;
+  animation: loading 1.5s infinite !important;
+  color: transparent !important;
+  border-color: var(--tblr-border-color) !important;
+}
+
+/* Ensure no white flash during initialization */
+#customer-input,
+#package-select,
+#order-quantity,
+#shipping-cost {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+  border-color: var(--tblr-border-color) !important;
+  transition: none !important;
+}
+
+/* Override any potential white backgrounds */
+.input-order-container .form-control,
+.input-order-container .form-select {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+  transition: none !important;
+}
+
+/* Prevent any flash during page load */
+.input-order-container .form-control:not(.loading),
+.input-order-container .form-select:not(.loading) {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+}
+
+/* Ensure consistent styling on focus */
+.input-order-container .form-control:focus,
+.input-order-container .form-select:focus {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+  border-color: var(--tblr-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(var(--tblr-primary-rgb), 0.25) !important;
+}
+
+/* Progress Indicator - Only for standalone input-order page */
+.input-order-container .form-progress {
+  height: 4px;
+  background: var(--tblr-border-color);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.input-order-container .form-progress-bar {
+  height: 100%;
+  background: var(--tblr-primary);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+
+
 /* Custom Date Picker Components */
 .date-picker-container {
   max-width: 400px;
@@ -109,6 +313,22 @@
   background: var(--tblr-bg-surface, #fff);
   padding: 10px;
   user-select: none;
+  position: relative;
+}
+
+/* Date Picker Quick Actions */
+.date-picker-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+
+.date-picker-quick-actions .btn {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 .date-picker-buttons {
@@ -261,6 +481,123 @@
 
 .badge-close-btn:hover {
   color: var(--tblr-danger, #dc3545);
+}
+
+/* Medium screen improvements */
+@media (min-width: 576px) and (max-width: 991px) {
+  /* Improve calendar button sizes for medium screens */
+  .date-picker-buttons .btn {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .date-picker-quick-actions .btn {
+    font-size: 12px;
+    padding: 5px 9px;
+  }
+
+  .date-picker-day {
+    font-size: 15px;
+  }
+}
+
+/* Mobile Experience Improvements */
+@media (max-width: 768px) {
+  /* Sticky submit button for mobile - only on standalone page */
+  .input-order-container .sticky-submit-mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--tblr-bg-surface);
+    border-top: 1px solid var(--tblr-border-color);
+    padding: 1rem;
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Add bottom padding to prevent content being hidden behind sticky button */
+  .input-order-container {
+    padding-bottom: 80px;
+  }
+
+  /* Improve touch targets */
+  .date-picker-day {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .date-picker-buttons .btn,
+  .date-picker-quick-actions .btn {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  /* Accordion-style form sections for mobile */
+  .input-order-container .form-section {
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .input-order-container .form-section-header {
+    background: var(--tblr-bg-surface-secondary);
+    padding: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .input-order-container .form-section-content {
+    padding: 1rem;
+  }
+
+  /* Improve date picker on mobile */
+  .date-picker-container {
+    max-width: 100%;
+  }
+}
+
+/* Enhanced visual feedback for selected dates */
+.selected-dates .badge {
+  animation: fadeInScale 0.3s ease;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Improved loading state for date picker */
+.date-picker-container.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.date-picker-container.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--tblr-primary);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Empty State Styling */
