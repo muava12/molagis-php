@@ -1165,58 +1165,11 @@ function setupMobileEnhancements() {
     // Only apply to standalone input-order page
     if (!document.querySelector('.input-order-container')) return;
 
-    // Setup sticky submit button for mobile
-    setupStickySubmitButton();
-
     // Improve touch interactions
     improveTouchInteractions();
 }
 
-function setupStickySubmitButton() {
-    const submitButton = document.getElementById('submit-order-btn');
-    if (!submitButton) return;
 
-    function createStickyButton() {
-        // Remove existing sticky button if any
-        const existingStickyContainer = document.querySelector('.sticky-submit-mobile');
-        if (existingStickyContainer) {
-            existingStickyContainer.remove();
-        }
-
-        // Check if we're on mobile
-        if (window.innerWidth <= 768) {
-            // Create sticky container
-            const stickyContainer = document.createElement('div');
-            stickyContainer.className = 'sticky-submit-mobile d-block d-md-none';
-
-            // Clone submit button
-            const stickyButton = submitButton.cloneNode(true);
-            stickyButton.className = 'btn btn-primary w-100';
-            stickyButton.id = 'sticky-submit-btn';
-
-            stickyContainer.appendChild(stickyButton);
-            document.body.appendChild(stickyContainer);
-
-            // Hide original button on mobile
-            submitButton.classList.add('d-none', 'd-md-block');
-
-            // Add event listener to sticky button
-            stickyButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                submitButton.click();
-            });
-        } else {
-            // Show original button on desktop
-            submitButton.classList.remove('d-none', 'd-md-block');
-        }
-    }
-
-    // Initial setup
-    createStickyButton();
-
-    // Handle window resize
-    window.addEventListener('resize', createStickyButton);
-}
 
 function improveTouchInteractions() {
     // Improve date picker touch targets

@@ -406,23 +406,6 @@
 
 /* Mobile Experience Improvements */
 @media (max-width: 768px) {
-  /* Sticky submit button for mobile - only on standalone page */
-  .input-order-container .sticky-submit-mobile {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--tblr-bg-surface);
-    border-top: 1px solid var(--tblr-border-color);
-    padding: 1rem;
-    z-index: 1000;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Add bottom padding to prevent content being hidden behind sticky button */
-  .input-order-container {
-    padding-bottom: 80px;
-  }
 
   /* Improve touch targets */
   .date-picker-day {
