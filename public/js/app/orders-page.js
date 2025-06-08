@@ -14,6 +14,67 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Card title element (.card .card-header .card-title) not found.');
     }
 
+    // Centralized function to update card title
+    function updateCardTitle(titleType, data = {}) {
+        if (!cardTitleElement) return;
+
+        switch (titleType) {
+            case 'default':
+                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                break;
+
+            case 'customer':
+                if (data.customerId && data.customerName) {
+                    const avatarSpan = document.createElement('span');
+                    avatarSpan.className = 'avatar avatar-sm me-2';
+                    avatarSpan.style.backgroundImage = `url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${data.customerId}&scale=90&backgroundColor=ae5d29,d08b5b,edb98a,fd9841,ffdbb4,f8d25c&backgroundRotation=0,360,50,40,80,110&eyebrows=angryNatural,default,defaultNatural,flatNatural,raisedExcited,raisedExcitedNatural,sadConcerned,sadConcernedNatural,unibrowNatural,upDown,upDownNatural,angry&eyes=cry,default,eyeRoll,happy,side,squint,surprised,wink,winkWacky&mouth=concerned,default,disbelief,eating,grimace,sad,screamOpen,serious,smile,tongue,twinkle)`;
+
+                    cardTitleElement.innerHTML = '';
+                    cardTitleElement.appendChild(avatarSpan);
+                    cardTitleElement.appendChild(document.createTextNode(' ' + data.customerName));
+                    cardTitleElement.classList.add('d-flex', 'align-items-center');
+                } else {
+                    updateCardTitle('default');
+                }
+                break;
+
+            case 'date':
+                if (data.date) {
+                    try {
+                        const dateObj = new Date(data.date + 'T00:00:00');
+                        const formattedDate = dateObj.toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        });
+                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
+                        cardTitleElement.classList.add('d-flex', 'align-items-center');
+                    } catch (e) {
+                        console.error("Error formatting date for card title:", e);
+                        updateCardTitle('default');
+                    }
+                } else {
+                    updateCardTitle('default');
+                }
+                break;
+
+            case 'order':
+                if (data.orderId) {
+                    cardTitleElement.innerHTML = `${MAGNIFIER_ICON_HTML} Detail Pesanan #${data.orderId}`;
+                    cardTitleElement.classList.add('d-flex', 'align-items-center');
+                } else {
+                    updateCardTitle('default');
+                }
+                break;
+
+            default:
+                updateCardTitle('default');
+                break;
+        }
+    }
+
     const customerSearchInput = document.getElementById('customer_search_orders');
     let iconAddonSpan = null;
     let awesompleteInstance = null; // Declare here for broader scope
@@ -153,52 +214,36 @@ document.addEventListener('DOMContentLoaded', function () {
                 // --- ADDED LOGIC END ---
 
                 // --- Update Card Title Logic ---
-                if (cardTitleElement) {
-                    const customerIdForTitle = currentUrlParams.get('customer_id');
-                    const currentViewForTitle = currentView;
+                const customerIdForTitle = currentUrlParams.get('customer_id');
+                const currentViewForTitle = currentView;
 
-                    // Try to find an existing avatar span
-                    let avatarSpan = cardTitleElement.querySelector('span.avatar');
-
-                    if (currentViewForTitle === 'by_name' && customerIdForTitle) {
-                        let customerName = null;
-                        // Try to find customer name from awesomplete list
-                        if (typeof awesompleteInstance !== 'undefined' && awesompleteInstance && awesompleteInstance.list) {
-                            const selectedCustomer = awesompleteInstance.list.find(customer => String(customer.value) === String(customerIdForTitle));
-                            if (selectedCustomer && selectedCustomer.label) {
-                                customerName = selectedCustomer.label;
-                            }
+                if (currentViewForTitle === 'by_name' && customerIdForTitle) {
+                    let customerName = null;
+                    // Try to find customer name from awesomplete list
+                    if (typeof awesompleteInstance !== 'undefined' && awesompleteInstance && awesompleteInstance.list) {
+                        const selectedCustomer = awesompleteInstance.list.find(customer => String(customer.value) === String(customerIdForTitle));
+                        if (selectedCustomer && selectedCustomer.label) {
+                            customerName = selectedCustomer.label;
                         }
-
-                        // Fallback to dataset if not found in awesomplete
-                        if (!customerName && selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
-                            customerName = selectedCustomerIdHidden.dataset.selectedName;
-                        }
-
-                        if (customerName) {
-                            if (!avatarSpan) {
-                                avatarSpan = document.createElement('span');
-                                avatarSpan.className = 'avatar avatar-sm me-2'; // Ensure classes match SSR
-                            }
-                            avatarSpan.style.backgroundImage = `url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${customerIdForTitle}&scale=90&backgroundColor=ae5d29,d08b5b,edb98a,fd9841,ffdbb4,f8d25c&backgroundRotation=0,360,50,40,80,110&eyebrows=angryNatural,default,defaultNatural,flatNatural,raisedExcited,raisedExcitedNatural,sadConcerned,sadConcernedNatural,unibrowNatural,upDown,upDownNatural,angry&eyes=cry,default,eyeRoll,happy,side,squint,surprised,wink,winkWacky&mouth=concerned,default,disbelief,eating,grimace,sad,screamOpen,serious,smile,tongue,twinkle)`;
-                            avatarSpan.style.display = ''; // Ensure it's visible
-
-                            // Reconstruct the innerHTML of cardTitleElement to include avatar and name
-                            cardTitleElement.innerHTML = ''; // Clear previous content
-                            cardTitleElement.appendChild(avatarSpan);
-                            cardTitleElement.appendChild(document.createTextNode(' ' + customerName));
-                            cardTitleElement.classList.add('d-flex', 'align-items-center');
-                        } else {
-                            // Customer ID present, but name not found
-                            console.warn(`Customer name for ID ${customerIdForTitle} not found for card title update.`);
-                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar if it was there
-                        }
-                    } else {
-                        // Not 'by_name' view, or no customer_id in 'by_name' view
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar and sets default title
                     }
+
+                    // Fallback to dataset if not found in awesomplete
+                    if (!customerName && selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
+                        customerName = selectedCustomerIdHidden.dataset.selectedName;
+                    }
+
+                    if (customerName) {
+                        updateCardTitle('customer', {
+                            customerId: customerIdForTitle,
+                            customerName: customerName
+                        });
+                    } else {
+                        console.warn(`Customer name for ID ${customerIdForTitle} not found for card title update.`);
+                        updateCardTitle('default');
+                    }
+                } else {
+                    // Not 'by_name' view, or no customer_id in 'by_name' view
+                    updateCardTitle('default');
                 }
                 // --- End Update Card Title Logic ---
             } else {
@@ -394,27 +439,18 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                         `;
                         // Update card title
-                        if (cardTitleElement) {
-                            cardTitleElement.innerHTML = `${MAGNIFIER_ICON_HTML} Detail Pesanan #${query}`;
-                            cardTitleElement.classList.add('d-flex', 'align-items-center');
-                        }
+                        updateCardTitle('order', { orderId: query });
                     } else {
                         orderIdSearchResultsContainer.innerHTML = `<p class="text-warning">${data.message || 'Order not found or error fetching data.'}</p>`;
                         // Reset card title to default
-                        if (cardTitleElement) {
-                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                        }
+                        updateCardTitle('default');
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching order by ID:', error);
                     orderIdSearchResultsContainer.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
                     // Reset card title to default on error
-                    if (cardTitleElement) {
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                    }
+                    updateCardTitle('default');
                 });
         });
     }
@@ -484,30 +520,15 @@ document.addEventListener('DOMContentLoaded', function () {
                                 renderDeliveriesTable(data.deliveries, dateQuery);
 
                                 // Update card title if there are deliveries
-                                if (cardTitleElement && data.deliveries.length > 0) {
-                                    try {
-                                        const dateObj = new Date(dateQuery + 'T00:00:00');
-                                        const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                                        // Use DATE_PICKER_CALENDAR_ICON_SVG for the card title icon as well for consistency
-                                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
-                                        cardTitleElement.classList.add('d-flex', 'align-items-center');
-                                    } catch (e) {
-                                        console.error("Error formatting date for card title:", e);
-                                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                                    }
-                                } else if (cardTitleElement) {
-                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                                if (data.deliveries.length > 0) {
+                                    updateCardTitle('date', { date: dateQuery });
+                                } else {
+                                    updateCardTitle('default');
                                 }
                             } else {
                                 // Show empty state with appropriate SVG based on day of week
                                 renderEmptyState(dateQuery);
-
-                                if (cardTitleElement) {
-                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                                }
+                                updateCardTitle('default');
                             }
                         })
                         .catch(error => {
@@ -651,9 +672,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.success && data.deliveries) {
                 // Render the deliveries data into HTML table
                 renderDeliveriesTable(data.deliveries, date);
+                // Update card title with the date
+                updateCardTitle('date', { date: date });
             } else {
                 // Show empty state with appropriate SVG based on day of week
                 renderEmptyState(date);
+                updateCardTitle('default');
             }
         })
         .catch(error => {
@@ -665,6 +689,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 `;
             }
+            updateCardTitle('default');
         })
         .finally(() => {
             // Remove loading states
@@ -784,7 +809,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                     </td>
                     <td>${renderDetailsColumnWithAdditional(items, delivery.kitchen_note, delivery.courier_note)}</td>
-                    <td>${renderCourierBadge(delivery.courier_name)}</td>
+                    <td>${renderCourierBadge(delivery.courier_name, delivery.courier_color)}</td>
                     <td>${formatCurrency(delivery.ongkir)}</td>
                     <td>${formatCurrency((delivery.subtotal_harga || 0) + (delivery.ongkir || 0))}</td>
                     <td class="text-nowrap">
@@ -861,26 +886,15 @@ document.addEventListener('DOMContentLoaded', function () {
         return new Intl.NumberFormat('id-ID').format(amount || 0);
     }
 
-    function renderCourierBadge(courierName) {
+    function renderCourierBadge(courierName, courierColor = null) {
         if (!courierName || courierName === 'N/A') {
             return '<span class="badge bg-default-lt">N/A</span>';
         }
 
-        // Array of available colors for courier badges (matching Tabler CSS)
-        const courierColors = ['blue', 'azure', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan'];
+        // Use provided color or fallback to default
+        const badgeColor = courierColor || 'blue';
 
-        // Create a simple hash from courier name
-        let courierHash = 0;
-        const cleanName = courierName.toLowerCase().replace(/[\s\-_]/g, '');
-        for (let i = 0; i < cleanName.length; i++) {
-            courierHash += cleanName.charCodeAt(i);
-        }
-
-        // Use modulo to get consistent color index
-        const colorIndex = courierHash % courierColors.length;
-        const courierColor = courierColors[colorIndex];
-
-        return `<span class="badge bg-${courierColor}-lt">${courierName}</span>`;
+        return `<span class="badge bg-${badgeColor}-lt">${courierName}</span>`;
     }
 
     function renderItemsColumn(items, subtotalHarga) {
@@ -1150,10 +1164,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // If no customerId, title gets reset below.
                 } else {
                     // No customer_id when switching to 'by_name'. Reset title.
-                    if (cardTitleElement) {
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                    }
+                    updateCardTitle('default');
                     // Ensure contentWrapper shows the "select customer" message
                     if (contentWrapper) {
                         contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
@@ -1168,18 +1179,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 // and sets the title based on whether deliveries are found for the (newly set) date.
                 if (deliveryDateSearchInput && deliveryDateSearchInput.value === '' &&
                     (deliveryDateSearchResultsContainer && (deliveryDateSearchResultsContainer.innerHTML.trim() === '' || deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state')))) {
-                    if (cardTitleElement) {
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                    }
+                    updateCardTitle('default');
                 }
                 // ensureDateInputIsPopulated(true) is called later and will handle title updates based on API response
             } else if (activeTabTarget === '#pane-by-order-id') {
                 // Reset title and content when switching to 'by_order_id' tab before a search
-                if (cardTitleElement) {
-                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                }
+                updateCardTitle('default');
                 if (orderIdSearchResultsContainer) {
                     orderIdSearchResultsContainer.innerHTML = '<p class="text-muted py-5 text-center">Masukkan ID Pesanan di atas untuk memulai pencarian.</p>';
                 }
@@ -1268,23 +1273,20 @@ document.addEventListener('DOMContentLoaded', function () {
         updateSearchFormVisibility(activeTabTargetOnLoad);
         // Manual title setting based on active tab on load (if not handled by 'shown.bs.tab')
         if (activeTabTargetOnLoad === '#pane-by-name') {
-            if (!currentUrlParams.get('customer_id') && cardTitleElement) { // No customer selected
-                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                cardTitleElement.classList.remove('d-flex', 'align-items-center');
+            if (!currentUrlParams.get('customer_id')) { // No customer selected
+                updateCardTitle('default');
             } // If customer selected, SSR or subsequent fetchAndUpdateOrdersView should handle title
         } else if (activeTabTargetOnLoad === '#pane-by-date') {
             // If date input is empty and no results on load, set default title
-            if (deliveryDateSearchInput && deliveryDateSearchInput.value === '' && cardTitleElement) {
+            if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
                  const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer || deliveryDateSearchResultsContainer.innerHTML.trim() === '' || deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state');
                  if (containerIsEmptyOrInitial) {
-                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                    updateCardTitle('default');
                  }
             }
             // ensureDateInputIsPopulated(true) will be called below if conditions match, handling further title updates
-        } else if (activeTabTargetOnLoad === '#pane-by-order-id' && cardTitleElement) {
-            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Default for By Order ID on load
-            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+        } else if (activeTabTargetOnLoad === '#pane-by-order-id') {
+            updateCardTitle('default'); // Default for By Order ID on load
         }
     }
 
@@ -1307,12 +1309,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // If SSR provides results, Twig should set the title. If JS loads results, flatpickr onChange does.
                 // This is more of a fallback if title is default but date is set.
                 if (cardTitleElement.innerHTML === DEFAULT_CARD_TITLE || !cardTitleElement.querySelector('svg.icon')) {
-                     try {
-                        const dateObj = new Date(deliveryDateSearchInput.value + 'T00:00:00');
-                        const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
-                        cardTitleElement.classList.add('d-flex', 'align-items-center');
-                    } catch (e) { /* keep default title if error */ }
+                     updateCardTitle('date', { date: deliveryDateSearchInput.value });
                 }
             }
         }
@@ -1321,10 +1318,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (!urlView && !localStorage.getItem('activeOrdersTab')) {
         // Default to 'by_name' if no URL param and no localStorage
         updateSearchFormVisibility('#pane-by-name');
-        if (cardTitleElement) { // Set default title if no specific context
-            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-        }
+        updateCardTitle('default'); // Set default title if no specific context
     }
 
 

@@ -344,11 +344,8 @@
                                 </td>
                                 <td>
                                     {% if delivery.courier_name and delivery.courier_name != 'N/A' %}
-                                        {% set courier_colors = ['blue', 'azure', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan'] %}
-                                        {% set clean_name = delivery.courier_name | lower | replace({' ': '', '-': '', '_': ''}) %}
-                                        {% set name_length = clean_name | length %}
-                                        {% set color_index = name_length % (courier_colors | length) %}
-                                        {% set courier_color = courier_colors[color_index] %}
+                                        {# Use courier color from database if available, otherwise fallback to default #}
+                                        {% set courier_color = delivery.courier_color | default('blue') %}
                                         <span class="badge bg-{{ courier_color }}-lt">{{ delivery.courier_name }}</span>
                                     {% else %}
                                         <span class="badge bg-default-lt">N/A</span>
