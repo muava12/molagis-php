@@ -407,10 +407,63 @@
 /* Mobile Experience Improvements */
 @media (max-width: 768px) {
 
-  /* Improve touch targets */
+  /* Improve touch targets for date picker */
   .date-picker-day {
-    min-height: 32px;
-    min-width: 32px;
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Enhanced touch feedback for date picker */
+  .date-picker-day:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+
+  /* Improve button touch targets */
+  .date-picker-buttons button,
+  .date-picker-quick-actions button {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Enhanced form control touch targets */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent zoom on iOS */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve select dropdown on mobile */
+  .form-select {
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+  }
+
+  /* Better touch targets for buttons */
+  .btn {
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve add/remove package buttons */
+  .add-package,
+  .remove-package {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better spacing for mobile form elements */
+  .input-order-container .row.g-2 {
+    --bs-gutter-x: 0.75rem;
+    --bs-gutter-y: 0.75rem;
   }
 
   /* Accordion-style form sections for mobile */
@@ -428,6 +481,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .input-order-container .form-section-content {
@@ -437,6 +493,55 @@
   /* Improve date picker on mobile */
   .date-picker-container {
     max-width: 100%;
+    padding: 1rem;
+    touch-action: pan-y;
+  }
+
+  /* Better modal interactions on mobile */
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  /* Improve textarea touch targets */
+  textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  /* Better spacing for selected dates */
+  .selected-dates {
+    gap: 0.5rem;
+  }
+
+  .selected-dates .badge {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Improve close button touch targets */
+  .btn-close {
+    min-height: 32px;
+    min-width: 32px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Better form validation feedback on mobile */
+  .invalid-feedback,
+  .valid-feedback {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Improve tab navigation on mobile */
+  .nav-segmented .nav-link {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -465,6 +570,91 @@
 .date-picker-container.loading::after {
   content: '';
   position: absolute;
+}
+
+/* Mobile-specific improvements for better touch interactions */
+@media (max-width: 576px) {
+  /* Extra small screens - phones in portrait */
+  .date-picker-day {
+    min-height: 40px;
+    min-width: 40px;
+    font-size: 14px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  /* Improve package selection layout on small screens */
+  .package-list .col-7 {
+    flex: 0 0 60%;
+    max-width: 60%;
+  }
+
+  .package-list .col-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .package-list .col-2 {
+    flex: 0 0 15%;
+    max-width: 15%;
+  }
+
+  /* Better modal sizing on small screens */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+
+  /* Improve form spacing */
+  .input-order-container {
+    padding: 0.5rem;
+  }
+}
+
+/* Prevent iOS zoom on form inputs */
+@supports (-webkit-touch-callout: none) {
+  .form-control,
+  .form-select,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Improve touch scrolling performance */
+.date-picker-container,
+.modal-body,
+.input-order-container {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better focus states for accessibility and mobile */
+.form-control:focus,
+.form-select:focus,
+.btn:focus {
+  outline: 2px solid var(--tblr-primary);
+  outline-offset: 2px;
+}
+
+/* Improve visual feedback for touch interactions */
+.date-picker-day:hover,
+.date-picker-day:focus {
+  background-color: var(--tblr-primary-bg-subtle);
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+.btn:active,
+.form-control:active,
+.form-select:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
   top: 50%;
   left: 50%;
   width: 20px;

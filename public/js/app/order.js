@@ -211,18 +211,80 @@ function addDayEventListeners(dayElement, date) {
         return;
     }
 
+    // Enhanced mobile-first event handling
+    let touchStarted = false;
+    let touchMoved = false;
+
+    // Touch events for mobile devices
+    dayElement.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevent scrolling and zooming
+        touchStarted = true;
+        touchMoved = false;
+        isDragging = true;
+        toggleDate(dayElement);
+
+        // Add haptic feedback if supported
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    }, { passive: false });
+
+    dayElement.addEventListener('touchmove', (e) => {
+        if (!touchStarted) return;
+        touchMoved = true;
+
+        // Handle drag selection on touch devices
+        const touch = e.touches[0];
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (elementBelow && elementBelow.classList.contains('date-picker-day') && !elementBelow.classList.contains('disabled')) {
+            if (isDragging) toggleDate(elementBelow);
+        }
+    }, { passive: false });
+
+    dayElement.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touchStarted = false;
+        isDragging = false;
+
+        // If it was just a tap (no movement), ensure the date is toggled
+        if (!touchMoved) {
+            // Date was already toggled in touchstart, no need to toggle again
+        }
+    }, { passive: false });
+
+    // Mouse events for desktop (fallback)
     dayElement.addEventListener('mousedown', (e) => {
+        // Only handle mouse events if touch is not supported
+        if ('ontouchstart' in window) return;
+
         e.preventDefault();
         isDragging = true;
         toggleDate(dayElement);
     });
 
     dayElement.addEventListener('mouseover', () => {
+        // Only handle mouse events if touch is not supported
+        if ('ontouchstart' in window) return;
+
         if (isDragging) toggleDate(dayElement);
     });
 
     dayElement.addEventListener('mouseup', () => {
+        // Only handle mouse events if touch is not supported
+        if ('ontouchstart' in window) return;
+
         isDragging = false;
+    });
+
+    // Click event as final fallback for both desktop and mobile
+    dayElement.addEventListener('click', (e) => {
+        // Prevent double-toggling on touch devices
+        if (touchStarted || touchMoved) return;
+
+        // For devices that don't support touch or when mouse is used
+        if (!('ontouchstart' in window)) {
+            toggleDate(dayElement);
+        }
     });
 }
 
@@ -893,9 +955,15 @@ function setupEventListeners() {
         calculateTotalPayment();
     });
 
+    // Handle mouse up for desktop devices
     document.addEventListener('mouseup', () => {
-        isDragging = false;
+        if (!('ontouchstart' in window)) {
+            isDragging = false;
+        }
     });
+
+    // Handle touch end for mobile devices (already handled in setupMobileEventHandlers)
+    // This ensures proper cleanup of dragging state
 
     packageSelect.addEventListener('change', calculateTotalPayment);
     orderQuantity.addEventListener('input', calculateTotalPayment);
@@ -1167,27 +1235,158 @@ function setupMobileEnhancements() {
 
     // Improve touch interactions
     improveTouchInteractions();
+
+    // Setup mobile-specific event handlers
+    setupMobileEventHandlers();
+}
+
+function setupMobileEventHandlers() {
+    // Improve global touch handling for mobile devices
+    if ('ontouchstart' in window) {
+        // Handle global touch end to reset dragging state
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        }, { passive: true });
+
+        // Prevent default touch behaviors that might interfere
+        document.addEventListener('touchmove', (e) => {
+            // Only prevent default if we're dragging in the date picker
+            if (isDragging && e.target.closest('.date-picker-container')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Improve viewport handling on mobile
+        const viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+            viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        }
+
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                // Recalculate layout after orientation change
+                const datePickerContainer = document.querySelector('.date-picker-container');
+                if (datePickerContainer) {
+                    datePickerContainer.style.maxWidth = '100%';
+                }
+
+                // Update form progress
+                updateFormProgress();
+            }, 100);
+        });
+    }
+
+    // Improve select dropdown behavior on mobile
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        // Add mobile-friendly change handler
+        select.addEventListener('change', (e) => {
+            // Trigger haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+
+            // Ensure proper focus handling
+            e.target.blur();
+        });
+    });
 }
 
 
 
 function improveTouchInteractions() {
-    // Improve date picker touch targets
-    const datePicker = document.querySelector('.date-picker-container');
-    if (datePicker) {
-        datePicker.addEventListener('touchstart', (e) => {
-            // Prevent zoom on double tap
-            e.preventDefault();
+    // Improve form select interactions on mobile
+    const selects = document.querySelectorAll('#order-form select');
+    selects.forEach(select => {
+        // Ensure proper mobile select behavior
+        select.addEventListener('touchstart', (e) => {
+            // Allow native select behavior on mobile
+            e.stopPropagation();
+        }, { passive: true });
+
+        // Add visual feedback for touch
+        select.addEventListener('touchstart', () => {
+            select.style.transform = 'scale(0.98)';
+        }, { passive: true });
+
+        select.addEventListener('touchend', () => {
+            setTimeout(() => {
+                select.style.transform = '';
+            }, 150);
+        }, { passive: true });
+    });
+
+    // Improve button touch interactions
+    const buttons = document.querySelectorAll('#order-form button, .date-picker-buttons button');
+    buttons.forEach(button => {
+        button.addEventListener('touchstart', () => {
+            button.style.transform = 'scale(0.95)';
+            button.style.opacity = '0.8';
+        }, { passive: true });
+
+        button.addEventListener('touchend', () => {
+            setTimeout(() => {
+                button.style.transform = '';
+                button.style.opacity = '';
+            }, 150);
+        }, { passive: true });
+    });
+
+    // Improve input field interactions on mobile
+    const inputs = document.querySelectorAll('#order-form input[type="text"], #order-form input[type="number"]');
+    inputs.forEach(input => {
+        // Prevent zoom on focus for number inputs
+        if (input.type === 'number') {
+            input.addEventListener('focus', () => {
+                input.setAttribute('inputmode', 'numeric');
+            });
+        }
+
+        // Add visual feedback
+        input.addEventListener('touchstart', () => {
+            input.style.borderColor = 'var(--tblr-primary)';
+        }, { passive: true });
+
+        input.addEventListener('blur', () => {
+            if (!input.matches(':focus')) {
+                input.style.borderColor = '';
+            }
         });
+    });
+
+    // Improve textarea interactions
+    const textareas = document.querySelectorAll('#order-form textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('touchstart', () => {
+            textarea.style.borderColor = 'var(--tblr-primary)';
+        }, { passive: true });
+
+        textarea.addEventListener('blur', () => {
+            if (!textarea.matches(':focus')) {
+                textarea.style.borderColor = '';
+            }
+        });
+    });
+
+    // Prevent accidental form submission on mobile
+    const form = document.getElementById('order-form');
+    if (form) {
+        form.addEventListener('touchmove', (e) => {
+            // Allow scrolling within form
+            e.stopPropagation();
+        }, { passive: true });
     }
 
-    // Add haptic feedback for date selection (if supported)
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('date-picker-day') && !e.target.classList.contains('disabled')) {
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
+    // Improve modal interactions on mobile
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('touchstart', (e) => {
+            // Prevent background scroll when modal is open
+            if (e.target === modal) {
+                e.preventDefault();
             }
-        }
+        }, { passive: false });
     });
 }
 

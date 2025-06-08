@@ -254,17 +254,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Moved fetchAndUpdateOrdersView function definition higher up
     async function fetchAndUpdateOrdersView(url) {
+        console.log('fetchAndUpdateOrdersView called with URL:', url);
+
         if (iconAddonSpan) {
             iconAddonSpan.innerHTML = SPINNER_HTML;
         }
 
         try {
+            console.log('Making AJAX request to:', url);
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             });
+
+            console.log('Response status:', response.status, 'OK:', response.ok);
+
             if (!response.ok) {
                 let errorText = `HTTP error! status: ${response.status}`;
                 try {
@@ -276,9 +282,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(errorText);
             }
             const html = await response.text();
+            console.log('Received HTML response, length:', html.length);
 
     // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // This is byNameContainer
+    console.log('byNameContainer found:', !!byNameContainer);
     if (byNameContainer) { // Only operate if this specific container is being updated
+        console.log('Updating byNameContainer with HTML content');
         byNameContainer.innerHTML = html;
 
         const selectAllCheckbox = byNameContainer.querySelector('#select-all-deliveries');
@@ -620,21 +629,68 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Function to get today's date in server timezone (Asia/Makassar)
+    function getTodayInServerTimezone() {
+        // Create date in server timezone (Asia/Makassar = UTC+8)
+        const now = new Date();
+        const serverTimezoneOffset = 8 * 60; // Asia/Makassar is UTC+8
+        const localTimezoneOffset = now.getTimezoneOffset(); // Browser timezone offset in minutes
+
+        // Calculate the difference and adjust
+        const timezoneAdjustment = (serverTimezoneOffset + localTimezoneOffset) * 60 * 1000;
+        const serverTime = new Date(now.getTime() + timezoneAdjustment);
+
+        const year = serverTime.getFullYear();
+        const month = (serverTime.getMonth() + 1).toString().padStart(2, '0');
+        const day = serverTime.getDate().toString().padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    }
+
     // Function to set today's date if input is empty
     function ensureDateInputIsPopulated(triggerChangeEvent) {
         if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-            const localDate = new Date();
-            const year = localDate.getFullYear();
-            const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
-            const day = localDate.getDate().toString().padStart(2, '0');
-            const today = `${year}-${month}-${day}`;
+            const today = getTodayInServerTimezone();
 
             if (deliveryDateFlatpickrInstance) {
                 deliveryDateFlatpickrInstance.setDate(today, triggerChangeEvent);
             } else {
-
                 deliveryDateSearchInput.value = today;
             }
+        }
+    }
+
+    // Function to handle initial data display for by_date view
+    function handleInitialByDateView() {
+        const currentDate = deliveryDateSearchInput ? deliveryDateSearchInput.value : getTodayInServerTimezone();
+
+        // Check if we have deliveries_for_today data from server-side rendering
+        if (window.deliveries_for_today && Array.isArray(window.deliveries_for_today)) {
+            console.log('Using server-provided deliveries data:', window.deliveries_for_today);
+
+            if (window.deliveries_for_today.length > 0) {
+                // Display the server-provided data
+                renderDeliveriesTable(window.deliveries_for_today, currentDate);
+            } else {
+                // Show empty state for the current date
+                renderEmptyState(currentDate);
+            }
+            updateCardTitle('date', { date: currentDate });
+
+            // Clear the global variable to prevent reuse
+            delete window.deliveries_for_today;
+        } else if (deliveryDateSearchInput && deliveryDateSearchInput.value) {
+            // If no server data but date input has value, trigger search
+            console.log('No server data found, triggering API search for date:', currentDate);
+            updateCardTitle('date', { date: currentDate });
+
+            // Trigger search for the current date
+            performDateSearch(currentDate, null);
+        } else {
+            // Fallback: show empty state for today
+            console.log('Fallback: showing empty state for today');
+            updateCardTitle('date', { date: currentDate });
+            renderEmptyState(currentDate);
         }
     }
 
@@ -663,9 +719,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let currentDate;
         if (deliveryDateSearchInput.value) {
-            currentDate = new Date(deliveryDateSearchInput.value);
+            // Parse the date string properly to avoid timezone issues
+            const dateParts = deliveryDateSearchInput.value.split('-');
+            currentDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
         } else {
-            currentDate = new Date();
+            // Use server timezone for current date
+            const todayInServerTz = getTodayInServerTimezone();
+            const dateParts = todayInServerTz.split('-');
+            currentDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
         }
 
         let newDate;
@@ -679,7 +740,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 newDate.setDate(currentDate.getDate() + 1);
                 break;
             case 'today':
-                newDate = new Date();
+                // Use server timezone for today
+                const todayInServerTz = getTodayInServerTimezone();
+                const dateParts = todayInServerTz.split('-');
+                newDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
                 break;
             default:
                 return;
@@ -1172,23 +1236,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 // that function will set the title appropriately.
                 // This block primarily handles the reset case.
             } else if (activeTabTarget === '#pane-by-date') {
-                // When switching to by_date tab, show today's date but with appropriate empty state
+                // When switching to by_date tab, handle initial data display
                 if (deliveryDateSearchInput) {
                     if (deliveryDateSearchInput.value === '') {
-                        // Set today's date but show empty state first (respecting Sunday)
-                        const today = new Date().toISOString().split('T')[0];
-                        updateCardTitle('date', { date: today });
+                        // Set today's date if input is empty
+                        const today = getTodayInServerTimezone();
                         if (deliveryDateFlatpickrInstance) {
-                            deliveryDateFlatpickrInstance.setDate(today, false); // Don't trigger onChange yet
+                            deliveryDateFlatpickrInstance.setDate(today, false);
                         } else {
                             deliveryDateSearchInput.value = today;
                         }
-                        // Show appropriate empty state based on day of week
-                        renderEmptyState(today);
-                    } else {
-                        // If date is already populated (from URL or SSR), show date title
-                        updateCardTitle('date', { date: deliveryDateSearchInput.value });
                     }
+                    // Always call handleInitialByDateView to check for server data
+                    handleInitialByDateView();
                 } else {
                     updateCardTitle('by_date_default');
                 }
@@ -1217,6 +1277,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     fetchUrl.searchParams.set('limit', currentUrl.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
                     fetchUrl.searchParams.set('grouping', currentUrl.searchParams.get('grouping') || groupingSelect?.value || 'none');
 
+                    console.log('Tab switch to by_name with customer_id:', customerId, 'fetching data with URL:', fetchUrl.toString());
                     if (typeof fetchAndUpdateOrdersView === 'function') {
                         fetchAndUpdateOrdersView(fetchUrl.toString());
                     } else {
@@ -1226,22 +1287,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 // If no customerId, the title reset and content message are handled by the block above.
             } else if (activeTabTarget === '#pane-by-date') {
-                // Load today's date with appropriate empty state or existing date data
-                if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                    // Set today's date and show empty state (respecting Sunday)
-                    const today = new Date().toISOString().split('T')[0];
-                    if (deliveryDateFlatpickrInstance) {
-                        deliveryDateFlatpickrInstance.setDate(today, false); // Don't trigger onChange
-                    } else {
-                        deliveryDateSearchInput.value = today;
+                // Load today's date and handle initial data display
+                if (deliveryDateSearchInput) {
+                    if (deliveryDateSearchInput.value === '') {
+                        // Set today's date if input is empty
+                        const today = getTodayInServerTimezone();
+                        if (deliveryDateFlatpickrInstance) {
+                            deliveryDateFlatpickrInstance.setDate(today, false);
+                        } else {
+                            deliveryDateSearchInput.value = today;
+                        }
                     }
-                    updateCardTitle('date', { date: today });
-                    renderEmptyState(today);
-                } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '') {
-                    // If date input has a value, trigger search to load data
-                    if (deliveryDateFlatpickrInstance) {
-                        deliveryDateFlatpickrInstance.setDate(deliveryDateSearchInput.value, true);
-                    }
+                    // Always call handleInitialByDateView to check for server data
+                    handleInitialByDateView();
                 }
             }
             // For '#pane-by-order-id', title and content reset is handled above.
@@ -1297,16 +1355,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateCardTitle('by_name_default');
             } else if (customerId) {
                 // Load customer data if customer_id exists
-                // This would trigger fetchAndUpdateOrdersView or similar
-                updateCardTitle('by_name_default'); // Will be updated when data loads
+                console.log('activateTabAndPopulateContent: Loading data for customer_id:', customerId);
+
+                // Trigger fetchAndUpdateOrdersView to load the data
+                const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
+                fetchUrl.searchParams.set('view', 'by_name');
+                fetchUrl.searchParams.set('customer_id', customerId);
+                fetchUrl.searchParams.set('page', currentUrlParams.get('page') || '1');
+                fetchUrl.searchParams.set('limit', currentUrlParams.get('limit') || itemsPerPageSelect?.value || '100');
+                fetchUrl.searchParams.set('grouping', currentUrlParams.get('grouping') || groupingSelect?.value || 'none');
+
+                if (typeof fetchAndUpdateOrdersView === 'function') {
+                    console.log('activateTabAndPopulateContent: Calling fetchAndUpdateOrdersView with URL:', fetchUrl.toString());
+                    fetchAndUpdateOrdersView(fetchUrl.toString());
+                } else {
+                    console.error('activateTabAndPopulateContent: fetchAndUpdateOrdersView function not available');
+                    updateCardTitle('by_name_default'); // Fallback
+                }
             }
         } else if (activeTabTarget === '#pane-by-date') {
-            // Handle by_date empty state
-            if (deliveryDateSearchInput && deliveryDateSearchResultsContainer) {
-                const today = new Date().toISOString().split('T')[0];
-                deliveryDateSearchInput.value = today;
-                updateCardTitle('date', { date: today });
-                renderEmptyState(today);
+            // Handle by_date initial state
+            if (deliveryDateSearchInput) {
+                if (deliveryDateSearchInput.value === '') {
+                    const today = getTodayInServerTimezone();
+                    deliveryDateSearchInput.value = today;
+                }
+                // Always call handleInitialByDateView to check for server data
+                handleInitialByDateView();
             }
         } else if (activeTabTarget === '#pane-by-order-id') {
             const orderIdContainer = document.getElementById('order_id_search_results_container');
@@ -1425,24 +1500,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         } else if (activeTabTargetOnLoad === '#pane-by-date') {
-            // If date input is empty, populate with today's date and show empty state
-            if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                const today = new Date().toISOString().split('T')[0];
-                updateCardTitle('date', { date: today });
-                if (deliveryDateFlatpickrInstance) {
-                    deliveryDateFlatpickrInstance.setDate(today, false); // Don't trigger onChange
-                } else {
-                    deliveryDateSearchInput.value = today;
+            // Always try to handle initial data display first for by_date view
+            if (deliveryDateSearchInput) {
+                if (deliveryDateSearchInput.value === '') {
+                    // If input is empty, set today's date first
+                    const today = getTodayInServerTimezone();
+                    if (deliveryDateFlatpickrInstance) {
+                        deliveryDateFlatpickrInstance.setDate(today, false);
+                    } else {
+                        deliveryDateSearchInput.value = today;
+                    }
                 }
-                renderEmptyState(today);
-            } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '') {
-                // If date is already populated, check if we should show empty state for today
-                const today = new Date().toISOString().split('T')[0];
-                if (deliveryDateSearchInput.value === today) {
-                    // Force render empty state for today on page reload
-                    renderEmptyState(today);
-                }
-                updateCardTitle('date', { date: deliveryDateSearchInput.value });
+                // Always call handleInitialByDateView to check for server data
+                handleInitialByDateView();
             }
             // ensureDateInputIsPopulated(true) will be called below if conditions match, handling further title updates
         } else if (activeTabTargetOnLoad === '#pane-by-order-id') {
@@ -1454,21 +1524,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (activeTabTargetOnLoad) {
         updateSearchFormVisibility(activeTabTargetOnLoad); // Call this regardless of how tab was shown
         if (activeTabTargetOnLoad === '#pane-by-date') {
-             if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                // Set today's date and show appropriate empty state
-                const today = new Date().toISOString().split('T')[0];
-                updateCardTitle('date', { date: today });
-                if (deliveryDateFlatpickrInstance) {
-                    deliveryDateFlatpickrInstance.setDate(today, false); // Don't trigger onChange
-                } else {
-                    deliveryDateSearchInput.value = today;
+             if (deliveryDateSearchInput) {
+                if (deliveryDateSearchInput.value === '') {
+                    // Set today's date if input is empty
+                    const today = getTodayInServerTimezone();
+                    if (deliveryDateFlatpickrInstance) {
+                        deliveryDateFlatpickrInstance.setDate(today, false);
+                    } else {
+                        deliveryDateSearchInput.value = today;
+                    }
                 }
-                renderEmptyState(today);
-            } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '' && cardTitleElement) {
-                // If date is populated (e.g. SSR with default_date), show date title
-                if (cardTitleElement.innerHTML === DEFAULT_CARD_TITLE || !cardTitleElement.querySelector('svg.icon')) {
-                     updateCardTitle('date', { date: deliveryDateSearchInput.value });
-                }
+                // Always call handleInitialByDateView to check for server data
+                handleInitialByDateView();
             }
         }
         // For by_name, if a customer_id is in URL, SSR handles initial title or fetchAndUpdateOrdersView does.
@@ -1839,8 +1906,13 @@ document.addEventListener('DOMContentLoaded', function () {
                  // Manually call visibility update if Bootstrap event won't fire from .show()
                  updateSearchFormVisibility(activeTabTargetOnLoad);
                  // Manually trigger content loading logic if needed (e.g. for by_date if it's the target and needs initial load)
-                 if (activeTabTargetOnLoad === '#pane-by-date' && deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                    ensureDateInputIsPopulated(true);
+                 if (activeTabTargetOnLoad === '#pane-by-date') {
+                    if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
+                        ensureDateInputIsPopulated(true);
+                    } else {
+                        // Handle initial data display for by_date view
+                        handleInitialByDateView();
+                    }
                  } else if (activeTabTargetOnLoad === '#pane-by-name' && !currentUrlOnLoad.searchParams.get('customer_id')) {
                     if (contentWrapper) contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
                  }
@@ -1851,24 +1923,18 @@ document.addEventListener('DOMContentLoaded', function () {
             // 'shown.bs.tab' might not have fired if no change in tab. So, manually call necessary setup functions.
             updateSearchFormVisibility(activeTabTargetOnLoad);
             if (activeTabTargetOnLoad === '#pane-by-date') {
-                if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                    // Set today's date and show appropriate empty state
-                    const today = new Date().toISOString().split('T')[0];
-                    updateCardTitle('date', { date: today });
-                    if (deliveryDateFlatpickrInstance) {
-                        deliveryDateFlatpickrInstance.setDate(today, false); // Don't trigger onChange
-                    } else {
-                        deliveryDateSearchInput.value = today;
+                if (deliveryDateSearchInput) {
+                    if (deliveryDateSearchInput.value === '') {
+                        // Set today's date if input is empty
+                        const today = getTodayInServerTimezone();
+                        if (deliveryDateFlatpickrInstance) {
+                            deliveryDateFlatpickrInstance.setDate(today, false);
+                        } else {
+                            deliveryDateSearchInput.value = today;
+                        }
                     }
-                    renderEmptyState(today);
-                } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '') {
-                    // If date is already populated, check if we should show empty state for today
-                    const today = new Date().toISOString().split('T')[0];
-                    if (deliveryDateSearchInput.value === today) {
-                        // Force render empty state for today on page reload
-                        renderEmptyState(today);
-                    }
-                    updateCardTitle('date', { date: deliveryDateSearchInput.value });
+                    // Always call handleInitialByDateView to check for server data
+                    handleInitialByDateView();
                 }
             } else if (activeTabTargetOnLoad === '#pane-by-name') {
                 const customerId = currentUrlOnLoad.searchParams.get('customer_id');
@@ -1896,6 +1962,22 @@ document.addEventListener('DOMContentLoaded', function () {
                         });
                     } else {
                         updateCardTitle('by_name_default');
+                    }
+
+                    // Always trigger data fetch when customer_id is present on initial load
+                    console.log('Initial load with customer_id:', customerId, 'triggering data fetch');
+                    const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
+                    fetchUrl.searchParams.set('view', 'by_name');
+                    fetchUrl.searchParams.set('customer_id', customerId);
+                    fetchUrl.searchParams.set('page', currentUrlOnLoad.searchParams.get('page') || '1');
+                    fetchUrl.searchParams.set('limit', currentUrlOnLoad.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    fetchUrl.searchParams.set('grouping', currentUrlOnLoad.searchParams.get('grouping') || groupingSelect?.value || 'none');
+
+                    if (typeof fetchAndUpdateOrdersView === 'function') {
+                        console.log('Calling fetchAndUpdateOrdersView with URL:', fetchUrl.toString());
+                        fetchAndUpdateOrdersView(fetchUrl.toString());
+                    } else {
+                        console.error('fetchAndUpdateOrdersView function not available');
                     }
                 } else if (currentUrlOnLoad.searchParams.get('customer_id') && contentWrapper && contentWrapper.innerHTML.trim() === ''){
                     // If customer_id is present but content is empty (e.g. user navigated back to this state)

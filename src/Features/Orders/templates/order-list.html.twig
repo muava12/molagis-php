@@ -369,6 +369,14 @@
     sessionStorage.setItem('current_customer_id', '{{ selected_customer_id }}');
     sessionStorage.setItem('current_customer_name', '{{ selected_customer_name }}');
     {% endif %}
+
+    // Store deliveries data for by_date view from SSR
+    {% if view == 'by_date' and deliveries_for_today is defined %}
+    window.deliveries_for_today = {{ deliveries_for_today|json_encode|raw }};
+    console.log('Server provided deliveries_for_today:', window.deliveries_for_today);
+    {% else %}
+    console.log('No server deliveries data provided. View: {{ view }}, deliveries_for_today defined: {{ deliveries_for_today is defined ? "yes" : "no" }}');
+    {% endif %}
   </script>
   <script type="module">
     import { initialize as initOrder, fetchCustomers, resetForm } from '/js/app/order.js';
