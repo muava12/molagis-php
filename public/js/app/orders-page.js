@@ -423,6 +423,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const deliveryDateSearchResultsContainer = document.getElementById('delivery_date_search_results_container');
     let dateIconAddonSpan = null; // To store the span for the icon
 
+    // Date navigation buttons
+    const dateNavPrev = document.getElementById('date_nav_prev');
+    const dateNavToday = document.getElementById('date_nav_today');
+    const dateNavNext = document.getElementById('date_nav_next');
+
     if (deliveryDateSearchInput) {
         // Try to find the icon addon span
         if (deliveryDateSearchInput.parentElement && deliveryDateSearchInput.parentElement.classList.contains('input-icon')) {
@@ -669,6 +674,56 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     // The event listener for deliveryDateSearchButton is removed as the button is removed.
+
+    // Date navigation functionality
+    function navigateDate(direction) {
+        if (!deliveryDateSearchInput || !deliveryDateFlatpickrInstance) return;
+
+        let currentDate;
+        if (deliveryDateSearchInput.value) {
+            currentDate = new Date(deliveryDateSearchInput.value);
+        } else {
+            currentDate = new Date(); // Default to today if no date is set
+        }
+
+        let newDate;
+        switch (direction) {
+            case 'prev':
+                newDate = new Date(currentDate);
+                newDate.setDate(currentDate.getDate() - 1);
+                break;
+            case 'next':
+                newDate = new Date(currentDate);
+                newDate.setDate(currentDate.getDate() + 1);
+                break;
+            case 'today':
+                newDate = new Date();
+                break;
+            default:
+                return;
+        }
+
+        // Format date as YYYY-MM-DD
+        const formattedDate = newDate.getFullYear() + '-' +
+            String(newDate.getMonth() + 1).padStart(2, '0') + '-' +
+            String(newDate.getDate()).padStart(2, '0');
+
+        // Set the date in flatpickr (this will trigger onChange)
+        deliveryDateFlatpickrInstance.setDate(formattedDate);
+    }
+
+    // Add event listeners for date navigation buttons
+    if (dateNavPrev) {
+        dateNavPrev.addEventListener('click', () => navigateDate('prev'));
+    }
+
+    if (dateNavToday) {
+        dateNavToday.addEventListener('click', () => navigateDate('today'));
+    }
+
+    if (dateNavNext) {
+        dateNavNext.addEventListener('click', () => navigateDate('next'));
+    }
 
     // --- Tab Management & Visibility ---
     // ... (existing tab logic - kept for brevity) ...

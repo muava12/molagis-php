@@ -67,14 +67,13 @@
         <div class="ms-auto">
           <nav class="nav nav-segmented" role="tablist" id="orders-view-tabs">
               <button type="button" class="nav-link {{ (view == 'by_name' or view is null or view == '') ? 'active' : '' }}" id="tab-by-name-button" data-bs-toggle="tab" data-bs-target="#pane-by-name" role="tab" aria-controls="pane-by-name" aria-selected="{{ (view == 'by_name' or view is null or view == '') ? 'true' : 'false' }}">
-                  <!-- SVG for List icon -->
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon nav-link-icon icon-2">
-                    <path d="M9 6l11 0"></path>
-                    <path d="M9 12l11 0"></path>
-                    <path d="M9 18l11 0"></path>
-                    <path d="M5 6l0 .01"></path>
-                    <path d="M5 12l0 .01"></path>
-                    <path d="M5 18l0 .01"></path>
+                  <!-- SVG for Users icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-users nav-link-icon icon-2">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                    <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
                   </svg>
                   <span class="d-none d-sm-inline">By Name</span>
               </button>
@@ -153,13 +152,49 @@
             {# Form for "By Date" - initial style set by JS based on 'view' variable #}
             <form id="form_search_by_date" class="mb-0" style="display: {{ view == 'by_date' ? 'show' : 'none' }};">
               <input type="hidden" name="view" value="by_date">
-              <div class="row g-2">
+              <div class="row g-2 align-items-center">
+                {# Date Navigation Buttons #}
+                <div class="col-auto">
+                  <div class="d-flex align-items-center">
+                    <button type="button" class="btn btn-icon me-2" id="date_nav_prev" title="Hari Sebelumnya">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                        <path d="M15 18l-6-6 6-6"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="btn btn-icon me-2" id="date_nav_today" title="Hari Ini">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                        <path d="M8 2v4"></path>
+                        <path d="M16 2v4"></path>
+                        <path d="M3 10h18"></path>
+                        <path d="M8 14h.01"></path>
+                        <path d="M12 14h.01"></path>
+                        <path d="M16 14h.01"></path>
+                        <path d="M8 18h.01"></path>
+                        <path d="M12 18h.01"></path>
+                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="btn btn-icon me-2" id="date_nav_next" title="Hari Berikutnya">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                {# Date Input - Reduced width #}
                 <div class="col-auto">
                   <label for="delivery_date_search_input" class="visually-hidden">Tanggal Pengiriman</label>
-                  <div class="input-icon">
+                  <div class="input-icon" style="width: 180px;">
                     <input type="text" class="form-control" id="delivery_date_search_input" placeholder="Pilih tanggal..." value="{{ default_date | default('') }}">
                     <span class="input-icon-addon">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M4 11h16"></path><path d="M11 15h1"></path><path d="M12 15v3"></path></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path>
+                        <path d="M16 3v4"></path>
+                        <path d="M8 3v4"></path>
+                        <path d="M4 11h16"></path>
+                        <path d="M11 15h1"></path>
+                        <path d="M12 15v3"></path>
+                      </svg>
                     </span>
                   </div>
                 </div>
