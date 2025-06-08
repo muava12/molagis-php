@@ -391,13 +391,28 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </div>
                             </div>
                         `;
+                        // Update card title
+                        if (cardTitleElement) {
+                            cardTitleElement.innerHTML = `${MAGNIFIER_ICON_HTML} Detail Pesanan #${query}`;
+                            cardTitleElement.classList.add('d-flex', 'align-items-center');
+                        }
                     } else {
                         orderIdSearchResultsContainer.innerHTML = `<p class="text-warning">${data.message || 'Order not found or error fetching data.'}</p>`;
+                        // Reset card title to default
+                        if (cardTitleElement) {
+                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching order by ID:', error);
                     orderIdSearchResultsContainer.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+                    // Reset card title to default on error
+                    if (cardTitleElement) {
+                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                    }
                 });
         });
     }
@@ -552,13 +567,21 @@ document.addEventListener('DOMContentLoaded', function () {
                                         let courierName = delivery.courier_name || 'N/A';
                                         let paymentMethod = delivery.payment_method ? delivery.payment_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
                                         let ongkirDisplay = Number(delivery.ongkir || 0).toLocaleString('id-ID');
-                                        let badge_class = 'badge ';
-                                        const status_lower = delivery.status ? String(delivery.status).toLowerCase().trim() : '';
-                                        if (status_lower === 'selesai' || status_lower === 'completed') badge_class += 'bg-success-lt';
-                                        else if (status_lower === 'pending' || status_lower === 'terjadwal') badge_class += 'bg-warning-lt';
-                                        else if (status_lower === 'dibatalkan' || status_lower === 'cancelled' || status_lower === 'canceled') badge_class += 'bg-danger-lt';
-                                        else badge_class += 'bg-secondary-lt';
-                                        let statusDisplay = delivery.status ? delivery.status : 'N/A';
+                                        
+                                        let statusText = delivery.status ? delivery.status : 'N/A';
+                                        let statusLowerForClass = statusText.toLowerCase().trim();
+                                        let dotBadgeColorClass = 'bg-secondary'; // Default color
+
+                                        if (statusLowerForClass === 'selesai' || statusLowerForClass === 'completed') {
+                                            dotBadgeColorClass = 'bg-success';
+                                        } else if (statusLowerForClass === 'pending' || statusLowerForClass === 'terjadwal') {
+                                            dotBadgeColorClass = 'bg-warning';
+                                        } else if (statusLowerForClass === 'dibatalkan' || statusLowerForClass === 'cancelled' || statusLowerForClass === 'canceled') {
+                                            dotBadgeColorClass = 'bg-danger';
+                                        } else if (statusLowerForClass === 'dalam perjalanan' || statusLowerForClass === 'in progress' || statusLowerForClass === 'otw') {
+                                            dotBadgeColorClass = 'bg-info';
+                                        }
+                                        let formattedStatusText = statusText.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
                                         html += `
                                             <tr id="delivery-row-${delivery.delivery_id}">
@@ -570,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                                 <td>${paymentMethod}</td>
                                                 <td>${ongkirDisplay}</td>
                                                 <td>${grandTotalDisplay}</td>
-                                                <td><span class="${badge_class}">${statusDisplay}</span></td>
+                                                <td><span class="badge ${dotBadgeColorClass} me-1"></span>${formattedStatusText}</td>
                                                 <td>
                                                     <div class="btn-list flex-nowrap">
                                                         <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
@@ -717,6 +740,55 @@ document.addEventListener('DOMContentLoaded', function () {
             updateSearchFormVisibility(activeTabTarget); // Update visible search forms
 
             // Content loading / state adjustment logic based on the activated tab
+            // Update card title based on active tab
+            if (activeTabTarget === '#pane-by-name') {
+                const customerId = currentUrl.searchParams.get('customer_id');
+                if (customerId) {
+                    // fetchAndUpdateOrdersView will handle the title if a customer is loaded
+                    // If navigating to by_name and customerId is already in URL,
+                    // fetchAndUpdateOrdersView is called, which updates title.
+                    // If no customerId, title gets reset below.
+                } else {
+                    // No customer_id when switching to 'by_name'. Reset title.
+                    if (cardTitleElement) {
+                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                    }
+                    // Ensure contentWrapper shows the "select customer" message
+                    if (contentWrapper) {
+                        contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
+                    }
+                }
+                // The actual call to fetchAndUpdateOrdersView if customerId exists is further down,
+                // that function will set the title appropriately.
+                // This block primarily handles the reset case.
+            } else if (activeTabTarget === '#pane-by-date') {
+                // If date input is empty AND results container is also empty/initial, reset title.
+                // ensureDateInputIsPopulated will then trigger flatpickr's onChange, which loads data
+                // and sets the title based on whether deliveries are found for the (newly set) date.
+                if (deliveryDateSearchInput && deliveryDateSearchInput.value === '' &&
+                    (deliveryDateSearchResultsContainer && (deliveryDateSearchResultsContainer.innerHTML.trim() === '' || deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state')))) {
+                    if (cardTitleElement) {
+                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                    }
+                }
+                // ensureDateInputIsPopulated(true) is called later and will handle title updates based on API response
+            } else if (activeTabTarget === '#pane-by-order-id') {
+                // Reset title and content when switching to 'by_order_id' tab before a search
+                if (cardTitleElement) {
+                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                }
+                if (orderIdSearchResultsContainer) {
+                    orderIdSearchResultsContainer.innerHTML = '<p class="text-muted py-5 text-center">Masukkan ID Pesanan di atas untuk memulai pencarian.</p>';
+                }
+                if (orderIdSearchInput) {
+                    orderIdSearchInput.value = ''; // Clear previous search query
+                }
+            }
+
+            // Original content loading logic based on the activated tab (remains largely the same)
             if (activeTabTarget === '#pane-by-name') {
                 const customerId = currentUrl.searchParams.get('customer_id'); // Use updated currentUrl
 
@@ -735,25 +807,29 @@ document.addEventListener('DOMContentLoaded', function () {
                         console.error('fetchAndUpdateOrdersView function is not defined. Reloading as fallback.');
                         // window.location.href = fetchUrl.toString(); // Avoid reload if pushState worked
                     }
-                } else {
-                    // No customer_id. Reset title and clear previous customer's order list.
-                    if (cardTitleElement) {
-                         cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                         cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                    }
-                    if (contentWrapper) { // contentWrapper is byNameContainer
-                        contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
-                    }
                 }
+                // If no customerId, the title reset and content message are handled by the block above.
             } else if (activeTabTarget === '#pane-by-date') {
-                // Using variables from outer scope:
-                // deliveryDateSearchInput, deliveryDateSearchResultsContainer, ensureDateInputIsPopulated
+                // ensureDateInputIsPopulated will trigger flatpickr's onChange if date is empty,
+                // which then loads data and sets the title.
+                // If date input is already populated (e.g. from SSR or previous selection)
+                // and results are already there, title should be set.
+                // If input has value but no results, flatpickr onChange should have set default title.
+                // The specific title reset for empty input + empty results is handled above.
                 if (deliveryDateSearchInput && (deliveryDateSearchInput.value === '' || (deliveryDateSearchResultsContainer && deliveryDateSearchResultsContainer.innerHTML.trim() === ''))) {
-                     ensureDateInputIsPopulated(true);
+                     ensureDateInputIsPopulated(true); // This will eventually update title via its fetch
+                } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '') {
+                    // If date input has a value, but perhaps no action was triggered to load data yet for this tab switch
+                    // (e.g. if it was populated by SSR and user is just switching back to the tab)
+                    // We might need to manually trigger the flatpickr's onChange if current results don't match the date,
+                    // or rely on ensureDateInputIsPopulated if it's smart enough.
+                    // For now, assume if date is populated, its corresponding data (and title) should be too, or will be loaded.
+                    // The `ensureDateInputIsPopulated(true)` call will effectively re-trigger if input is empty.
+                    // If input is NOT empty, we assume the title reflects its state or will shortly.
                 }
             }
-            // No specific 'else if' needed for other tabs like 'by_order_id' as they are full reloads
-            // and their content is server-rendered.
+            // For '#pane-by-order-id', title and content reset is handled above.
+            // No specific content loading is done here on tab switch for by_order_id, it's user-initiated search.
 
             // This should be called after potential content updates. updateBatchDeleteToast is from outer scope.
             if (typeof updateBatchDeleteToast === 'function') {
@@ -776,41 +852,79 @@ document.addEventListener('DOMContentLoaded', function () {
     // Activate the determined tab
     const activeTabButton = document.querySelector(`.nav-link[data-bs-target="${activeTabTargetOnLoad}"]`);
     if (activeTabButton && bootstrap && typeof bootstrap.Tab === 'function') { // Check for bootstrap.Tab
-        const tabInstance = new bootstrap.Tab(activeTabButton);
-        tabInstance.show();
+        // const tabInstance = new bootstrap.Tab(activeTabButton); // This might be incorrect if instance already exists
+        const tabInstance = bootstrap.Tab.getOrCreateInstance(activeTabButton);
+        tabInstance.show(); // This should trigger 'shown.bs.tab' which includes title logic
     } else if (activeTabButton) {
         // Fallback or manual activation if bootstrap.Tab is not found or not a function
-        // This might involve manually setting 'active' classes and hiding/showing panes
         console.warn("Bootstrap Tab instance couldn't be created. Tab activation might be incomplete.");
-        // Manual activation example (simplified, might need more robust class handling):
         document.querySelectorAll('#orders-view-tabs .nav-link').forEach(tb => tb.classList.remove('active'));
         activeTabButton.classList.add('active');
         document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
         const targetPane = document.querySelector(activeTabTargetOnLoad);
         if (targetPane) targetPane.classList.add('show', 'active');
+        
+        // Manually trigger title update and visibility if Bootstrap event didn't fire
+        updateSearchFormVisibility(activeTabTargetOnLoad);
+        // Manual title setting based on active tab on load (if not handled by 'shown.bs.tab')
+        if (activeTabTargetOnLoad === '#pane-by-name') {
+            if (!currentUrlParams.get('customer_id') && cardTitleElement) { // No customer selected
+                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                cardTitleElement.classList.remove('d-flex', 'align-items-center');
+            } // If customer selected, SSR or subsequent fetchAndUpdateOrdersView should handle title
+        } else if (activeTabTargetOnLoad === '#pane-by-date') {
+            // If date input is empty and no results on load, set default title
+            if (deliveryDateSearchInput && deliveryDateSearchInput.value === '' && cardTitleElement) {
+                 const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer || deliveryDateSearchResultsContainer.innerHTML.trim() === '' || deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state');
+                 if (containerIsEmptyOrInitial) {
+                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                 }
+            }
+            // ensureDateInputIsPopulated(true) will be called below if conditions match, handling further title updates
+        } else if (activeTabTargetOnLoad === '#pane-by-order-id' && cardTitleElement) {
+            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Default for By Order ID on load
+            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+        }
     }
 
+    // This block runs after tab activation, ensuring visibility and potentially populating date for 'By Date' tab
     if (activeTabTargetOnLoad) {
-        updateSearchFormVisibility(activeTabTargetOnLoad);
+        updateSearchFormVisibility(activeTabTargetOnLoad); // Call this regardless of how tab was shown
         if (activeTabTargetOnLoad === '#pane-by-date') {
-            // If "By Date" is the active tab on load and input is empty (e.g. no default_date from server)
-            // and no server-rendered results are present for a different date.
-            // Check if SSR content exists. If not, or if input is empty, populate.
-            // The server might have already set a value if default_date was passed.
              if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                // Check if the container is empty or has the initial "Pilih tanggal" message
                 const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer ||
                                                  deliveryDateSearchResultsContainer.innerHTML.trim() === '' ||
                                                  deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state') !== null;
-
                 if (containerIsEmptyOrInitial) {
-                    ensureDateInputIsPopulated(true);
+                    ensureDateInputIsPopulated(true); // This triggers flatpickr onChange, leading to title update
+                }
+            } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '' && cardTitleElement) {
+                // If date is populated (e.g. SSR with default_date), and no specific title was set by SSR for date,
+                // or if JS needs to re-confirm title.
+                // Check if title is still default, if so, try to format based on existing date.
+                // This case is tricky, as flatpickr's onChange is the primary mechanism for date title.
+                // If SSR provides results, Twig should set the title. If JS loads results, flatpickr onChange does.
+                // This is more of a fallback if title is default but date is set.
+                if (cardTitleElement.innerHTML === DEFAULT_CARD_TITLE || !cardTitleElement.querySelector('svg.icon')) {
+                     try {
+                        const dateObj = new Date(deliveryDateSearchInput.value + 'T00:00:00');
+                        const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
+                        cardTitleElement.classList.add('d-flex', 'align-items-center');
+                    } catch (e) { /* keep default title if error */ }
                 }
             }
         }
+        // For by_name, if a customer_id is in URL, SSR handles initial title or fetchAndUpdateOrdersView does.
+        // If no customer_id, title should be default (handled by 'shown.bs.tab' or manual activation logic above).
     } else if (!urlView && !localStorage.getItem('activeOrdersTab')) {
         // Default to 'by_name' if no URL param and no localStorage
         updateSearchFormVisibility('#pane-by-name');
+        if (cardTitleElement) { // Set default title if no specific context
+            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+        }
     }
 
 

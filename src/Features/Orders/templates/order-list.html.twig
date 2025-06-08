@@ -76,7 +76,7 @@
                     <path d="M5 12l0 .01"></path>
                     <path d="M5 18l0 .01"></path>
                   </svg>
-                  By Name
+                  <span class="d-none d-sm-inline">By Name</span>
               </button>
               <button type="button" class="nav-link {{ view == 'by_date' ? 'active' : '' }}" id="tab-by-date-button" data-bs-toggle="tab" data-bs-target="#pane-by-date" role="tab" aria-controls="pane-by-date" aria-selected="{{ view == 'by_date' ? 'true' : 'false' }}">
                   <!-- SVG for Calendar icon -->
@@ -88,7 +88,7 @@
                     <path d="M11 15h1"></path>
                     <path d="M12 15v3"></path>
                   </svg>
-                  By Date
+                  <span class="d-none d-sm-inline">By Date</span>
               </button>
               {# Example of a disabled tab as in user's reference - adapt if needed, or remove if not applicable #}
               {# <button type="button" class="nav-link disabled" role="tab" data-bs-toggle="tab" aria-selected="false" aria-disabled="true" tabindex="-1">
@@ -305,18 +305,20 @@
                                 <td>{{ delivery.ongkir | number_format(0, ',', '.') }}</td>
                                 <td>{{ (delivery.subtotal_harga + delivery.ongkir) | number_format(0, ',', '.') }}</td>
                                 <td>
-                                    {% set status_lower = delivery.status | lower %}
-                                    {% set badge_class = 'badge ' %}
-                                    {% if status_lower == 'selesai' %}
-                                        {% set badge_class = badge_class ~ 'bg-success-lt' %}
-                                    {% elseif status_lower == 'pending' or status_lower == 'terjadwal' %}
-                                        {% set badge_class = badge_class ~ 'bg-warning-lt' %}
-                                    {% elseif status_lower == 'dibatalkan' %}
-                                        {% set badge_class = badge_class ~ 'bg-danger-lt' %}
-                                    {% else %}
-                                        {% set badge_class = badge_class ~ 'bg-secondary-lt' %}
+                                    {% set status_text = delivery.status | default('N/A') %}
+                                    {% set status_lower_for_class = status_text | lower | trim %}
+                                    {% set dot_badge_color_class = 'bg-secondary' %} {# Default color #}
+
+                                    {% if status_lower_for_class == 'selesai' or status_lower_for_class == 'completed' %}
+                                        {% set dot_badge_color_class = 'bg-success' %}
+                                    {% elseif status_lower_for_class == 'pending' or status_lower_for_class == 'terjadwal' %}
+                                        {% set dot_badge_color_class = 'bg-warning' %}
+                                    {% elseif status_lower_for_class == 'dibatalkan' or status_lower_for_class == 'cancelled' or status_lower_for_class == 'canceled' %}
+                                        {% set dot_badge_color_class = 'bg-danger' %}
+                                    {% elseif status_lower_for_class == 'dalam perjalanan' or status_lower_for_class == 'in progress' or status_lower_for_class == 'otw' %}
+                                        {% set dot_badge_color_class = 'bg-info' %}
                                     {% endif %}
-                                    <span class="{{ badge_class }}">{{ delivery.status | default('N/A') }}</span>
+                                    <span class="badge {{ dot_badge_color_class }} me-1"></span>{{ status_text | replace({'_': ' '}) | title }}
                                 </td>
                                 <td>
                                     <div class="btn-list flex-nowrap">
