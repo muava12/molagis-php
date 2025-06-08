@@ -398,8 +398,12 @@ function calculateTotalPayment() {
         totalPackageCost += packagePrice * orderQty;
         totalModalCost += packageModal * orderQty;
     });
-    const additionalItemsCost = parseFloat(document.querySelector('#harga-item-tambahan').value) || 0;
-    const additionalModalCost = parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0;
+    // Only include additional costs if they have valid values
+    const additionalItemsValue = document.querySelector('#harga-item-tambahan').value.trim();
+    const additionalItemsCost = additionalItemsValue ? (parseFloat(additionalItemsValue) || 0) : 0;
+
+    const additionalModalValue = document.querySelector('#harga-modal-item-tambahan').value.trim();
+    const additionalModalCost = additionalModalValue ? (parseFloat(additionalModalValue) || 0) : 0;
     const shipping = parseFloat(shippingCost.value) || currentCustomerOngkir;
     const totalPerDayValue = totalPackageCost + additionalItemsCost + shipping;
     const totalModalPerDayValue = totalModalCost + additionalModalCost;
@@ -515,9 +519,18 @@ function collectOrderData() {
         kurir_id: parseInt(courierSelect.value) || null,
         ongkir: totals.shipping,
         status: 'pending',
-        item_tambahan: document.getElementById('item-tambahan').value.trim(),
-        harga_tambahan: parseFloat(document.querySelector('#harga-item-tambahan').value) || 0,
-        harga_modal_tambahan: parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0,
+        item_tambahan: (() => {
+            const value = document.getElementById('item-tambahan').value.trim();
+            return value ? value : null;
+        })(),
+        harga_tambahan: (() => {
+            const value = document.querySelector('#harga-item-tambahan').value.trim();
+            return value ? (parseFloat(value) || null) : null;
+        })(),
+        harga_modal_tambahan: (() => {
+            const value = document.querySelector('#harga-modal-item-tambahan').value.trim();
+            return value ? (parseFloat(value) || null) : null;
+        })(),
         total_harga_perhari: totals.totalPerDay,
         total_modal_perhari: totals.totalModalPerDay
     }));

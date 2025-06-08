@@ -1781,7 +1781,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const hargaTambahanInput = document.getElementById('harga-tambahan-input');
 
         const ongkir = parseFloat(ongkirInput ? ongkirInput.value : 0) || 0;
-        const hargaTambahan = parseFloat(hargaTambahanInput ? hargaTambahanInput.value : 0) || 0;
+        // Only include harga_tambahan if it has a valid value
+        const hargaTambahanValue = hargaTambahanInput ? hargaTambahanInput.value.trim() : '';
+        const hargaTambahan = hargaTambahanValue ? (parseFloat(hargaTambahanValue) || 0) : 0;
 
         const grandTotal = sumOfItemSubtotals + ongkir + hargaTambahan;
         overallTotalDisplay.value = grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
@@ -1910,13 +1912,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to gather data from the edit modal form
     function gatherEditModalFormData() {
+        // Helper function to parse price input - returns null if empty, otherwise parsed float
+        function parsePriceInput(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input || !input.value.trim()) {
+                return null;
+            }
+            const parsed = parseFloat(input.value.trim());
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        // Helper function to handle text input - returns null if empty
+        function parseTextInput(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input || !input.value.trim()) {
+                return null;
+            }
+            return input.value.trim();
+        }
+
         const data = {
             tanggal: document.getElementById('delivery-date-input').value,
             kurir_id: document.getElementById('kurir-select').value,
             ongkir: parseFloat(document.getElementById('ongkir-input').value) || 0,
-            item_tambahan: document.getElementById('item-tambahan-input').value,
-            harga_tambahan: parseFloat(document.getElementById('harga-tambahan-input').value) || 0,
-            harga_modal_tambahan: parseFloat(document.getElementById('harga-modal-tambahan-input').value) || 0,
+            item_tambahan: parseTextInput('item-tambahan-input'),
+            harga_tambahan: parsePriceInput('harga-tambahan-input'),
+            harga_modal_tambahan: parsePriceInput('harga-modal-tambahan-input'),
             daily_kitchen_note: document.getElementById('daily-kitchen-note')?.value || '',
             daily_courier_note: document.getElementById('daily-courier-note')?.value || '',
             package_items: [],

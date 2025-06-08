@@ -548,9 +548,9 @@ class OrdersService
             'tanggal' => $data['tanggal'] ?? null, // RPC casts to DATE
             'kurir_id' => !empty($data['kurir_id']) ? (int)$data['kurir_id'] : null, // RPC casts to BIGINT
             'ongkir' => isset($data['ongkir']) ? (float)$data['ongkir'] : 0, // RPC casts to INTEGER or NUMERIC
-            'item_tambahan' => $data['item_tambahan'] ?? null,
-            'harga_tambahan' => isset($data['harga_tambahan']) ? (float)$data['harga_tambahan'] : 0, // RPC casts to NUMERIC
-            'harga_modal_tambahan' => isset($data['harga_modal_tambahan']) ? (float)$data['harga_modal_tambahan'] : 0, // RPC casts to NUMERIC
+            'item_tambahan' => $data['item_tambahan'] ?? null, // Send null if empty, don't convert to empty string
+            'harga_tambahan' => isset($data['harga_tambahan']) && $data['harga_tambahan'] !== null ? (float)$data['harga_tambahan'] : null, // RPC casts to NUMERIC
+            'harga_modal_tambahan' => isset($data['harga_modal_tambahan']) && $data['harga_modal_tambahan'] !== null ? (float)$data['harga_modal_tambahan'] : null, // RPC casts to NUMERIC
             'daily_kitchen_note' => $data['daily_kitchen_note'] ?? null,
             'daily_courier_note' => $data['daily_courier_note'] ?? null,
             'package_items' => [], // Initialize to empty array
