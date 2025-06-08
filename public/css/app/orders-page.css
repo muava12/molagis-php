@@ -1,0 +1,105 @@
+/* CSS khusus untuk halaman Orders (/orders) */
+
+/* Responsive Date Navigation */
+.date-nav-container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.date-nav-buttons {
+  flex-shrink: 0;
+}
+
+.date-nav-input {
+  flex-grow: 1;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+/* Mobile optimizations for date navigation */
+@media (max-width: 576px) {
+  .date-nav-input {
+    min-width: 100px;
+    max-width: 140px;
+  }
+  
+  /* Optimize button sizes for mobile */
+  #form_search_by_date .btn-icon {
+    padding: 0.375rem 0.5rem;
+  }
+  
+  #form_search_by_date .btn-icon .icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  /* Optimize input placeholder text */
+  #delivery_date_search_input::placeholder {
+    font-size: 0.875rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+  .date-nav-input {
+    min-width: 90px;
+    max-width: 120px;
+  }
+  
+  #form_search_by_date .btn-icon {
+    padding: 0.25rem 0.375rem;
+  }
+  
+  #form_search_by_date .btn-icon .icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* Further optimize input for very small screens */
+  #delivery_date_search_input {
+    font-size: 0.875rem;
+  }
+  
+  #delivery_date_search_input::placeholder {
+    font-size: 0.8rem;
+  }
+}
+
+/* Ensure date navigation stays in one line */
+#form_search_by_date .d-flex.flex-nowrap {
+  overflow: hidden;
+}
+
+/* Optimize gap spacing on smaller screens */
+@media (max-width: 576px) {
+  #form_search_by_date .d-flex.flex-nowrap {
+    gap: 0.25rem;
+  }
+}
+
+/* Additional responsive optimizations for orders table */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+/* Empty state responsive adjustments */
+@media (max-width: 576px) {
+  .empty-state-card {
+    padding: 2rem 1rem !important;
+  }
+  
+  .empty-state-card div[style*="width: 200px"] {
+    width: 150px !important;
+    height: 150px !important;
+  }
+}
