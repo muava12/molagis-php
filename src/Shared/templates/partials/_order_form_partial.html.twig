@@ -1,21 +1,21 @@
-<div class="row">
-    <div class="col-12 col-sm-5"> <!-- Date picker column -->
-        <div class="date-picker-container">
+<div class="row g-3">
+    <div class="col-12 col-sm-5 col-md-4"> <!-- Date picker column with responsive sizing -->
+        <div class="date-picker-container w-100 mw-100">
             <div class="date-picker-buttons">
-                <button class="btn" id="today-btn">Hari Ini</button>
-                <button class="btn" id="next-month-btn">Bulan Depan</button>
-                <button class="btn" id="clear-btn">Clear</button>
+                <button class="btn btn-sm" id="today-btn">Hari Ini</button>
+                <button class="btn btn-sm" id="next-month-btn">Bulan Depan</button>
+                <button class="btn btn-sm" id="clear-btn">Clear</button>
             </div>
             <div class="date-picker-quick-actions">
                 <button class="btn btn-sm" id="next-7-days-btn">7 Hari</button>
                 <button class="btn btn-sm" id="next-14-days-btn">14 Hari</button>
             </div>
             <div class="date-picker-header">
-                <button class="btn btn-icon" id="prev-month">
+                <button class="btn btn-icon btn-sm" id="prev-month">
                     {% include 'svg/chevron-left.svg.twig' %}
                 </button>
-                <div class="date-picker-month text-body" id="calendar-month-year"></div>
-                <button class="btn btn-icon" id="next-month">
+                <div class="date-picker-month text-body fw-medium" id="calendar-month-year"></div>
+                <button class="btn btn-icon btn-sm" id="next-month">
                     {% include 'svg/chevron-right.svg.twig' %}
                 </button>
             </div>
@@ -35,7 +35,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-sm-7"> <!-- Form fields column -->
+    <div class="col-12 col-sm-7 col-md-8"> <!-- Form fields column with responsive sizing -->
         <form id="order-form">
             <div class="mb-3">
                 <label for="customer-input" class="form-label text-muted">Pelanggan</label>

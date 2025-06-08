@@ -14,59 +14,6 @@
   }
 }
 
-/* Package List Components */
-.package-list {
-  display: flex;
-  flex-wrap: nowrap;
-}
-
-.input-paket,
-.input-jumlah {
-  flex-basis: calc(50% - 10px);
-}
-
-.tambah-paket {
-  align-self: flex-end;
-  width: 3em;
-}
-
-
-
-/* Toggle Container Components */
-.toggle-container {
-  margin-bottom: 10px;
-  padding: 0px;
-}
-
-.toggle-header {
-  padding: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.toggle-header svg {
-  margin-right: 10px;
-  transition: transform 0.3s;
-}
-
-.toggle-content {
-  display: none;
-  padding: 10px;
-}
-
-.toggle-container.active .toggle-content {
-  display: block;
-}
-
-.toggle-container.active .toggle-header svg {
-  transform: rotate(90deg);
-}
-
-.rotate-90 {
-  transform: rotate(90deg);
-}
-
 /* Hide spinners for number inputs in additional items */
 #harga-item-tambahan::-webkit-inner-spin-button,
 #harga-item-tambahan::-webkit-outer-spin-button,
@@ -97,87 +44,6 @@
 .collapse.show + [data-bs-toggle="collapse"] svg,
 [data-bs-toggle="collapse"][aria-expanded="true"] svg {
   transform: rotate(90deg);
-}
-
-/* Chevron animation for form-selectgroup collapse toggles */
-.form-selectgroup-input[data-bs-toggle="collapse"]
-  + .form-selectgroup-label
-  svg {
-  margin-right: 8px;
-  transition: transform 0.3s;
-}
-
-.form-selectgroup-input[data-bs-toggle="collapse"]:checked
-  + .form-selectgroup-label
-  svg,
-.form-selectgroup-input[data-bs-toggle="collapse"][aria-expanded="true"]
-  + .form-selectgroup-label
-  svg {
-  transform: rotate(90deg);
-}
-
-/* Form Validation & Feedback */
-.form-control.is-invalid {
-  border-color: var(--tblr-danger);
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
-
-.form-control.is-valid {
-  border-color: var(--tblr-success);
-  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
-}
-
-.invalid-feedback {
-  display: block;
-  width: 100%;
-  margin-top: 0.25rem;
-  font-size: 0.875em;
-  color: var(--tblr-danger);
-}
-
-.valid-feedback {
-  display: block;
-  width: 100%;
-  margin-top: 0.25rem;
-  font-size: 0.875em;
-  color: var(--tblr-success);
-}
-
-/* Loading States */
-.loading-skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-  border-radius: 4px;
-  height: 38px;
-}
-
-@keyframes loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-.form-control.loading {
-  background: linear-gradient(90deg, #f8f9fa 25%, #e9ecef 50%, #f8f9fa 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-  pointer-events: none;
-}
-
-/* Progress Indicator */
-.form-progress {
-  height: 4px;
-  background: var(--tblr-border-color);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 1rem;
-}
-
-.form-progress-bar {
-  height: 100%;
-  background: var(--tblr-primary);
-  transition: width 0.3s ease;
-  border-radius: 2px;
 }
 
 /* Form Validation & Feedback */
@@ -303,56 +169,45 @@
   border-radius: 2px;
 }
 
-
-
 /* Custom Date Picker Components */
 .date-picker-container {
-  max-width: 400px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   background: var(--tblr-bg-surface, #fff);
   padding: 10px;
   user-select: none;
   position: relative;
+  /* Ensure container doesn't exceed its column */
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* Date Picker Quick Actions */
+/* Date Picker Quick Actions - Using Tabler styles */
 .date-picker-quick-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 0.25rem; /* Tabler spacing utility equivalent */
+  margin-bottom: 0.625rem; /* Tabler spacing */
   justify-content: center;
-}
-
-.date-picker-quick-actions .btn {
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 4px;
 }
 
 .date-picker-buttons {
   display: flex;
-  gap: 5px;
+  gap: 0.375rem; /* Tabler spacing utility */
   justify-content: center;
-  margin-bottom: 10px;
-}
-
-.date-picker-buttons .btn {
-  font-size: 12px;
-  padding: 5px 10px;
+  margin-bottom: 0.625rem; /* Tabler spacing */
 }
 
 .date-picker-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 0.625rem; /* Tabler spacing */
 }
 
 .date-picker-month {
-  font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem; /* Tabler text-sm */
 }
 
 .date-picker-month.loading::after {
@@ -383,15 +238,21 @@
 
 .date-picker-days {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
   user-select: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Ensure grid can accommodate all day cells properly */
+  justify-items: center;
+  align-items: center;
 }
 
 .date-picker-day {
-  width: 100%; /* Mengisi lebar kolom grid */
-  aspect-ratio: 1/1; /* Memastikan tinggi sama dengan lebar */
-  max-width: 32px; /* Batasi ukuran maksimum */
+  width: 100%;
+  aspect-ratio: 1/1;
+  max-width: none; /* Remove max-width to prevent constraint conflicts */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -404,6 +265,11 @@
   visibility: visible !important;
   opacity: 1 !important;
   color: var(--tblr-dark, #212529);
+  box-sizing: border-box;
+  min-width: 0;
+  /* Ensure day cells fit within grid without overlap */
+  max-height: 100%;
+  overflow: hidden;
 }
 
 .date-picker-day:hover:not(.disabled) {
@@ -483,21 +349,58 @@
   color: var(--tblr-danger, #dc3545);
 }
 
-/* Medium screen improvements */
+/* Medium screen improvements using Tabler utilities approach */
 @media (min-width: 576px) and (max-width: 991px) {
-  /* Improve calendar button sizes for medium screens */
-  .date-picker-buttons .btn {
-    font-size: 13px;
-    padding: 6px 10px;
+  .date-picker-month {
+    font-size: 0.8125rem; /* Between text-xs and text-sm */
   }
 
-  .date-picker-quick-actions .btn {
-    font-size: 12px;
-    padding: 5px 9px;
+  .date-picker-weekdays {
+    font-size: 0.6875rem;
   }
 
   .date-picker-day {
-    font-size: 15px;
+    font-size: 0.75rem;
+    /* Ensure proper sizing to prevent overlap */
+    max-width: 28px;
+    max-height: 28px;
+    min-height: 28px;
+    min-width: 28px;
+  }
+
+  .selected-dates-count {
+    font-size: 0.8125rem;
+  }
+
+  .selected-dates .badge {
+    font-size: 0.625rem;
+    padding: 0.0625rem 0.1875rem;
+  }
+}
+
+/* Specific adjustments for smaller medium screens */
+@media (min-width: 576px) and (max-width: 767px) {
+  .date-picker-day {
+    font-size: 0.6875rem;
+    max-width: 24px;
+    max-height: 24px;
+    min-height: 24px;
+    min-width: 24px;
+  }
+
+  .date-picker-days {
+    gap: 0.5px; /* Reduce gap for tighter fit */
+  }
+}
+
+/* Large screens - ensure optimal sizing */
+@media (min-width: 992px) {
+  .date-picker-day {
+    max-width: 32px;
+    max-height: 32px;
+    min-height: 32px;
+    min-width: 32px;
+    font-size: 0.875rem; /* Tabler text-sm */
   }
 }
 
@@ -523,14 +426,8 @@
 
   /* Improve touch targets */
   .date-picker-day {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  .date-picker-buttons .btn,
-  .date-picker-quick-actions .btn {
-    min-height: 44px;
-    padding: 8px 12px;
+    min-height: 32px;
+    min-width: 32px;
   }
 
   /* Accordion-style form sections for mobile */
