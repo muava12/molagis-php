@@ -753,19 +753,17 @@ document.addEventListener('DOMContentLoaded', function () {
         // Build the table HTML
         let tableHTML = `
             <div class="table-responsive">
-                <table class="table table-vcenter card-table table-striped">
+                <table class="table table-vcenter card-table table-selectable">
                     <thead>
                         <tr>
+                            <th><input class="form-check-input m-0 align-middle" type="checkbox" id="select-all-deliveries-by-date-js" aria-label="Select all deliveries"></th>
                             <th>Customer</th>
-                            <th>Order ID</th>
-                            <th>Items</th>
-                            <th>Notes (Dapur/Kurir)</th>
+                            <th>Details</th>
                             <th>Kurir</th>
-                            <th>Pembayaran</th>
                             <th>Ongkir</th>
                             <th>Total</th>
                             <th>Status</th>
-                            <th class="w-1">Aksi</th>
+                            <th class="w-1">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -777,31 +775,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
             tableHTML += `
                 <tr id="delivery-row-${delivery.delivery_id}">
-                    <td>${delivery.customer_name || 'N/A'}</td>
+                    <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="${delivery.delivery_id}" aria-label="Select delivery ${delivery.delivery_id}"></td>
                     <td>
-                        <a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">
-                            #${delivery.order_id}
-                        </a>
+                        <div class="fw-bold">${delivery.customer_name || 'N/A'}</div>
+                        <div class="small text-muted">
+                            Order ID: <a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>
+                            | ${formatPaymentMethod(delivery.payment_method)}
+                        </div>
                     </td>
-                    <td>${renderItemsColumn(items, delivery.subtotal_harga)}</td>
-                    <td>${renderNotesColumn(delivery.kitchen_note, delivery.courier_note)}</td>
-                    <td>${delivery.courier_name || 'N/A'}</td>
-                    <td>${formatPaymentMethod(delivery.payment_method)}</td>
+                    <td>${renderDetailsColumnWithAdditional(items, delivery.kitchen_note, delivery.courier_note)}</td>
+                    <td>${renderCourierBadge(delivery.courier_name)}</td>
                     <td>${formatCurrency(delivery.ongkir)}</td>
                     <td>${formatCurrency((delivery.subtotal_harga || 0) + (delivery.ongkir || 0))}</td>
-                    <td>
+                    <td class="text-nowrap">
                         <span class="badge ${statusClass} me-1"></span>${formatStatus(delivery.status)}
                     </td>
                     <td>
                         <div class="btn-list flex-nowrap">
                             <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
-                                    <path d="M13.5 6.5l4 4" />
+                                    <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                                    <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                                    <path d="M16 5l3 3" />
                                 </svg>
                             </button>
-                            <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
+                            <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                     <path d="M4 7l16 0" />
@@ -862,6 +861,28 @@ document.addEventListener('DOMContentLoaded', function () {
         return new Intl.NumberFormat('id-ID').format(amount || 0);
     }
 
+    function renderCourierBadge(courierName) {
+        if (!courierName || courierName === 'N/A') {
+            return '<span class="badge bg-default-lt">N/A</span>';
+        }
+
+        // Array of available colors for courier badges (matching Tabler CSS)
+        const courierColors = ['blue', 'azure', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan'];
+
+        // Create a simple hash from courier name
+        let courierHash = 0;
+        const cleanName = courierName.toLowerCase().replace(/[\s\-_]/g, '');
+        for (let i = 0; i < cleanName.length; i++) {
+            courierHash += cleanName.charCodeAt(i);
+        }
+
+        // Use modulo to get consistent color index
+        const colorIndex = courierHash % courierColors.length;
+        const courierColor = courierColors[colorIndex];
+
+        return `<span class="badge bg-${courierColor}-lt">${courierName}</span>`;
+    }
+
     function renderItemsColumn(items, subtotalHarga) {
         let html = '<ul class="list-unstyled mb-0">';
 
@@ -905,6 +926,126 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<small class="d-block"><strong>Kurir:</strong> ${courierNote}</small>`;
         }
         return html || '<span class="text-muted">-</span>';
+    }
+
+    // New function for rendering Details column (packages + notes)
+    function renderDetailsColumn(items, kitchenNote, courierNote) {
+        let html = '';
+
+        // Render package items in table format like "by name" view
+        if (items.items && items.items.length > 0) {
+            html += '<table class="table table-sm table-borderless mb-0"><tbody>';
+            items.items.forEach(item => {
+                const price = item.price ? formatCurrency(item.price) : '';
+                html += `
+                    <tr>
+                        <td>${item.package_name || 'N/A'}</td>
+                        <td>(${item.quantity})</td>
+                        <td class="text-end">${price}</td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table>';
+        }
+
+        // Add notes below packages
+        if (kitchenNote && kitchenNote.trim()) {
+            html += `<small class="d-block text-muted mt-1"><em>Dapur: ${kitchenNote}</em></small>`;
+        }
+        if (courierNote && courierNote.trim()) {
+            html += `<small class="d-block text-muted"><em>Kurir: ${courierNote}</em></small>`;
+        }
+
+        // Fallback for when there are no items
+        if ((!items.items || items.items.length === 0) && (!kitchenNote || !kitchenNote.trim()) && (!courierNote || !courierNote.trim())) {
+            html = '<span class="text-muted">- No items -</span>';
+        }
+
+        return html;
+    }
+
+    // New function for rendering Additional Items column
+    function renderAdditionalItemsColumn(items) {
+        if (!items.additional_items || items.additional_items.length === 0) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        const validItems = items.additional_items.filter(item =>
+            item.item_name && item.item_name !== '' && item.item_name !== 'N/A'
+        );
+
+        if (validItems.length === 0) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        let html = '';
+        validItems.forEach(item => {
+            const price = item.price && item.price > 0 ? ` <span class="text-muted">@ ${formatCurrency(item.price)}</span>` : '';
+            html += `<div class="small">${item.quantity || 1}x ${item.item_name}${price}</div>`;
+        });
+
+        return html;
+    }
+
+    // New function for rendering Details column with additional items included
+    function renderDetailsColumnWithAdditional(items, kitchenNote, courierNote) {
+        let html = '';
+
+        // Check if we have any items to display
+        const hasPackageItems = items.items && items.items.length > 0;
+        const validAdditionalItems = items.additional_items ?
+            items.additional_items.filter(item => item.item_name && item.item_name !== '' && item.item_name !== 'N/A') : [];
+        const hasAdditionalItems = validAdditionalItems.length > 0;
+
+        // Render table if there are package items or additional items
+        if (hasPackageItems || hasAdditionalItems) {
+            html += '<table class="table table-sm table-borderless mb-0"><tbody>';
+
+            // Render package items
+            if (hasPackageItems) {
+                items.items.forEach(item => {
+                    const price = item.price ? formatCurrency(item.price) : '';
+                    html += `
+                        <tr>
+                            <td>${item.package_name || 'N/A'}</td>
+                            <td>(${item.quantity})</td>
+                            <td class="text-end">${price}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Render additional items in the same table format
+            if (hasAdditionalItems) {
+                validAdditionalItems.forEach(item => {
+                    const price = item.price && item.price > 0 ? formatCurrency(item.price) : '';
+                    html += `
+                        <tr>
+                            <td>${item.item_name} <span class="text-success">+</span></td>
+                            <td></td>
+                            <td class="text-end">${price}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += '</tbody></table>';
+        }
+
+        // Add notes below table
+        if (kitchenNote && kitchenNote.trim()) {
+            html += `<small class="d-block text-muted mt-1"><em>Dapur: ${kitchenNote}</em></small>`;
+        }
+        if (courierNote && courierNote.trim()) {
+            html += `<small class="d-block text-muted"><em>Kurir: ${courierNote}</em></small>`;
+        }
+
+        // Fallback for when there are no items
+        if (!hasPackageItems && !hasAdditionalItems && (!kitchenNote || !kitchenNote.trim()) && (!courierNote || !courierNote.trim())) {
+            html = '<span class="text-muted">- No items -</span>';
+        }
+
+        return html;
     }
 
     // Add event listeners for date navigation buttons

@@ -263,83 +263,100 @@
     {% if view == 'by_date' %}
         {% if deliveries_for_today is defined and deliveries_for_today is not empty %}
             <div class="table-responsive">
-                <table class="table table-vcenter card-table table-striped">
+                <table class="table table-vcenter card-table table-selectable">
                     <thead>
                         <tr>
+                            <th><input class="form-check-input m-0 align-middle" type="checkbox" id="select-all-deliveries-by-date" aria-label="Select all deliveries"></th>
                             <th>Customer</th>
-                            <th>Order ID</th>
-                            <th>Items</th>
-                            <th>Notes (Dapur/Kurir)</th>
+                            <th>Details</th>
                             <th>Kurir</th>
-                            <th>Pembayaran</th>
                             <th>Ongkir</th>
                             <th>Total</th>
                             <th>Status</th>
-                            <th class="w-1">Aksi</th>
+                            <th class="w-1">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for delivery in deliveries_for_today %}
                             <tr id="delivery-row-{{ delivery.delivery_id }}">
-                                <td>{{ delivery.customer_name | default('N/A') }}</td>
+                                <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="{{ delivery.delivery_id }}" aria-label="Select delivery {{ delivery.delivery_id }}"></td>
                                 <td>
-                                    <a href="/orders?view=by_order_id&order_id_query={{ delivery.order_id }}">
-                                        #{{ delivery.order_id }}
-                                    </a>
+                                    <div class="fw-bold">{{ delivery.customer_name | default('N/A') }}</div>
+                                    <div class="small text-muted">
+                                        Order ID: <a href="/orders?view=by_order_id&order_id_query={{ delivery.order_id }}">#{{ delivery.order_id }}</a>
+                                        | {{ delivery.payment_method | replace({'_': ' '}) | title | default('N/A') }}
+                                    </div>
                                 </td>
                                 <td>
-                                    <ul class="list-unstyled mb-0">
-                                        {% if delivery.items.items is defined and delivery.items.items is not empty %}
-                                            <li>Paket:</li>
-                                            <ul class="list-unstyled ps-3 mb-1">
-                                                {% for item in delivery.items.items %}
-                                                    <li>{{ item.quantity }}x {{ item.package_name | default('N/A') }}{% if item.price is defined and item.price is not null %} <span class="text-muted">@ {{ item.price | number_format(0, ',', '.') }}</span>{% else %}{% endif %}</li>
-                                                {% endfor %}
-                                            </ul>
-                                        {% endif %}
+                                    {# Prepare additional items list #}
+                                    {% set valid_additional_items = [] %}
+                                    {% if delivery.items.additional_items is defined and delivery.items.additional_items is not empty %}
+                                        {% for add_item in delivery.items.additional_items %}
+                                            {% if add_item.item_name is defined and add_item.item_name is not null and add_item.item_name != '' and add_item.item_name != 'N/A' %}
+                                                {% set valid_additional_items = valid_additional_items|merge([add_item]) %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
 
-                                        {% set valid_additional_items = [] %}
-                                        {% if delivery.items.additional_items is defined and delivery.items.additional_items is not empty %}
-                                            {% for add_item in delivery.items.additional_items %}
-                                                {% if add_item.item_name is defined and add_item.item_name is not null and add_item.item_name != '' and add_item.item_name != 'N/A' %}
-                                                    {% set valid_additional_items = valid_additional_items|merge([add_item]) %}
+                                    {# Show table if there are package items or additional items #}
+                                    {% if (delivery.items.items is defined and delivery.items.items is not empty) or valid_additional_items is not empty %}
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tbody>
+                                                {# Package items #}
+                                                {% if delivery.items.items is defined and delivery.items.items is not empty %}
+                                                    {% for item in delivery.items.items %}
+                                                        <tr>
+                                                            <td>{{ item.package_name | default('N/A') }}</td>
+                                                            <td>({{ item.quantity }})</td>
+                                                            <td class="text-end">{{ item.price | number_format(0, ',', '.') }}</td>
+                                                        </tr>
+                                                    {% endfor %}
                                                 {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
 
-                                        {% if valid_additional_items is not empty %}
-                                            <li>Tambahan:</li>
-                                            <ul class="list-unstyled ps-3 mb-1">
-                                                {% for add_item in valid_additional_items %}
-                                                    <li>{{ add_item.quantity | default(1) }}x {{ add_item.item_name }}{% if add_item.price is defined and add_item.price is not null and add_item.price > 0 %} <span class="text-muted">@ {{ add_item.price | number_format(0, ',', '.') }}</span>{% endif %}</li>
-                                                {% endfor %}
-                                            </ul>
-                                        {% endif %}
-                                        <li class="mt-1 text-muted"><strong>Subtotal Items: {{ delivery.subtotal_harga | number_format(0, ',', '.') }}</strong></li>
-                                    </ul>
-                                    {# Fallback for when there are absolutely no items, including no subtotal to display meaningful info from #}
+                                                {# Additional items #}
+                                                {% if valid_additional_items is not empty %}
+                                                    {% for add_item in valid_additional_items %}
+                                                        <tr>
+                                                            <td>{{ add_item.item_name }} <span class="text-success">+</span></td>
+                                                            <td></td>
+                                                            <td class="text-end">{% if add_item.price is defined and add_item.price is not null and add_item.price > 0 %}{{ add_item.price | number_format(0, ',', '.') }}{% endif %}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    {% endif %}
+
+                                    {# Notes section moved here #}
+                                    {% if delivery.kitchen_note and delivery.kitchen_note is not empty %}
+                                        <small class="d-block text-muted mt-1"><em>Dapur: {{ delivery.kitchen_note }}</em></small>
+                                    {% endif %}
+                                    {% if delivery.courier_note and delivery.courier_note is not empty %}
+                                        <small class="d-block text-muted"><em>Kurir: {{ delivery.courier_note }}</em></small>
+                                    {% endif %}
+
+                                    {# Fallback for when there are absolutely no items #}
                                     {% if (delivery.items.items is empty or delivery.items.items is not defined or delivery.items.items | length == 0) and
-                                           (delivery.items.additional_items is empty or delivery.items.additional_items is not defined or delivery.items.additional_items | length == 0) and
+                                           valid_additional_items is empty and
                                            (delivery.subtotal_harga is null or delivery.subtotal_harga == 0) %}
                                         <span class="text-muted">- No items -</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if delivery.kitchen_note and delivery.kitchen_note is not empty %}
-                                        <small class="d-block"><strong>Dapur:</strong> {{ delivery.kitchen_note }}</small>
-                                    {% endif %}
-                                    {% if delivery.courier_note and delivery.courier_note is not empty %}
-                                        <small class="d-block"><strong>Kurir:</strong> {{ delivery.courier_note }}</small>
-                                    {% endif %}
-                                    {% if (delivery.kitchen_note is empty or delivery.kitchen_note is null) and (delivery.courier_note is empty or delivery.courier_note is null) %}
-                                        <span class="text-muted">-</span>
+                                    {% if delivery.courier_name and delivery.courier_name != 'N/A' %}
+                                        {% set courier_colors = ['blue', 'azure', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan'] %}
+                                        {% set clean_name = delivery.courier_name | lower | replace({' ': '', '-': '', '_': ''}) %}
+                                        {% set name_length = clean_name | length %}
+                                        {% set color_index = name_length % (courier_colors | length) %}
+                                        {% set courier_color = courier_colors[color_index] %}
+                                        <span class="badge bg-{{ courier_color }}-lt">{{ delivery.courier_name }}</span>
+                                    {% else %}
+                                        <span class="badge bg-default-lt">N/A</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ delivery.courier_name | default('N/A') }}</td>
-                                <td>{{ delivery.payment_method | replace({'_': ' '}) | title | default('N/A') }}</td>
                                 <td>{{ delivery.ongkir | number_format(0, ',', '.') }}</td>
                                 <td>{{ (delivery.subtotal_harga + delivery.ongkir) | number_format(0, ',', '.') }}</td>
-                                <td>
+                                <td class="text-nowrap">
                                     {% set status_text = delivery.status | default('N/A') %}
                                     {% set status_lower_for_class = status_text | lower | trim %}
                                     {% set dot_badge_color_class = 'bg-secondary' %} {# Default color #}
@@ -358,9 +375,9 @@
                                 <td>
                                     <div class="btn-list flex-nowrap">
                                         <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Edit Pengiriman">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
                                         </button>
-                                        <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Hapus Pengiriman">
+                                        <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="{{ delivery.delivery_id }}" title="Hapus Pengiriman">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                                         </button>
                                     </div>

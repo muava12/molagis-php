@@ -53,11 +53,10 @@
                                             <tr>
                                                 <th><input class="form-check-input m-0 align-middle select-delivery-group-master" type="checkbox" aria-label="Select all deliveries for this order" data-order-id="{{ order_item.id }}"></th>
                                                 <th>Tgl Kirim</th>
-                                                <th>Details Paket</th>
+                                                <th>Details</th>
                                                 <th>Kurir</th>
-                                                <th>Tambahan</th>
-                                                <th>Total Harian</th>
-                                                <th>Ongkir Harian</th>
+                                                <th>Ongkir</th>
+                                                <th>Total</th>
                                                 <th>Status</th>
                                                 <th>Actions</th>
                                             </tr>
@@ -69,42 +68,56 @@
                                                         <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="{{ delivery.delivery_id }}" aria-label="Select delivery {{ delivery.delivery_id }}" data-order-group="{{ order_item.id }}"></td>
                                                         <td>{{ delivery.tanggal | date("d M Y") }}</td>
                                                         <td>
-                                                            {% if delivery.orderdetails is not empty %}
+                                                            {# Show table if there are package items or additional items #}
+                                                            {% if delivery.orderdetails is not empty or delivery.item_tambahan %}
                                                                 <table class="table table-sm table-borderless mb-0">
                                                                     <tbody>
-                                                                        {% for detail_item in delivery.orderdetails %}
+                                                                        {# Package items #}
+                                                                        {% if delivery.orderdetails is not empty %}
+                                                                            {% for detail_item in delivery.orderdetails %}
+                                                                                <tr>
+                                                                                    <td>{{ detail_item.paket.nama | default('N/A') }}</td>
+                                                                                    <td>({{ detail_item.jumlah }})</td>
+                                                                                    <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                                                                </tr>
+                                                                                {% if detail_item.catatan_dapur %}
+                                                                                    <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
+                                                                                {% endif %}
+                                                                                {% if detail_item.catatan_kurir %}
+                                                                                    <tr><td colspan="3"><small class="text-muted"><em>Kurir: {{ detail_item.catatan_kurir }}</em></small></td></tr>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        {% endif %}
+
+                                                                        {# Additional items #}
+                                                                        {% if delivery.item_tambahan %}
                                                                             <tr>
-                                                                                <td>{{ detail_item.paket.nama | default('N/A') }}</td>
-                                                                                <td>({{ detail_item.jumlah }})</td>
-                                                                                <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                                                                <td>{{ delivery.item_tambahan }} <span class="text-success">+</span></td>
+                                                                                <td></td>
+                                                                                <td class="text-end">{% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}{{ delivery.harga_tambahan | number_format(0, ',', '.') }}{% endif %}</td>
                                                                             </tr>
-                                                                            {% if detail_item.catatan_dapur %}
-                                                                                <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
-                                                                            {% endif %}
-                                                                            {% if detail_item.catatan_kurir %}
-                                                                                <tr><td colspan="3"><small class="text-muted"><em>Kurir: {{ detail_item.catatan_kurir }}</em></small></td></tr>
-                                                                            {% endif %}
-                                                                        {% endfor %}
+                                                                        {% endif %}
                                                                     </tbody>
                                                                 </table>
                                                             {% else %}
                                                                 N/A
                                                             {% endif %}
                                                         </td>
-                                                        <td>{{ delivery.couriers.nama | default('-') }}</td>
                                                         <td>
-                                                            {% if delivery.item_tambahan %}
-                                                                {{ delivery.item_tambahan }}
-                                                                {% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}
-                                                                    <br><small class="text-muted">({{ delivery.harga_tambahan | number_format(0, ',', '.') }})</small>
-                                                                {% endif %}
+                                                            {% if delivery.couriers.nama and delivery.couriers.nama != '-' %}
+                                                                {% set courier_colors = ['blue', 'azure', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan'] %}
+                                                                {% set clean_name = delivery.couriers.nama | lower | replace({' ': '', '-': '', '_': ''}) %}
+                                                                {% set name_length = clean_name | length %}
+                                                                {% set color_index = name_length % (courier_colors | length) %}
+                                                                {% set courier_color = courier_colors[color_index] %}
+                                                                <span class="badge bg-{{ courier_color }}-lt">{{ delivery.couriers.nama }}</span>
                                                             {% else %}
-                                                                -
+                                                                <span class="badge bg-default-lt">-</span>
                                                             {% endif %}
                                                         </td>
-                                                        <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
                                                         <td>{{ delivery.ongkir | number_format(0, ',', '.') }}</td>
-                                                        <td>
+                                                        <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
+                                                        <td class="text-nowrap">
                                                             {% set status_lower = delivery.status | lower %}
                                                             {% set badge_class = 'secondary' %}
                                                             {% if status_lower == 'completed' %}{% set badge_class = 'success' %}
@@ -112,8 +125,7 @@
                                                             {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %}{% set badge_class = 'danger' %}
                                                             {% elseif status_lower == 'in-progress' or status_lower == 'in_progress' %}{% set badge_class = 'info' %}
                                                             {% endif %}
-                                                            <span class="badge bg-{{ badge_class }} me-1"></span>
-                                                            {{ delivery.status | replace({'_': ' '}) | title }}
+                                                            <span class="badge bg-{{ badge_class }} me-1"></span>{{ delivery.status | replace({'_': ' '}) | title }}
                                                         </td>
                                                         <td>
                                                             <div class="btn-list flex-nowrap">
@@ -128,7 +140,7 @@
                                                     </tr>
                                                 {% endfor %}
                                             {% else %}
-                                                <tr><td colspan="9" class="text-center">Tidak ada data pengiriman untuk order ini.</td></tr>
+                                                <tr><td colspan="8" class="text-center">Tidak ada data pengiriman untuk order ini.</td></tr>
                                             {% endif %}
                                         </tbody>
                                     </table>
@@ -147,9 +159,8 @@
                             <th>Tanggal</th>
                             <th>Details</th>
                             <th>Kurir</th>
-                            <th>Tambahan</th>
-                            <th>Total</th>
                             <th>Ongkir</th>
+                            <th>Total</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -161,42 +172,56 @@
                                 <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="{{ delivery.delivery_id }}" aria-label="Select delivery {{ delivery.delivery_id }}"></td>
                                 <td>{{ delivery.delivery_tanggal | date("d M Y") }}</td>
                                 <td>
-                                    {% if delivery.details is not empty %}
+                                    {# Show table if there are package items or additional items #}
+                                    {% if delivery.details is not empty or delivery.item_tambahan %}
                                         <table class="table table-sm table-borderless mb-0">
                                             <tbody>
-                                                {% for detail_item in delivery.details %}
+                                                {# Package items #}
+                                                {% if delivery.details is not empty %}
+                                                    {% for detail_item in delivery.details %}
+                                                        <tr>
+                                                            <td>{{ detail_item.paket.nama | default('N/A') }}</td>
+                                                            <td>({{ detail_item.jumlah }})</td>
+                                                            <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                                        </tr>
+                                                        {% if detail_item.catatan_dapur %}
+                                                            <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
+                                                        {% endif %}
+                                                        {% if detail_item.catatan_kurir %}
+                                                            <tr><td colspan="3"><small class="text-muted"><em>Kurir: {{ detail_item.catatan_kurir }}</em></small></td></tr>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
+
+                                                {# Additional items #}
+                                                {% if delivery.item_tambahan %}
                                                     <tr>
-                                                        <td>{{ detail_item.paket.nama | default('N/A') }}</td>
-                                                        <td>({{ detail_item.jumlah }})</td>
-                                                        <td class="text-end">{{ detail_item.subtotal_harga | number_format(0, ',', '.') }}</td>
+                                                        <td>{{ delivery.item_tambahan }} <span class="text-success">+</span></td>
+                                                        <td></td>
+                                                        <td class="text-end">{% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}{{ delivery.harga_tambahan | number_format(0, ',', '.') }}{% endif %}</td>
                                                     </tr>
-                                                    {% if detail_item.catatan_dapur %}
-                                                        <tr><td colspan="3"><small class="text-muted"><em>Dapur: {{ detail_item.catatan_dapur }}</em></small></td></tr>
-                                                    {% endif %}
-                                                    {% if detail_item.catatan_kurir %}
-                                                        <tr><td colspan="3"><small class="text-muted"><em>Kurir: {{ detail_item.catatan_kurir }}</em></small></td></tr>
-                                                    {% endif %}
-                                                {% endfor %}
+                                                {% endif %}
                                             </tbody>
                                         </table>
                                     {% else %}
                                         N/A
                                     {% endif %}
                                 </td>
-                                <td>{{ delivery.courier_nama | default('-') }}</td>
                                 <td>
-                                    {% if delivery.item_tambahan %}
-                                        {{ delivery.item_tambahan }}
-                                        {% if delivery.harga_tambahan is not null and delivery.harga_tambahan > 0 %}
-                                            <br><small class="text-muted">({{ delivery.harga_tambahan | number_format(0, ',', '.') }})</small>
-                                        {% endif %}
+                                    {% if delivery.courier_nama and delivery.courier_nama != '-' %}
+                                        {% set courier_colors = ['blue', 'azure', 'indigo', 'purple', 'pink', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan'] %}
+                                        {% set clean_name = delivery.courier_nama | lower | replace({' ': '', '-': '', '_': ''}) %}
+                                        {% set name_length = clean_name | length %}
+                                        {% set color_index = name_length % (courier_colors | length) %}
+                                        {% set courier_color = courier_colors[color_index] %}
+                                        <span class="badge bg-{{ courier_color }}-lt">{{ delivery.courier_nama }}</span>
                                     {% else %}
-                                        -
+                                        <span class="badge bg-default-lt">-</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
                                 <td>{{ delivery.delivery_ongkir | number_format(0, ',', '.') }}</td>
-                                <td>
+                                <td>{{ delivery.total_harga_perhari | number_format(0, ',', '.') }}</td>
+                                <td class="text-nowrap">
                                     {% set status_lower = delivery.delivery_status | lower %}
                                     {% set badge_class = 'secondary' %}
                                     {% if status_lower == 'completed' %}{% set badge_class = 'success' %}
@@ -204,8 +229,7 @@
                                     {% elseif status_lower == 'canceled' or status_lower == 'cancelled' %}{% set badge_class = 'danger' %}
                                     {% elseif status_lower == 'in-progress' or status_lower == 'in_progress' %}{% set badge_class = 'info' %}
                                     {% endif %}
-                                    <span class="badge bg-{{ badge_class }} me-1"></span>
-                                    {{ delivery.delivery_status | replace({'_': ' '}) | title }}
+                                    <span class="badge bg-{{ badge_class }} me-1"></span>{{ delivery.delivery_status | replace({'_': ' '}) | title }}
                                 </td>
                                 <td>
                                     <div class="btn-list flex-nowrap">
