@@ -1,3 +1,5 @@
+import { showToast } from './utils.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     // CALENDAR_ICON_SVG is defined below, specific to the date picker addon
     const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
@@ -1282,11 +1284,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function performDeleteDelivery(deliveryId) {
         console.log('Attempting to delete delivery ID:', deliveryId);
 
-        if (typeof window.showToast !== 'function') {
-            console.error('showToast function is not defined. Make sure utils.js is loaded correctly.');
-            alert('An error occurred while trying to display a notification.');
-            return;
-        }
+
 
         fetch(`/api/delivery/${deliveryId}`, {
             method: 'DELETE',
@@ -1312,14 +1310,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     console.warn('Could not find row to remove for delivery ID:', deliveryId, '. Consider reloading list.');
                 }
-                window.showToast('Sukses', data.message || `Pengiriman ID ${deliveryId} berhasil dihapus.`, 'success');
+                showToast('Sukses', data.message || `Pengiriman ID ${deliveryId} berhasil dihapus.`, 'success');
+
+                // Update batch delete toast
+                updateBatchDeleteToast();
             } else {
-                window.showToast('Error', data.message || `Gagal menghapus pengiriman ID ${deliveryId}.`, 'error');
+                showToast('Error', data.message || `Gagal menghapus pengiriman ID ${deliveryId}.`, 'error');
             }
         })
         .catch(error => {
             console.error('Error in performDeleteDelivery:', error);
-            window.showToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, 'error');
+            showToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, 'error');
         });
     }
 
@@ -1792,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const modalElement = document.getElementById('editOrderModal');
         if (!modalElement) {
             console.error('Edit Order Modal element #editOrderModal not found.');
-            if (window.showToast) window.showToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
+            showToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
             return;
         }
 
@@ -1822,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } catch (error) {
             console.error('Error opening edit order modal:', error);
-            if (window.showToast) window.showToast('Error', error.message, 'error');
+            showToast('Error', error.message, 'error');
         } finally {
             // Hide loading state
             if (formElement) {
@@ -1842,7 +1843,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     openEditOrderModal(deliveryId);
                 } else {
                     console.error('Edit button clicked but data-delivery-id attribute is missing or empty.');
-                    if(window.showToast) window.showToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
+                    showToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
                 }
             }
         });
@@ -1998,7 +1999,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!deliveryIdStr) {
                 console.error('Delivery ID not found on modal for submission.');
-                if(window.showToast) window.showToast('Error', 'Cannot save: Delivery ID missing.', 'error');
+                showToast('Error', 'Cannot save: Delivery ID missing.', 'error');
                 submitButton.disabled = false;
                 submitButton.innerHTML = originalButtonText;
                 return;
@@ -2009,7 +2010,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Simple client-side validation: ensure at least one package item if that's a rule
             if (formData.package_items.length === 0) {
-                 if(window.showToast) window.showToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
+                 showToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
                  const errorDisplayElement = document.getElementById('edit-modal-error-display');
                  if (errorDisplayElement) {
                     errorDisplayElement.textContent = 'Harap tambahkan minimal satu paket makanan.';
@@ -2040,7 +2041,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const result = await response.json(); // Expecting JSON response from our PHP backend
 
                 if (response.ok && result.success) { // Check for ok status AND success flag from our PHP response
-                    if(window.showToast) window.showToast('Success', result.message || 'Order updated successfully!', 'success');
+                    showToast('Success', result.message || 'Order updated successfully!', 'success');
 
                     const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
                     if (bootstrapModal) bootstrapModal.hide();
@@ -2057,8 +2058,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (errorDisplayElement) {
                     errorDisplayElement.textContent = error.message;
                     errorDisplayElement.style.display = 'block';
-                } else if(window.showToast) {
-                    window.showToast('Error', error.message, 'error');
+                } else {
+                    showToast('Error', error.message, 'error');
                 }
             } finally {
                 submitButton.disabled = false;
