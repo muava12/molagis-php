@@ -1,4 +1,55 @@
-/* Gaya untuk halaman input pesanan */
+/* CSS untuk komponen Input Order - digunakan di halaman order, dashboard modal, dan orders modal */
+
+/* Package List Components */
+.package-list {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.input-paket,
+.input-jumlah {
+  flex-basis: calc(50% - 10px);
+}
+
+.tambah-paket {
+  align-self: flex-end;
+  width: 3em;
+}
+
+/* Toggle Container Components */
+.toggle-container {
+  margin-bottom: 10px;
+  padding: 0px;
+}
+
+.toggle-header {
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-header svg {
+  margin-right: 10px;
+  transition: transform 0.3s;
+}
+
+.toggle-content {
+  display: none;
+  padding: 10px;
+}
+
+.toggle-container.active .toggle-content {
+  display: block;
+}
+
+.toggle-container.active .toggle-header svg {
+  transform: rotate(90deg);
+}
+
+.rotate-90 {
+  transform: rotate(90deg);
+}
 
 /* Hide spinners for number inputs in additional items */
 #harga-item-tambahan::-webkit-inner-spin-button,
@@ -12,6 +63,7 @@
 #harga-item-tambahan,
 #harga-modal-item-tambahan {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Gaya untuk tombol close badge */
@@ -30,6 +82,7 @@
 [data-bs-toggle="collapse"][aria-expanded="true"] svg {
   transform: rotate(90deg);
 }
+
 /* Chevron animation for form-selectgroup collapse toggles */
 .form-selectgroup-input[data-bs-toggle="collapse"]
   + .form-selectgroup-label
@@ -47,7 +100,7 @@
   transform: rotate(90deg);
 }
 
-/* Style untuk datepicker (tidak berubah karena kalender tidak disentuh) */
+/* Custom Date Picker Components */
 .date-picker-container {
   max-width: 400px;
   border-radius: 8px;
@@ -169,16 +222,7 @@
   background: var(--tblr-danger-bg-subtle, #f8d7da);
 }
 
-/* Kustomisasi Bootstrap Tooltip */
-.tooltip {
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.tooltip .tooltip-arrow::before {
-  border-bottom-color: var(--tblr-dark, #343a40);
-}
-
+/* Selected Dates Components */
 .selected-dates {
   margin-top: 10px;
   display: flex;
@@ -190,7 +234,7 @@
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 5px;
-  color: var(--tblr-muted, #6c757d);
+  color: var(--tblr-body-color);
 }
 
 .badge {
@@ -224,7 +268,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 200px; /* Adjust as needed, works with py-5 for overall height */
+  min-height: 200px;
 }
 
 .empty-state-card svg {
@@ -232,5 +276,5 @@
   height: 200px;
   max-width: 250px;
   max-height: 250px;
-  margin-bottom: 1rem; /* Consistent with Tabler's .mb-4 if needed, or adjust */
+  margin-bottom: 1rem;
 }
