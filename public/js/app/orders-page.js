@@ -1857,23 +1857,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Initial toast update on page load logic (from end of file) is moved up to be part of initial setup block
-    // ... (The initialActiveTab logic and updateBatchDeleteToast call will be covered by the existing block below)
-
-    // Determine initial active tab based on URL or localStorage
-    const currentUrlOnLoad = new URL(window.location.href);
-    const urlViewOnLoad = currentUrlOnLoad.searchParams.get('view');
-    // NOTE: activeTabTargetOnLoad is already declared much earlier (around line 727)
-    // let activeTabTSRgetOnLoad = localStorage.getItem('activeOrdersTab') || '#pane-by-name'; // This was a duplicate declaration
-
-    if (urlViewOnLoad) {
-        if (urlViewOnLoad === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
-        else if (urlViewOnLoad === 'by_order_id') activeTabTargetOnLoad = '#pane-by-order-id';
-        else if (urlViewOnLoad === 'by_date') activeTabTargetOnLoad = '#pane-by-date';
-        // If view in URL doesn't match localStorage, URL takes precedence
-        if (localStorage.getItem('activeOrdersTab') !== activeTabTargetOnLoad) {
-             localStorage.setItem('activeOrdersTab', activeTabTargetOnLoad);
-        }
-    }
+    // The activeTabTargetOnLoad is already determined by initializePageState() function above
 
     // Activate the determined tab using Bootstrap's API
     // This will also trigger the 'shown.bs.tab' event for the initial load if the tab changes from a default (or no) active state
@@ -1913,7 +1897,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Handle initial data display for by_date view
                         handleInitialByDateView();
                     }
-                 } else if (activeTabTargetOnLoad === '#pane-by-name' && !currentUrlOnLoad.searchParams.get('customer_id')) {
+                 } else if (activeTabTargetOnLoad === '#pane-by-name' && !new URL(window.location.href).searchParams.get('customer_id')) {
                     if (contentWrapper) contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
                  }
                  updateBatchDeleteToast(); // Also update toast manually
@@ -1937,7 +1921,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     handleInitialByDateView();
                 }
             } else if (activeTabTargetOnLoad === '#pane-by-name') {
-                const customerId = currentUrlOnLoad.searchParams.get('customer_id');
+                const currentUrl = new URL(window.location.href);
+                const customerId = currentUrl.searchParams.get('customer_id');
                 if (!customerId && contentWrapper) {
                      contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
                      updateCardTitle('by_name_default');
@@ -1969,9 +1954,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
                     fetchUrl.searchParams.set('view', 'by_name');
                     fetchUrl.searchParams.set('customer_id', customerId);
-                    fetchUrl.searchParams.set('page', currentUrlOnLoad.searchParams.get('page') || '1');
-                    fetchUrl.searchParams.set('limit', currentUrlOnLoad.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
-                    fetchUrl.searchParams.set('grouping', currentUrlOnLoad.searchParams.get('grouping') || groupingSelect?.value || 'none');
+                    fetchUrl.searchParams.set('page', currentUrl.searchParams.get('page') || '1');
+                    fetchUrl.searchParams.set('limit', currentUrl.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    fetchUrl.searchParams.set('grouping', currentUrl.searchParams.get('grouping') || groupingSelect?.value || 'none');
 
                     if (typeof fetchAndUpdateOrdersView === 'function') {
                         console.log('Calling fetchAndUpdateOrdersView with URL:', fetchUrl.toString());
@@ -1979,16 +1964,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         console.error('fetchAndUpdateOrdersView function not available');
                     }
-                } else if (currentUrlOnLoad.searchParams.get('customer_id') && contentWrapper && contentWrapper.innerHTML.trim() === ''){
+                } else if (currentUrl.searchParams.get('customer_id') && contentWrapper && contentWrapper.innerHTML.trim() === ''){
                     // If customer_id is present but content is empty (e.g. user navigated back to this state)
                     // We might need to re-trigger the view update from 'shown.bs.tab' logic
-                    const customerId = currentUrlOnLoad.searchParams.get('customer_id');
+                    const customerId = currentUrl.searchParams.get('customer_id');
                     const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
                     fetchUrl.searchParams.set('view', 'by_name');
                     fetchUrl.searchParams.set('customer_id', customerId);
-                    fetchUrl.searchParams.set('page', currentUrlOnLoad.searchParams.get('page') || '1');
-                    fetchUrl.searchParams.set('limit', currentUrlOnLoad.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
-                    fetchUrl.searchParams.set('grouping', currentUrlOnLoad.searchParams.get('grouping') || groupingSelect?.value || 'none');
+                    fetchUrl.searchParams.set('page', currentUrl.searchParams.get('page') || '1');
+                    fetchUrl.searchParams.set('limit', currentUrl.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    fetchUrl.searchParams.set('grouping', currentUrl.searchParams.get('grouping') || groupingSelect?.value || 'none');
                     if (typeof fetchAndUpdateOrdersView === 'function') {
                         fetchAndUpdateOrdersView(fetchUrl.toString());
                     }
