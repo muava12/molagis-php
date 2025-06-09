@@ -59,6 +59,6 @@ class SettingsService
 
     public function getActiveCouriers(?string $accessToken = null): array
     {
-        return $this->supabaseClient->get('/rest/v1/couriers?select=id,nama&aktif=eq.true', [], $accessToken);
+        return $this->supabaseClient->get('/rest/v1/couriers?select=id,nama,color&aktif=eq.true', [], $accessToken);
     }
 }

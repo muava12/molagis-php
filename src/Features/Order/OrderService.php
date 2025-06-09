@@ -251,7 +251,7 @@ class OrderService
     public function getDeliveriesByCustomerId(int $customerId, ?string $accessToken = null): array
     {
         $query = sprintf(
-            '/rest/v1/orders?customer_id=eq.%d&select=id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))&order=tanggal_pesan.desc',
+            '/rest/v1/orders?customer_id=eq.%d&select=id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama,color),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))&order=tanggal_pesan.desc',
             $customerId
         );
 
@@ -279,6 +279,7 @@ class OrderService
                                 'harga_tambahan' => $delivery['harga_tambahan'] ?? 0,
                                 'total_harga_perhari' => $delivery['total_harga_perhari'] ?? 0,
                                 'courier_nama' => $delivery['couriers']['nama'] ?? 'N/A',
+                                'courier_color' => $delivery['couriers']['color'] ?? 'blue',
                                 'order_id' => $order['id'],
                                 'order_tanggal_pesan' => $order['tanggal_pesan'],
                                 'order_metode_pembayaran' => $order['metode_pembayaran'] ?? 'N/A',

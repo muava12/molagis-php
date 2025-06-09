@@ -6,6 +6,7 @@ import {
     getDaysInMonth,
     subMonths,
     addMonths,
+    addDays,
     isSameDay,
     parse,
     getYear,
@@ -50,6 +51,9 @@ let isDragging = false;
 
 async function initialize() {
     try {
+        // Show loading state
+        showLoadingState();
+
         cachedHolidays = await fetchHolidayDates(displayedYear);
         await Promise.all([
             initializeCalendar(),
@@ -60,9 +64,26 @@ async function initialize() {
         setupAddRemovePackageHandlers();
         addPackageListeners(document.querySelector('.package-list'));
         autosize(document.querySelectorAll('textarea'));
+
+        // Setup form validation
+        setupFormValidation();
+
+        // Setup quick date actions
+        setupQuickDateActions();
+
+        // Setup mobile enhancements
+        setupMobileEnhancements();
+
+        // Hide loading state
+        hideLoadingState();
+
+        // Update progress
+        updateFormProgress();
+
     } catch (error) {
         console.error('Initialization error:', error);
         showToast('Error', 'Gagal memuat data awal: ' + error.message, 'error');
+        hideLoadingState();
     }
 }
 
@@ -190,18 +211,90 @@ function addDayEventListeners(dayElement, date) {
         return;
     }
 
+    // Enhanced event handling for both touch and mouse
+    let touchStarted = false;
+    let touchMoved = false;
+    let clickHandled = false;
+    let touchStartTime = 0;
+
+    // Touch events for mobile devices
+    dayElement.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevent scrolling and zooming
+        touchStarted = true;
+        touchMoved = false;
+        clickHandled = false;
+        touchStartTime = Date.now();
+        isDragging = true;
+
+        // Only toggle on touchstart for immediate feedback
+        toggleDate(dayElement);
+        clickHandled = true;
+
+        // Add haptic feedback if supported
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    }, { passive: false });
+
+    dayElement.addEventListener('touchmove', (e) => {
+        if (!touchStarted) return;
+        touchMoved = true;
+
+        // Handle drag selection on touch devices
+        const touch = e.touches[0];
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (elementBelow && elementBelow.classList.contains('date-picker-day') && !elementBelow.classList.contains('disabled')) {
+            if (isDragging) toggleDate(elementBelow);
+        }
+    }, { passive: false });
+
+    dayElement.addEventListener('touchend', (e) => {
+        e.preventDefault();
+
+        // Reset touch state after a short delay to prevent click interference
+        setTimeout(() => {
+            touchStarted = false;
+            touchMoved = false;
+            isDragging = false;
+            clickHandled = false;
+        }, 100);
+    }, { passive: false });
+
+    // Mouse events for desktop and hybrid devices
     dayElement.addEventListener('mousedown', (e) => {
+        // Skip if touch event was recently handled
+        if (touchStarted || (Date.now() - touchStartTime < 500)) return;
+
         e.preventDefault();
         isDragging = true;
         toggleDate(dayElement);
+        clickHandled = true;
     });
 
     dayElement.addEventListener('mouseover', () => {
+        // Skip if touch event was recently handled
+        if (touchStarted || (Date.now() - touchStartTime < 500)) return;
+
         if (isDragging) toggleDate(dayElement);
     });
 
     dayElement.addEventListener('mouseup', () => {
+        // Skip if touch event was recently handled
+        if (touchStarted || (Date.now() - touchStartTime < 500)) return;
+
         isDragging = false;
+    });
+
+    // Click event as fallback for devices that don't support mousedown/touchstart properly
+    dayElement.addEventListener('click', (e) => {
+        // Skip if already handled by touch or mouse events
+        if (clickHandled || touchStarted || touchMoved) return;
+
+        // Skip if touch event was recently handled
+        if (Date.now() - touchStartTime < 500) return;
+
+        // Handle the click
+        toggleDate(dayElement);
     });
 }
 
@@ -224,6 +317,9 @@ function toggleDate(dayElement) {
     }
     renderSelectedDates();
     calculateTotalPayment();
+
+    // Update progress bar when dates are toggled
+    updateFormProgress();
 }
 
 function renderSelectedDates() {
@@ -255,6 +351,9 @@ function renderSelectedDates() {
             renderCalendar(displayedYear, displayedMonth);
             renderSelectedDates();
             calculateTotalPayment();
+
+            // Update progress bar when date is removed
+            updateFormProgress();
         });
         badge.appendChild(closeButton);
 
@@ -398,8 +497,12 @@ function calculateTotalPayment() {
         totalPackageCost += packagePrice * orderQty;
         totalModalCost += packageModal * orderQty;
     });
-    const additionalItemsCost = parseFloat(document.querySelector('#harga-item-tambahan').value) || 0;
-    const additionalModalCost = parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0;
+    // Only include additional costs if they have valid values
+    const additionalItemsValue = document.querySelector('#harga-item-tambahan').value.trim();
+    const additionalItemsCost = additionalItemsValue ? (parseFloat(additionalItemsValue) || 0) : 0;
+
+    const additionalModalValue = document.querySelector('#harga-modal-item-tambahan').value.trim();
+    const additionalModalCost = additionalModalValue ? (parseFloat(additionalModalValue) || 0) : 0;
     const shipping = parseFloat(shippingCost.value) || currentCustomerOngkir;
     const totalPerDayValue = totalPackageCost + additionalItemsCost + shipping;
     const totalModalPerDayValue = totalModalCost + additionalModalCost;
@@ -433,8 +536,8 @@ function setupAddRemovePackageHandlers() {
         const newPackage = packageTemplate.cloneNode(true);
         const newQuantity = quantityTemplate.cloneNode(true);
         const newButton = document.createElement('div');
-        newButton.classList.add('col-2', 'align-self-end');
-        newButton.innerHTML = `<button type="button" class="btn btn-icon remove-package w-100" aria-label="Hapus paket">
+        newButton.classList.add('col-2');
+        newButton.innerHTML = `<label class="form-label">&nbsp;</label><button type="button" class="btn btn-icon remove-package w-100" aria-label="Hapus paket">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-minus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l14 0" /></svg>
         </button>`;
         newPackage.querySelector('#package-select').selectedIndex = 0;
@@ -480,6 +583,39 @@ function resetForm() {
     renderSelectedDates();
     document.querySelectorAll('.added-package').forEach(el => el.remove());
     calculateTotalPayment();
+
+    // Clear all form validation states
+    clearFormValidationStates();
+
+    // Reset form progress bar to reflect empty form state
+    updateFormProgress();
+}
+
+function clearFormValidationStates() {
+    // Clear validation states from all form elements
+    const formElements = document.querySelectorAll('#order-form input, #order-form select, #order-form textarea');
+    formElements.forEach(element => {
+        element.classList.remove('is-valid', 'is-invalid');
+    });
+
+    // Clear validation feedback messages
+    const feedbackElements = document.querySelectorAll('#order-form .invalid-feedback, #order-form .valid-feedback');
+    feedbackElements.forEach(feedback => {
+        feedback.textContent = '';
+    });
+
+    // Clear specific feedback elements by ID
+    const specificFeedbacks = [
+        'customer-input-feedback',
+        'package-select-feedback',
+        'order-quantity-feedback'
+    ];
+    specificFeedbacks.forEach(feedbackId => {
+        const element = document.getElementById(feedbackId);
+        if (element) {
+            element.textContent = '';
+        }
+    });
 }
 
 function validateFormData(formData) {
@@ -515,9 +651,18 @@ function collectOrderData() {
         kurir_id: parseInt(courierSelect.value) || null,
         ongkir: totals.shipping,
         status: 'pending',
-        item_tambahan: document.getElementById('item-tambahan').value.trim(),
-        harga_tambahan: parseFloat(document.querySelector('#harga-item-tambahan').value) || 0,
-        harga_modal_tambahan: parseFloat(document.querySelector('#harga-modal-item-tambahan').value) || 0,
+        item_tambahan: (() => {
+            const value = document.getElementById('item-tambahan').value.trim();
+            return value ? value : null;
+        })(),
+        harga_tambahan: (() => {
+            const value = document.querySelector('#harga-item-tambahan').value.trim();
+            return value ? (parseFloat(value) || null) : null;
+        })(),
+        harga_modal_tambahan: (() => {
+            const value = document.querySelector('#harga-modal-item-tambahan').value.trim();
+            return value ? (parseFloat(value) || null) : null;
+        })(),
         total_harga_perhari: totals.totalPerDay,
         total_modal_perhari: totals.totalModalPerDay
     }));
@@ -857,11 +1002,18 @@ function setupEventListeners() {
         await renderCalendar(displayedYear, displayedMonth);
         renderSelectedDates();
         calculateTotalPayment();
+
+        // Update progress bar after clearing dates
+        updateFormProgress();
     });
 
+    // Handle mouse up for all devices
     document.addEventListener('mouseup', () => {
         isDragging = false;
     });
+
+    // Handle touch end for mobile devices (already handled in setupMobileEventHandlers)
+    // This ensures proper cleanup of dragging state
 
     packageSelect.addEventListener('change', calculateTotalPayment);
     orderQuantity.addEventListener('input', calculateTotalPayment);
@@ -897,6 +1049,404 @@ function setupEventListeners() {
             event.preventDefault();
         });
     });
+}
+
+// Loading States - Only apply on standalone input-order page
+function showLoadingState() {
+    // Only apply loading state if we're on the standalone input-order page
+    if (!document.querySelector('.input-order-container')) return;
+
+    const formElements = document.querySelectorAll('#order-form input, #order-form select');
+    formElements.forEach(el => {
+        if (!el.classList.contains('loading')) {
+            // Store original values to restore later
+            el.dataset.originalValue = el.value;
+            el.dataset.originalPlaceholder = el.placeholder;
+
+            el.classList.add('loading');
+            el.disabled = true;
+
+            // Clear value and placeholder to prevent white flash
+            if (el.tagName === 'INPUT') {
+                el.value = '';
+                el.placeholder = '';
+            }
+        }
+    });
+
+    const datePickerContainer = document.querySelector('.date-picker-container');
+    if (datePickerContainer) {
+        datePickerContainer.classList.add('loading');
+    }
+}
+
+function hideLoadingState() {
+    // Only apply on standalone input-order page
+    if (!document.querySelector('.input-order-container')) return;
+
+    const formElements = document.querySelectorAll('#order-form input, #order-form select');
+    formElements.forEach(el => {
+        el.classList.remove('loading');
+        el.disabled = false;
+
+        // Restore original values
+        if (el.dataset.originalValue !== undefined) {
+            el.value = el.dataset.originalValue;
+            delete el.dataset.originalValue;
+        }
+        if (el.dataset.originalPlaceholder !== undefined) {
+            el.placeholder = el.dataset.originalPlaceholder;
+            delete el.dataset.originalPlaceholder;
+        }
+    });
+
+    const datePickerContainer = document.querySelector('.date-picker-container');
+    if (datePickerContainer) {
+        datePickerContainer.classList.remove('loading');
+    }
+}
+
+// Form Progress
+function updateFormProgress() {
+    const progressBar = document.getElementById('form-progress-bar');
+    if (!progressBar) return;
+
+    const requiredFields = document.querySelectorAll('#order-form [required]');
+    const filledFields = Array.from(requiredFields).filter(field => {
+        if (field.type === 'text' || field.type === 'number') {
+            return field.value.trim() !== '';
+        }
+        if (field.tagName === 'SELECT') {
+            return field.value !== '';
+        }
+        return false;
+    });
+
+    const selectedDatesCount = selectedDates.size;
+    const totalSteps = requiredFields.length + (selectedDatesCount > 0 ? 1 : 0);
+    const completedSteps = filledFields.length + (selectedDatesCount > 0 ? 1 : 0);
+
+    const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+    progressBar.style.width = `${Math.min(progress, 100)}%`;
+}
+
+// Form Validation
+function setupFormValidation() {
+    const customerInput = document.getElementById('customer-input');
+    const packageSelect = document.getElementById('package-select');
+    const orderQuantity = document.getElementById('order-quantity');
+
+    if (customerInput) {
+        customerInput.addEventListener('input', validateCustomerInput);
+        customerInput.addEventListener('blur', validateCustomerInput);
+    }
+
+    if (packageSelect) {
+        packageSelect.addEventListener('change', validatePackageSelect);
+    }
+
+    if (orderQuantity) {
+        orderQuantity.addEventListener('input', validateOrderQuantity);
+        orderQuantity.addEventListener('blur', validateOrderQuantity);
+    }
+
+    // Add event listeners to update progress
+    const allInputs = document.querySelectorAll('#order-form input, #order-form select');
+    allInputs.forEach(input => {
+        input.addEventListener('input', updateFormProgress);
+        input.addEventListener('change', updateFormProgress);
+    });
+}
+
+function validateCustomerInput() {
+    const input = document.getElementById('customer-input');
+    const feedback = document.getElementById('customer-input-feedback');
+
+    if (!input || !feedback) return;
+
+    if (input.value.trim().length < 2) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        feedback.textContent = 'Nama pelanggan minimal 2 karakter';
+    } else {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        feedback.textContent = '';
+    }
+}
+
+function validatePackageSelect() {
+    const select = document.getElementById('package-select');
+    const feedback = document.getElementById('package-select-feedback');
+
+    if (!select || !feedback) return;
+
+    if (select.value === '') {
+        select.classList.add('is-invalid');
+        select.classList.remove('is-valid');
+        feedback.textContent = 'Pilih paket makanan';
+    } else {
+        select.classList.remove('is-invalid');
+        select.classList.add('is-valid');
+        feedback.textContent = '';
+    }
+}
+
+function validateOrderQuantity() {
+    const input = document.getElementById('order-quantity');
+    const feedback = document.getElementById('order-quantity-feedback');
+
+    if (!input || !feedback) return;
+
+    const value = parseInt(input.value);
+    if (isNaN(value) || value < 1) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        feedback.textContent = 'Jumlah minimal 1';
+    } else {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        feedback.textContent = '';
+    }
+}
+
+
+
+// Quick Date Actions
+function setupQuickDateActions() {
+    const next7DaysBtn = document.getElementById('next-7-days-btn');
+    const next14DaysBtn = document.getElementById('next-14-days-btn');
+
+    if (next7DaysBtn) {
+        next7DaysBtn.addEventListener('click', async () => await selectNext7Days());
+    }
+
+    if (next14DaysBtn) {
+        next14DaysBtn.addEventListener('click', async () => await selectNext14Days());
+    }
+}
+
+async function selectNext7Days() {
+    selectedDates.clear();
+    const today = new Date();
+
+    for (let i = 1; i <= 7; i++) {
+        const date = addDays(today, i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+
+        // Skip holidays and Sundays
+        if (!isHoliday(date) && getDay(date) !== 0) {
+            selectedDates.add(dateStr);
+        }
+    }
+
+    await updateSelectedDatesDisplay();
+    updateFormProgress();
+    showToast('Info', '7 hari ke depan dipilih (kecuali hari libur)', 'info');
+}
+
+
+
+async function selectNext14Days() {
+    selectedDates.clear();
+    const today = new Date();
+
+    for (let i = 1; i <= 14; i++) {
+        const date = addDays(today, i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+
+        // Skip holidays and Sundays
+        if (!isHoliday(date) && getDay(date) !== 0) {
+            selectedDates.add(dateStr);
+        }
+    }
+
+    await updateSelectedDatesDisplay();
+    updateFormProgress();
+    showToast('Info', '14 hari ke depan dipilih (kecuali hari libur)', 'info');
+}
+
+function isHoliday(date) {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return cachedHolidays.includes(dateStr);
+}
+
+// Update selected dates display with animation
+async function updateSelectedDatesDisplay() {
+    renderSelectedDates();
+    await renderCalendar(displayedYear, displayedMonth);
+    calculateTotalPayment();
+}
+
+// Mobile Enhancements
+function setupMobileEnhancements() {
+    // Only apply to standalone input-order page
+    if (!document.querySelector('.input-order-container')) return;
+
+    // Improve touch interactions
+    improveTouchInteractions();
+
+    // Setup mobile-specific event handlers
+    setupMobileEventHandlers();
+}
+
+function setupMobileEventHandlers() {
+    // Improve global touch handling for mobile devices
+    if ('ontouchstart' in window) {
+        // Handle global touch end to reset dragging state
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        }, { passive: true });
+
+        // Prevent default touch behaviors that might interfere
+        document.addEventListener('touchmove', (e) => {
+            // Only prevent default if we're dragging in the date picker
+            if (isDragging && e.target.closest('.date-picker-container')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Improve viewport handling on mobile
+        const viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+            viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        }
+
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                // Recalculate layout after orientation change
+                const datePickerContainer = document.querySelector('.date-picker-container');
+                if (datePickerContainer) {
+                    datePickerContainer.style.maxWidth = '100%';
+                }
+
+                // Update form progress
+                updateFormProgress();
+            }, 100);
+        });
+    }
+
+    // Improve select dropdown behavior on mobile
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        // Add mobile-friendly change handler
+        select.addEventListener('change', (e) => {
+            // Trigger haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+
+            // Ensure proper focus handling
+            e.target.blur();
+        });
+    });
+}
+
+
+
+function improveTouchInteractions() {
+    // Improve form select interactions on mobile
+    const selects = document.querySelectorAll('#order-form select');
+    selects.forEach(select => {
+        // Ensure proper mobile select behavior
+        select.addEventListener('touchstart', (e) => {
+            // Allow native select behavior on mobile
+            e.stopPropagation();
+        }, { passive: true });
+
+        // Add visual feedback for touch
+        select.addEventListener('touchstart', () => {
+            select.style.transform = 'scale(0.98)';
+        }, { passive: true });
+
+        select.addEventListener('touchend', () => {
+            setTimeout(() => {
+                select.style.transform = '';
+            }, 150);
+        }, { passive: true });
+    });
+
+    // Improve button touch interactions
+    const buttons = document.querySelectorAll('#order-form button, .date-picker-buttons button');
+    buttons.forEach(button => {
+        button.addEventListener('touchstart', () => {
+            button.style.transform = 'scale(0.95)';
+            button.style.opacity = '0.8';
+        }, { passive: true });
+
+        button.addEventListener('touchend', () => {
+            setTimeout(() => {
+                button.style.transform = '';
+                button.style.opacity = '';
+            }, 150);
+        }, { passive: true });
+    });
+
+    // Improve input field interactions on mobile
+    const inputs = document.querySelectorAll('#order-form input[type="text"], #order-form input[type="number"]');
+    inputs.forEach(input => {
+        // Prevent zoom on focus for number inputs
+        if (input.type === 'number') {
+            input.addEventListener('focus', () => {
+                input.setAttribute('inputmode', 'numeric');
+            });
+        }
+
+        // Add visual feedback
+        input.addEventListener('touchstart', () => {
+            input.style.borderColor = 'var(--tblr-primary)';
+        }, { passive: true });
+
+        input.addEventListener('blur', () => {
+            if (!input.matches(':focus')) {
+                input.style.borderColor = '';
+            }
+        });
+    });
+
+    // Improve textarea interactions
+    const textareas = document.querySelectorAll('#order-form textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('touchstart', () => {
+            textarea.style.borderColor = 'var(--tblr-primary)';
+        }, { passive: true });
+
+        textarea.addEventListener('blur', () => {
+            if (!textarea.matches(':focus')) {
+                textarea.style.borderColor = '';
+            }
+        });
+    });
+
+    // Prevent accidental form submission on mobile
+    const form = document.getElementById('order-form');
+    if (form) {
+        form.addEventListener('touchmove', (e) => {
+            // Allow scrolling within form
+            e.stopPropagation();
+        }, { passive: true });
+    }
+
+    // Improve modal interactions on mobile
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('touchstart', (e) => {
+            // Prevent background scroll when modal is open
+            if (e.target === modal) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    });
+}
+
+// Helper function for formatting currency
+function formatRupiah(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount);
 }
 
 export { initialize, setupEventListeners, fetchHolidayDates, renderCalendar, fetchCustomers, fetchPackages, calculateTotalPayment, setupAddRemovePackageHandlers, resetForm };

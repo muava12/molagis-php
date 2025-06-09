@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Touch Test - Input Order</title>
+    <link rel="stylesheet" href="/css/tabler.min.css">
+    <link rel="stylesheet" href="/css/app/input-order.css">
+    <style>
+        .test-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .test-result {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+        }
+        .test-pass { background: #d4edda; color: #155724; }
+        .test-fail { background: #f8d7da; color: #721c24; }
+        .test-log {
+            background: #e2e3e5;
+            color: #383d41;
+            font-family: monospace;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-md">
+        <div class="page-header">
+            <h1>Mobile Touch Test - Input Order</h1>
+            <p class="text-muted">Test mobile touch interactions for the input order form</p>
+        </div>
+
+        <div class="test-info">
+            <h3>Device Information</h3>
+            <div id="device-info"></div>
+        </div>
+
+        <div class="test-info">
+            <h3>Test Controls</h3>
+            <button class="btn btn-primary" onclick="runTests()">Run Mobile Tests</button>
+            <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
+            <button class="btn btn-info" onclick="toggleLogging()">Toggle Event Logging</button>
+        </div>
+
+        <div class="test-info">
+            <h3>Test Results</h3>
+            <div id="test-results"></div>
+        </div>
+
+        <div class="test-info">
+            <h3>Event Log</h3>
+            <div id="event-log" class="test-log"></div>
+        </div>
+
+        <!-- Simplified Input Order Form for Testing -->
+        <div class="input-order-container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10 col-xl-8">
+                    <form id="order-form">
+                        <div class="row g-3">
+                            <!-- Date Picker Column -->
+                            <div class="col-12 col-sm-5 col-md-4">
+                                <div class="date-picker-container">
+                                    <div class="date-picker-buttons">
+                                        <button type="button" class="btn btn-sm" id="today-btn">Today</button>
+                                        <button type="button" class="btn btn-sm" id="clear-btn">Clear</button>
+                                    </div>
+                                    <div class="date-picker-header">
+                                        <button type="button" class="btn btn-icon btn-sm" id="prev-month">‹</button>
+                                        <span id="calendar-month-year">Test Month 2024</span>
+                                        <button type="button" class="btn btn-icon btn-sm" id="next-month">›</button>
+                                    </div>
+                                    <div class="date-picker-days" id="calendar-days">
+                                        <!-- Test date picker days -->
+                                        <div class="date-picker-day" data-date="2024-01-01">1</div>
+                                        <div class="date-picker-day" data-date="2024-01-02">2</div>
+                                        <div class="date-picker-day" data-date="2024-01-03">3</div>
+                                        <div class="date-picker-day" data-date="2024-01-04">4</div>
+                                        <div class="date-picker-day" data-date="2024-01-05">5</div>
+                                        <div class="date-picker-day" data-date="2024-01-06">6</div>
+                                        <div class="date-picker-day" data-date="2024-01-07">7</div>
+                                    </div>
+                                    <div class="selected-dates-count" id="selected-dates-count">0 Days Selected</div>
+                                    <div class="selected-dates" id="selected-dates"></div>
+                                </div>
+                            </div>
+
+                            <!-- Form Column -->
+                            <div class="col-12 col-sm-7 col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Customer</label>
+                                    <input type="text" class="form-control" id="customer-input" placeholder="Enter Customer Name">
+                                </div>
+                                
+                                <div class="row g-2 mb-3 package-list">
+                                    <div class="col-7">
+                                        <label class="form-label">Package</label>
+                                        <select class="form-select" id="package-select">
+                                            <option value="">Select Package</option>
+                                            <option value="1">Package A (Rp 25,000)</option>
+                                            <option value="2">Package B (Rp 30,000)</option>
+                                            <option value="3">Package C (Rp 35,000)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-3">
+                                        <label class="form-label">Quantity</label>
+                                        <input type="number" class="form-control" id="order-quantity" min="1" value="1">
+                                    </div>
+                                    <div class="col-2">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="button" class="btn btn-icon btn-outline-primary add-package w-100">+</button>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label">Courier</label>
+                                        <select class="form-select" id="courier-select">
+                                            <option value="">Select Courier</option>
+                                            <option value="1">Courier A</option>
+                                            <option value="2">Courier B</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Shipping Cost</label>
+                                        <input type="number" class="form-control" id="shipping-cost" value="5000">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Payment Method</label>
+                                    <select class="form-select" id="payment-method">
+                                        <option value="cod">COD</option>
+                                        <option value="transfer">Transfer</option>
+                                        <option value="belum_bayar">Not Paid Yet</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Notes</label>
+                                    <textarea class="form-control" rows="3" placeholder="Order notes..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Submit Order</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import MobileTestUtility from '/js/app/mobile-test.js';
+        
+        const testUtility = new MobileTestUtility();
+        window.testUtility = testUtility;
+
+        // Display device info
+        function displayDeviceInfo() {
+            const info = testUtility.getDeviceInfo();
+            document.getElementById('device-info').innerHTML = `
+                <p><strong>Touch Support:</strong> ${info.touchSupport ? 'Yes' : 'No'}</p>
+                <p><strong>Screen Size:</strong> ${info.screenSize.width} x ${info.screenSize.height}</p>
+                <p><strong>Viewport Size:</strong> ${info.viewportSize.width} x ${info.viewportSize.height}</p>
+                <p><strong>Device Pixel Ratio:</strong> ${info.devicePixelRatio}</p>
+                <p><strong>User Agent:</strong> ${info.userAgent}</p>
+            `;
+        }
+
+        // Run tests
+        window.runTests = function() {
+            testUtility.runMobileTest();
+            setTimeout(() => {
+                const results = testUtility.getTestResults();
+                document.getElementById('test-results').innerHTML = `
+                    <div class="test-result test-${results.touchEvents > 0 ? 'pass' : 'fail'}">
+                        Touch Events: ${results.touchEvents}
+                    </div>
+                    <div class="test-result test-${results.clickEvents > 0 ? 'pass' : 'fail'}">
+                        Click Events: ${results.clickEvents}
+                    </div>
+                `;
+            }, 1500);
+        };
+
+        // Clear logs
+        window.clearLogs = function() {
+            testUtility.touchEvents = [];
+            testUtility.clickEvents = [];
+            document.getElementById('event-log').textContent = '';
+            document.getElementById('test-results').innerHTML = '';
+        };
+
+        // Toggle logging
+        let loggingEnabled = false;
+        window.toggleLogging = function() {
+            if (!loggingEnabled) {
+                testUtility.enableTestMode();
+                loggingEnabled = true;
+            } else {
+                testUtility.isTestMode = false;
+                loggingEnabled = false;
+            }
+        };
+
+        // Override console.log to show in event log
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logElement = document.getElementById('event-log');
+            if (logElement) {
+                logElement.textContent += args.join(' ') + '\n';
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        };
+
+        // Initialize
+        displayDeviceInfo();
+        
+        // Add simple touch handlers for testing
+        document.querySelectorAll('.date-picker-day').forEach(day => {
+            day.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                day.classList.toggle('selected');
+                console.log('Day touched:', day.textContent);
+            }, { passive: false });
+            
+            day.addEventListener('click', (e) => {
+                day.classList.toggle('selected');
+                console.log('Day clicked:', day.textContent);
+            });
+        });
+    </script>
+</body>
+</html>

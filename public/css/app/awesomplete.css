@@ -104,3 +104,37 @@
   background-color: #3b82f6; /* Warna biru yang kontras */
   color: #ffffff; /* Warna teks putih */
 }
+
+/* Customer Input Width Override */
+/* Limit customer input width to match orders page style */
+#customer-input {
+  max-width: 300px !important;
+}
+
+/* Ensure awesomplete dropdown matches the input width */
+#customer-input.awesomplete > ul {
+  max-width: 300px !important;
+  width: 300px !important;
+}
+
+/* Modal-specific styling - allow full width in modals */
+.modal #customer-input {
+  max-width: 100% !important;
+}
+
+.modal #customer-input.awesomplete > ul {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Responsive adjustments - full width on mobile */
+@media (max-width: 576px) {
+  #customer-input {
+    max-width: 100% !important;
+  }
+
+  #customer-input.awesomplete > ul {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

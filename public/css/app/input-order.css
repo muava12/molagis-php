@@ -1,0 +1,688 @@
+/* CSS untuk komponen Input Order - digunakan di halaman order, dashboard modal, dan orders modal */
+/* Note: Awesomplete customer input styling is handled in awesomplete.css */
+
+/* Layout Improvements */
+.input-order-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (min-width: 992px) {
+  .input-order-form-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
+/* Hide spinners for number inputs in additional items */
+#harga-item-tambahan::-webkit-inner-spin-button,
+#harga-item-tambahan::-webkit-outer-spin-button,
+#harga-modal-item-tambahan::-webkit-inner-spin-button,
+#harga-modal-item-tambahan::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#harga-item-tambahan,
+#harga-modal-item-tambahan {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Gaya untuk tombol close badge */
+.btn-close {
+  width: 0.5em;
+  height: 0.5em;
+}
+
+/* Gaya untuk animasi chevron pada collapse */
+[data-bs-toggle="collapse"] svg {
+  margin-right: 10px;
+  transition: transform 0.3s;
+}
+
+.collapse.show + [data-bs-toggle="collapse"] svg,
+[data-bs-toggle="collapse"][aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+/* Form Validation & Feedback */
+.form-control.is-invalid {
+  border-color: var(--tblr-danger);
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.is-valid {
+  border-color: var(--tblr-success);
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.invalid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--tblr-danger);
+}
+
+.valid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--tblr-success);
+}
+
+/* Loading States */
+.loading-skeleton {
+  background: linear-gradient(90deg, var(--tblr-bg-surface-secondary) 25%, var(--tblr-border-color) 50%, var(--tblr-bg-surface-secondary) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+  height: 38px;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.form-control.loading {
+  background: linear-gradient(90deg, var(--tblr-bg-surface) 25%, var(--tblr-bg-surface-secondary) 50%, var(--tblr-bg-surface) 75%) !important;
+  background-size: 200% 100% !important;
+  animation: loading 1.5s infinite;
+  pointer-events: none;
+  color: transparent !important;
+}
+
+/* Prevent white flash on form controls during loading */
+.form-control {
+  background-color: var(--tblr-bg-surface);
+  color: var(--tblr-body-color);
+  border-color: var(--tblr-border-color);
+}
+
+.form-select {
+  background-color: var(--tblr-bg-surface);
+  color: var(--tblr-body-color);
+  border-color: var(--tblr-border-color);
+}
+
+/* Specific loading state improvements for dark mode */
+.form-control.loading,
+.form-select.loading {
+  background: linear-gradient(90deg, var(--tblr-bg-surface) 25%, var(--tblr-bg-surface-secondary) 50%, var(--tblr-bg-surface) 75%) !important;
+  background-size: 200% 100% !important;
+  animation: loading 1.5s infinite !important;
+  color: transparent !important;
+  border-color: var(--tblr-border-color) !important;
+}
+
+/* Ensure no white flash during initialization */
+#customer-input,
+#package-select,
+#order-quantity,
+#shipping-cost {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+  border-color: var(--tblr-border-color) !important;
+  transition: none !important;
+}
+
+/* Override any potential white backgrounds */
+.input-order-container .form-control,
+.input-order-container .form-select {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+  transition: none !important;
+}
+
+/* Prevent any flash during page load */
+.input-order-container .form-control:not(.loading),
+.input-order-container .form-select:not(.loading) {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+}
+
+/* Ensure consistent styling on focus */
+.input-order-container .form-control:focus,
+.input-order-container .form-select:focus {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+  border-color: var(--tblr-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(var(--tblr-primary-rgb), 0.25) !important;
+}
+
+/* Progress Indicator - Only for standalone input-order page */
+.input-order-container .form-progress {
+  height: 4px;
+  background: var(--tblr-border-color);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.input-order-container .form-progress-bar {
+  height: 100%;
+  background: var(--tblr-primary);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+/* Custom Date Picker Components */
+.date-picker-container {
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: var(--tblr-bg-surface, #fff);
+  padding: 10px;
+  user-select: none;
+  position: relative;
+  /* Ensure container doesn't exceed its column */
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Date Picker Quick Actions - Using Tabler styles */
+.date-picker-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem; /* Tabler spacing utility equivalent */
+  margin-bottom: 0.625rem; /* Tabler spacing */
+  justify-content: center;
+}
+
+.date-picker-buttons {
+  display: flex;
+  gap: 0.375rem; /* Tabler spacing utility */
+  justify-content: center;
+  margin-bottom: 0.625rem; /* Tabler spacing */
+}
+
+.date-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.625rem; /* Tabler spacing */
+}
+
+.date-picker-month {
+  font-size: 0.875rem; /* Tabler text-sm */
+}
+
+.date-picker-month.loading::after {
+  content: "...";
+  animation: dots 1s infinite;
+}
+
+@keyframes dots {
+  0% {
+    content: ".";
+  }
+  33% {
+    content: "..";
+  }
+  66% {
+    content: "...";
+  }
+}
+
+.date-picker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 12px;
+  margin-bottom: 5px;
+  user-select: none;
+}
+
+.date-picker-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  user-select: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Ensure grid can accommodate all day cells properly */
+  justify-items: center;
+  align-items: center;
+}
+
+.date-picker-day {
+  width: 100%;
+  aspect-ratio: 1/1;
+  max-width: none; /* Remove max-width to prevent constraint conflicts */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+  position: relative;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: var(--tblr-dark, #212529);
+  box-sizing: border-box;
+  min-width: 0;
+  /* Ensure day cells fit within grid without overlap */
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.date-picker-day:hover:not(.disabled) {
+  background: var(--tblr-primary-bg-subtle, #e9ecef);
+  color: var(--tblr-primary-text-emphasis, #0054a6);
+}
+
+.date-picker-day.today {
+  border: 1px solid var(--tblr-primary, #007bff);
+}
+
+.date-picker-day.text-muted {
+  color: var(--tblr-muted, #6c757d) !important;
+  opacity: 0.7 !important;
+}
+
+.date-picker-day.disabled {
+  cursor: not-allowed;
+  background: transparent !important;
+  color: var(--tblr-muted, #6c757d) !important;
+  opacity: 0.6 !important;
+}
+
+.date-picker-day.selected {
+  background: var(--tblr-primary, #007bff) !important;
+  color: var(--tblr-white, #ffffff) !important;
+}
+
+.date-picker-day.text-muted.selected {
+  background: var(--tblr-primary, #007bff) !important;
+  color: var(--tblr-white, #ffffff) !important;
+  opacity: 0.5 !important;
+}
+
+.date-picker-day.holiday {
+  color: var(--tblr-danger, #dc3545);
+  background: var(--tblr-danger-bg-subtle, #f8d7da);
+}
+
+/* Selected Dates Components */
+.selected-dates {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.selected-dates-count {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: var(--tblr-body-color);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+}
+
+.badge-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--tblr-muted, #6c757d);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.badge-close-btn:hover {
+  color: var(--tblr-danger, #dc3545);
+}
+
+/* Medium screen improvements using Tabler utilities approach */
+@media (min-width: 576px) and (max-width: 991px) {
+  .date-picker-month {
+    font-size: 0.8125rem; /* Between text-xs and text-sm */
+  }
+
+  .date-picker-weekdays {
+    font-size: 0.6875rem;
+  }
+
+  .date-picker-day {
+    font-size: 0.75rem;
+    /* Ensure proper sizing to prevent overlap */
+    max-width: 28px;
+    max-height: 28px;
+    min-height: 28px;
+    min-width: 28px;
+  }
+
+  .selected-dates-count {
+    font-size: 0.8125rem;
+  }
+
+  .selected-dates .badge {
+    font-size: 0.625rem;
+    padding: 0.0625rem 0.1875rem;
+  }
+}
+
+/* Specific adjustments for smaller medium screens */
+@media (min-width: 576px) and (max-width: 767px) {
+  .date-picker-day {
+    font-size: 0.6875rem;
+    max-width: 24px;
+    max-height: 24px;
+    min-height: 24px;
+    min-width: 24px;
+  }
+
+  .date-picker-days {
+    gap: 0.5px; /* Reduce gap for tighter fit */
+  }
+}
+
+/* Large screens - ensure optimal sizing */
+@media (min-width: 992px) {
+  .date-picker-day {
+    max-width: 32px;
+    max-height: 32px;
+    min-height: 32px;
+    min-width: 32px;
+    font-size: 0.875rem; /* Tabler text-sm */
+  }
+}
+
+/* Mobile Experience Improvements */
+@media (max-width: 768px) {
+
+  /* Improve touch targets for date picker */
+  .date-picker-day {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Enhanced touch feedback for date picker */
+  .date-picker-day:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+
+  /* Improve button touch targets */
+  .date-picker-buttons button,
+  .date-picker-quick-actions button {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Enhanced form control touch targets */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent zoom on iOS */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve select dropdown on mobile */
+  .form-select {
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+  }
+
+  /* Better touch targets for buttons */
+  .btn {
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve add/remove package buttons */
+  .add-package,
+  .remove-package {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better spacing for mobile form elements */
+  .input-order-container .row.g-2 {
+    --bs-gutter-x: 0.75rem;
+    --bs-gutter-y: 0.75rem;
+  }
+
+  /* Accordion-style form sections for mobile */
+  .input-order-container .form-section {
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .input-order-container .form-section-header {
+    background: var(--tblr-bg-surface-secondary);
+    padding: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .input-order-container .form-section-content {
+    padding: 1rem;
+  }
+
+  /* Improve date picker on mobile */
+  .date-picker-container {
+    max-width: 100%;
+    padding: 1rem;
+    touch-action: pan-y;
+  }
+
+  /* Better modal interactions on mobile */
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  /* Improve textarea touch targets */
+  textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  /* Better spacing for selected dates */
+  .selected-dates {
+    gap: 0.5rem;
+  }
+
+  .selected-dates .badge {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Improve close button touch targets */
+  .btn-close {
+    min-height: 32px;
+    min-width: 32px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Better form validation feedback on mobile */
+  .invalid-feedback,
+  .valid-feedback {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Improve tab navigation on mobile */
+  .nav-segmented .nav-link {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Enhanced visual feedback for selected dates */
+.selected-dates .badge {
+  animation: fadeInScale 0.3s ease;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Improved loading state for date picker */
+.date-picker-container.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.date-picker-container.loading::after {
+  content: '';
+  position: absolute;
+}
+
+/* Mobile-specific improvements for better touch interactions */
+@media (max-width: 576px) {
+  /* Extra small screens - phones in portrait */
+  .date-picker-day {
+    min-height: 40px;
+    min-width: 40px;
+    font-size: 14px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  /* Improve package selection layout on small screens */
+  .package-list .col-7 {
+    flex: 0 0 60%;
+    max-width: 60%;
+  }
+
+  .package-list .col-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .package-list .col-2 {
+    flex: 0 0 15%;
+    max-width: 15%;
+  }
+
+  /* Better modal sizing on small screens */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+
+  /* Improve form spacing */
+  .input-order-container {
+    padding: 0.5rem;
+  }
+}
+
+/* Prevent iOS zoom on form inputs */
+@supports (-webkit-touch-callout: none) {
+  .form-control,
+  .form-select,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Improve touch scrolling performance */
+.date-picker-container,
+.modal-body,
+.input-order-container {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better focus states for accessibility and mobile */
+.form-control:focus,
+.form-select:focus,
+.btn:focus {
+  outline: 2px solid var(--tblr-primary);
+  outline-offset: 2px;
+}
+
+/* Improve visual feedback for touch interactions */
+.date-picker-day:hover,
+.date-picker-day:focus {
+  background-color: var(--tblr-primary-bg-subtle);
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+.btn:active,
+.form-control:active,
+.form-select:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--tblr-primary);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty State Styling */
+.empty-state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.empty-state-card svg {
+  width: 200px;
+  height: 200px;
+  max-width: 250px;
+  max-height: 250px;
+  margin-bottom: 1rem;
+}

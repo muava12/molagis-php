@@ -36,7 +36,7 @@ class OrdersService
      */
     public function getDeliveriesByCustomerId(int $customerId, ?string $accessToken = null, int $limit = 100, int $offset = 0): array
     {
-        $selectFields = 'id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))';
+        $selectFields = 'id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama,color),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))';
 
         $query = sprintf(
             '/rest/v1/orders?customer_id=eq.%d&select=%s&order=tanggal_pesan.desc&limit=%d&offset=%d',
@@ -70,6 +70,7 @@ class OrdersService
                                 'harga_tambahan' => $delivery['harga_tambahan'] ?? 0,
                                 'total_harga_perhari' => $delivery['total_harga_perhari'] ?? 0,
                                 'courier_nama' => $delivery['couriers']['nama'] ?? 'N/A',
+                                'courier_color' => $delivery['couriers']['color'] ?? 'blue',
                                 'order_id' => $order['id'],
                                 'order_tanggal_pesan' => $order['tanggal_pesan'],
                                 'order_metode_pembayaran' => $order['metode_pembayaran'] ?? 'N/A',
@@ -237,6 +238,7 @@ class OrdersService
                         'items' => $item['items'] ?? ['items' => [], 'additional_items' => []], // Direct assignment
                         'subtotal_harga' => (float)($item['calculated_subtotal_harga'] ?? 0),
                         'courier_name' => $item['courier_name'] ?? null,
+                        'courier_color' => $item['courier_color'] ?? 'blue',
                         'customer_name' => $item['customer_name'] ?? null,
                         'payment_method' => $item['payment_method'] ?? null,
                         'courier_note' => $item['courier_note'] ?? null,
@@ -491,7 +493,7 @@ class OrdersService
             $deliveryData['details'] = $orderDetailsResponse['data'] ?? [];
 
             // 3. Fetch list of all active couriers
-            $couriersResponse = $this->supabaseClient->get('/rest/v1/couriers?aktif=eq.true&select=id,nama', [], $accessToken);
+            $couriersResponse = $this->supabaseClient->get('/rest/v1/couriers?aktif=eq.true&select=id,nama,color', [], $accessToken);
             if (isset($couriersResponse['error'])) {
                 // Log error but don't necessarily fail the whole request if couriers are optional for display
                 error_log('Supabase error fetching couriers for edit: ' . json_encode($couriersResponse['error']));
@@ -548,9 +550,9 @@ class OrdersService
             'tanggal' => $data['tanggal'] ?? null, // RPC casts to DATE
             'kurir_id' => !empty($data['kurir_id']) ? (int)$data['kurir_id'] : null, // RPC casts to BIGINT
             'ongkir' => isset($data['ongkir']) ? (float)$data['ongkir'] : 0, // RPC casts to INTEGER or NUMERIC
-            'item_tambahan' => $data['item_tambahan'] ?? null,
-            'harga_tambahan' => isset($data['harga_tambahan']) ? (float)$data['harga_tambahan'] : 0, // RPC casts to NUMERIC
-            'harga_modal_tambahan' => isset($data['harga_modal_tambahan']) ? (float)$data['harga_modal_tambahan'] : 0, // RPC casts to NUMERIC
+            'item_tambahan' => $data['item_tambahan'] ?? null, // Send null if empty, don't convert to empty string
+            'harga_tambahan' => isset($data['harga_tambahan']) && $data['harga_tambahan'] !== null ? (float)$data['harga_tambahan'] : null, // RPC casts to NUMERIC
+            'harga_modal_tambahan' => isset($data['harga_modal_tambahan']) && $data['harga_modal_tambahan'] !== null ? (float)$data['harga_modal_tambahan'] : null, // RPC casts to NUMERIC
             'daily_kitchen_note' => $data['daily_kitchen_note'] ?? null,
             'daily_courier_note' => $data['daily_courier_note'] ?? null,
             'package_items' => [], // Initialize to empty array
@@ -653,7 +655,7 @@ class OrdersService
     {
         // Fetch orders with their delivery dates.
         // Request delivery dates to be ordered by tanggal.desc directly in the query.
-        $selectFields = 'id,tanggal_pesan,total_harga,metode_pembayaran,notes,customers(nama),deliverydates!inner(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))';
+        $selectFields = 'id,tanggal_pesan,total_harga,metode_pembayaran,notes,customers(nama),deliverydates!inner(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama,color),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))';
 
         $query = sprintf(
             '/rest/v1/orders?customer_id=eq.%d&select=%s&order=tanggal_pesan.desc&deliverydates.order=tanggal.desc&limit=%d&offset=%d',

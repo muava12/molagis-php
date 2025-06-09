@@ -1,3 +1,5 @@
+import { showToast } from './utils.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     // CALENDAR_ICON_SVG is defined below, specific to the date picker addon
     const DEFAULT_CARD_TITLE = "Manajemen Pesanan";
@@ -10,6 +12,160 @@ document.addEventListener('DOMContentLoaded', function () {
     const cardTitleElement = document.querySelector('.card .card-header .card-title');
     if (!cardTitleElement) {
         console.error('Card title element (.card .card-header .card-title) not found.');
+    }
+
+    // Helper function to get selected customer name from page context
+    function getSelectedCustomerNameFromPage() {
+        // First, try to get from sessionStorage (most reliable)
+        const storedInfo = getStoredCustomerInfo();
+        if (storedInfo) {
+            return storedInfo.customerName;
+        }
+
+        // Try to get from the current card title if it contains customer info
+        if (cardTitleElement) {
+            const cardTitleText = cardTitleElement.textContent || cardTitleElement.innerText;
+            // If the card title is not the default and contains customer name
+            if (cardTitleText && cardTitleText !== DEFAULT_CARD_TITLE && cardTitleText !== 'Manajemen Pesanan') {
+                // Check if it's not one of the search titles
+                if (!cardTitleText.includes('Pencarian Berdasarkan')) {
+                    // Extract customer name (remove any avatar/icon elements)
+                    const cleanName = cardTitleText.trim();
+                    if (cleanName) {
+                        return cleanName;
+                    }
+                }
+            }
+        }
+
+        // Try to get from hidden input or other page elements
+        const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
+        if (selectedCustomerIdHidden && selectedCustomerIdHidden.value) {
+            // Try to find customer name in the customer search input
+            const customerSearchInput = document.getElementById('customer_search_orders');
+            if (customerSearchInput && customerSearchInput.value) {
+                return customerSearchInput.value;
+            }
+        }
+
+        return null;
+    }
+
+    // Helper function to store customer info for later use
+    function storeCustomerInfo(customerId, customerName) {
+        if (customerId && customerName) {
+            // Store in sessionStorage for persistence across tab switches
+            sessionStorage.setItem('current_customer_id', customerId);
+            sessionStorage.setItem('current_customer_name', customerName);
+        }
+    }
+
+    // Helper function to get stored customer info
+    function getStoredCustomerInfo() {
+        const customerId = sessionStorage.getItem('current_customer_id');
+        const customerName = sessionStorage.getItem('current_customer_name');
+        return customerId && customerName ? { customerId, customerName } : null;
+    }
+
+    // Centralized function to update card title
+    function updateCardTitle(titleType, data = {}) {
+        if (!cardTitleElement) return;
+
+        switch (titleType) {
+            case 'default':
+                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
+                cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                break;
+
+            case 'by_name_default':
+                cardTitleElement.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-users me-2">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                        <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
+                    </svg>
+                    Pencarian Berdasarkan Nama
+                `;
+                cardTitleElement.classList.add('d-flex', 'align-items-center');
+                break;
+
+            case 'by_date_default':
+                cardTitleElement.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2">
+                        <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path>
+                        <path d="M16 3v4"></path>
+                        <path d="M8 3v4"></path>
+                        <path d="M4 11h16"></path>
+                        <path d="M11 15h1"></path>
+                        <path d="M12 15v3"></path>
+                    </svg>
+                    Pencarian Berdasarkan Tanggal
+                `;
+                cardTitleElement.classList.add('d-flex', 'align-items-center');
+                break;
+
+            case 'by_order_id_default':
+                cardTitleElement.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2">
+                        <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path>
+                        <path d="M21 21l-6 -6"></path>
+                    </svg>
+                    Pencarian Berdasarkan ID Pesanan
+                `;
+                cardTitleElement.classList.add('d-flex', 'align-items-center');
+                break;
+
+            case 'customer':
+                if (data.customerId && data.customerName) {
+                    const avatarSpan = document.createElement('span');
+                    avatarSpan.className = 'avatar avatar-sm me-2';
+                    avatarSpan.style.backgroundImage = `url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${data.customerId}&scale=90&backgroundColor=ae5d29,d08b5b,edb98a,fd9841,ffdbb4,f8d25c&backgroundRotation=0,360,50,40,80,110&eyebrows=angryNatural,default,defaultNatural,flatNatural,raisedExcited,raisedExcitedNatural,sadConcerned,sadConcernedNatural,unibrowNatural,upDown,upDownNatural,angry&eyes=cry,default,eyeRoll,happy,side,squint,surprised,wink,winkWacky&mouth=concerned,default,disbelief,eating,grimace,sad,screamOpen,serious,smile,tongue,twinkle)`;
+
+                    cardTitleElement.innerHTML = '';
+                    cardTitleElement.appendChild(avatarSpan);
+                    cardTitleElement.appendChild(document.createTextNode(' ' + data.customerName));
+                    cardTitleElement.classList.add('d-flex', 'align-items-center');
+                } else {
+                    updateCardTitle('default');
+                }
+                break;
+
+            case 'date':
+                if (data.date) {
+                    try {
+                        const dateObj = new Date(data.date + 'T00:00:00');
+                        const formattedDate = dateObj.toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        });
+                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
+                        cardTitleElement.classList.add('d-flex', 'align-items-center');
+                    } catch (e) {
+                        console.error("Error formatting date for card title:", e);
+                        updateCardTitle('default');
+                    }
+                } else {
+                    updateCardTitle('default');
+                }
+                break;
+
+            case 'order':
+                if (data.orderId) {
+                    cardTitleElement.innerHTML = `${MAGNIFIER_ICON_HTML} Detail Pesanan #${data.orderId}`;
+                    cardTitleElement.classList.add('d-flex', 'align-items-center');
+                } else {
+                    updateCardTitle('default');
+                }
+                break;
+
+            default:
+                updateCardTitle('default');
+                break;
+        }
     }
 
     const customerSearchInput = document.getElementById('customer_search_orders');
@@ -30,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     const selectedCustomerIdHidden = document.getElementById('selected_customer_id_hidden');
     const customerSearchForm = document.getElementById('form_search_by_name'); // Use specific ID
-    // const customerSearchSpinner = document.getElementById('customer_search_spinner_addon'); // Removed
+
     const bootstrap = window.tabler?.bootstrap;
     const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // Specific to "By Name"
     const byNameContainer = contentWrapper; // Alias for clarity in new logic
@@ -76,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 activeViewSelectedCount = activePane.querySelectorAll('.select-delivery-item:checked').length;
             }
         }
-         // console.log('Active pane:', activePane, 'Selected count:', activeViewSelectedCount);
+
 
         if (activeViewSelectedCount > 0) {
             window.batchDeleteToast.show(activeViewSelectedCount);
@@ -92,25 +248,29 @@ document.addEventListener('DOMContentLoaded', function () {
         if (currentViewForClear === 'by_name') {
             customerSearchInput.value = '';
             customerSearchInput.blur();
-            // console.log('Customer search input cleared and unfocused as a customer is selected in "by_name" view.');
+
         }
     }
 
     // Moved fetchAndUpdateOrdersView function definition higher up
     async function fetchAndUpdateOrdersView(url) {
-        // ---- NEW CODE START ----
+        console.log('fetchAndUpdateOrdersView called with URL:', url);
+
         if (iconAddonSpan) {
             iconAddonSpan.innerHTML = SPINNER_HTML;
         }
-        // ---- NEW CODE END ----
 
         try {
+            console.log('Making AJAX request to:', url);
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             });
+
+            console.log('Response status:', response.status, 'OK:', response.ok);
+
             if (!response.ok) {
                 let errorText = `HTTP error! status: ${response.status}`;
                 try {
@@ -122,9 +282,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(errorText);
             }
             const html = await response.text();
+            console.log('Received HTML response, length:', html.length);
 
     // const contentWrapper = document.getElementById('orders-by-name-content-wrapper'); // This is byNameContainer
+    console.log('byNameContainer found:', !!byNameContainer);
     if (byNameContainer) { // Only operate if this specific container is being updated
+        console.log('Updating byNameContainer with HTML content');
         byNameContainer.innerHTML = html;
 
         const selectAllCheckbox = byNameContainer.querySelector('#select-all-deliveries');
@@ -132,73 +295,62 @@ document.addEventListener('DOMContentLoaded', function () {
                     selectAllCheckbox.checked = false;
                     selectAllCheckbox.indeterminate = false;
                 }
-        // updateBatchDeleteToast(); // Called by checkbox logic if items are re-rendered
 
-                // --- ADDED LOGIC START ---
+
                 // Use a full URL if 'url' is relative, to ensure URLSearchParams works correctly.
-                const absoluteUrl = new URL(url, window.location.origin); // Renamed to avoid conflict
+                const absoluteUrl = new URL(url, window.location.origin);
                 const currentUrlParams = new URLSearchParams(absoluteUrl.search);
                 const currentView = currentUrlParams.get('view');
 
                 if (currentView === 'by_name') {
-                    // customerSearchInput is defined in the outer scope
                     if (customerSearchInput) {
                         customerSearchInput.value = '';
                         customerSearchInput.blur();
-                        // console.log('Customer search input cleared and blurred after AJAX update for by_name view.');
+
                     }
                 }
-                // --- ADDED LOGIC END ---
 
-                // --- Update Card Title Logic ---
-                if (cardTitleElement) {
-                    const customerIdForTitle = currentUrlParams.get('customer_id');
-                    const currentViewForTitle = currentView;
+                const customerIdForTitle = currentUrlParams.get('customer_id');
+                const currentViewForTitle = currentView;
 
-                    // Try to find an existing avatar span
-                    let avatarSpan = cardTitleElement.querySelector('span.avatar');
+                if (currentViewForTitle === 'by_name' && customerIdForTitle) {
+                    let customerName = null;
 
-                    if (currentViewForTitle === 'by_name' && customerIdForTitle) {
-                        let customerName = null;
-                        // Try to find customer name from awesomplete list
-                        if (typeof awesompleteInstance !== 'undefined' && awesompleteInstance && awesompleteInstance.list) {
-                            const selectedCustomer = awesompleteInstance.list.find(customer => String(customer.value) === String(customerIdForTitle));
-                            if (selectedCustomer && selectedCustomer.label) {
-                                customerName = selectedCustomer.label;
-                            }
+                    // First, try to get from sessionStorage (most reliable)
+                    const storedInfo = getStoredCustomerInfo();
+                    if (storedInfo && storedInfo.customerId === customerIdForTitle) {
+                        customerName = storedInfo.customerName;
+                    }
+
+                    // If not in sessionStorage, try to find customer name from awesomplete list
+                    if (!customerName && typeof awesompleteInstance !== 'undefined' && awesompleteInstance && awesompleteInstance.list) {
+                        const selectedCustomer = awesompleteInstance.list.find(customer => String(customer.value) === String(customerIdForTitle));
+                        if (selectedCustomer && selectedCustomer.label) {
+                            customerName = selectedCustomer.label;
                         }
+                    }
 
-                        // Fallback to dataset if not found in awesomplete
-                        if (!customerName && selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
-                            customerName = selectedCustomerIdHidden.dataset.selectedName;
-                        }
+                    // Fallback to dataset if not found in awesomplete
+                    if (!customerName && selectedCustomerIdHidden && selectedCustomerIdHidden.dataset.selectedName && selectedCustomerIdHidden.value === customerIdForTitle) {
+                        customerName = selectedCustomerIdHidden.dataset.selectedName;
+                    }
 
-                        if (customerName) {
-                            if (!avatarSpan) {
-                                avatarSpan = document.createElement('span');
-                                avatarSpan.className = 'avatar avatar-sm me-2'; // Ensure classes match SSR
-                            }
-                            avatarSpan.style.backgroundImage = `url(https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${customerIdForTitle}&scale=90&backgroundColor=ae5d29,d08b5b,edb98a,fd9841,ffdbb4,f8d25c&backgroundRotation=0,360,50,40,80,110&eyebrows=angryNatural,default,defaultNatural,flatNatural,raisedExcited,raisedExcitedNatural,sadConcerned,sadConcernedNatural,unibrowNatural,upDown,upDownNatural,angry&eyes=cry,default,eyeRoll,happy,side,squint,surprised,wink,winkWacky&mouth=concerned,default,disbelief,eating,grimace,sad,screamOpen,serious,smile,tongue,twinkle)`;
-                            avatarSpan.style.display = ''; // Ensure it's visible
-
-                            // Reconstruct the innerHTML of cardTitleElement to include avatar and name
-                            cardTitleElement.innerHTML = ''; // Clear previous content
-                            cardTitleElement.appendChild(avatarSpan);
-                            cardTitleElement.appendChild(document.createTextNode(' ' + customerName));
-                            cardTitleElement.classList.add('d-flex', 'align-items-center');
-                        } else {
-                            // Customer ID present, but name not found
-                            console.warn(`Customer name for ID ${customerIdForTitle} not found for card title update.`);
-                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar if it was there
-                        }
+                    if (customerName) {
+                        // Store customer info for later use
+                        storeCustomerInfo(customerIdForTitle, customerName);
+                        updateCardTitle('customer', {
+                            customerId: customerIdForTitle,
+                            customerName: customerName
+                        });
                     } else {
-                        // Not 'by_name' view, or no customer_id in 'by_name' view
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Clears avatar and sets default title
+                        console.warn(`Customer name for ID ${customerIdForTitle} not found for card title update.`);
+                        updateCardTitle('by_name_default');
                     }
+                } else {
+                    // Not 'by_name' view, or no customer_id in 'by_name' view
+                    updateCardTitle('by_name_default');
                 }
-                // --- End Update Card Title Logic ---
+
             } else {
                 console.error('Error: Target content wrapper #orders-by-name-content-wrapper for AJAX update not found.');
                 window.location.href = url;
@@ -215,11 +367,9 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error fetching or updating orders view:', error);
             window.location.href = url; // Existing error handling
         } finally {
-            // ---- NEW CODE START ----
             if (iconAddonSpan) {
                 iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
             }
-            // ---- NEW CODE END ----
         }
     }
 
@@ -236,11 +386,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         });
 
-        // ---- JS TO SET LOADING STATE ----
         if (iconAddonSpan) {
             iconAddonSpan.innerHTML = SPINNER_HTML;
         }
-        // Placeholder remains "Ketik nama pelanggan..." from HTML initially.
 
         fetch('/api/customers')
             .then(response => response.ok ? response.json() : Promise.reject('Failed to load customers'))
@@ -256,31 +404,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 awesompleteInstance.list = customerList;
                 if (customerList.length > 0) awesompleteInstance.evaluate();
 
-                // ---- JS TO SET SUCCESS STATE ----
                 if (iconAddonSpan) {
                     iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
                 }
-                customerSearchInput.placeholder = 'Ketik nama pelanggan...'; // Confirm placeholder
+                customerSearchInput.placeholder = 'Ketik nama pelanggan...';
             })
             .catch(error => {
                 console.error('Error fetching customer data for Awesomplete:', error);
-                // ---- JS TO SET ERROR STATE ----
                 if (iconAddonSpan) {
                     iconAddonSpan.innerHTML = MAGNIFIER_ICON_HTML;
                 }
-                customerSearchInput.placeholder = 'Gagal memuat daftar pelanggan'; // Error placeholder
+                customerSearchInput.placeholder = 'Gagal memuat daftar pelanggan';
             });
 
         customerSearchInput.addEventListener('awesomplete-selectcomplete', function (event) {
             const selection = event.text;
             customerSearchInput.value = selection.label; // Keep this for form data if needed by other parts
             selectedCustomerIdHidden.value = selection.value;
-            // Store the selected name on the hidden input or a global variable for easier access later
-            if (selectedCustomerIdHidden) { // Ensure element exists
-                selectedCustomerIdHidden.dataset.selectedName = selection.label; // Storing on dataset
+            if (selectedCustomerIdHidden) {
+                selectedCustomerIdHidden.dataset.selectedName = selection.label;
             }
 
-            customerSearchForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); // Programmatically submit form
+            // Store customer info for later use in tab switching
+            storeCustomerInfo(selection.value, selection.label);
+
+            customerSearchForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
         });
     }
 
@@ -289,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function () {
         customerSearchForm.addEventListener('submit', function(event) {
             event.preventDefault();
             const customerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
-            event.preventDefault(); // Prevent default GET submission
+            event.preventDefault();
 
             // Ensure hidden fields for grouping and limit are added/updated
             let groupingHidden = customerSearchForm.querySelector('input[name="grouping"]');
@@ -324,24 +472,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             pageHidden.value = '1';
 
-            // Hidden field for view=by_name should already exist in the form.
 
-            // For AJAX update, construct URL with all params. For full reload, the form now has all params.
-            // The existing fetchAndUpdateOrdersView is for AJAX. If we want full reload, use customerSearchForm.submit()
-            // The prompt mentioned earlier that full page reloads are the primary mechanism.
-            // So, let's ensure the form is submitted naturally after adding hidden fields if it's not an AJAX call by default.
-            // The current code calls fetchAndUpdateOrdersView, which is AJAX.
-            // To switch to full reload for this form:
-            // customerSearchForm.submit(); // This would be used instead of fetchAndUpdateOrdersView
-            // For now, keeping AJAX as per existing structure, but ensuring params are correctly built for it.
-            // const customerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
             const baseUrl = customerSearchForm.action || (window.location.origin + '/orders');
             const params = new URLSearchParams();
             params.set('view', 'by_name');
             if (customerId) {
                 params.set('customer_id', customerId);
             }
-            params.set('page', pageHidden.value); // '1'
+            params.set('page', pageHidden.value);
             params.set('limit', limitHidden.value);
             params.set('grouping', groupingHidden.value);
 
@@ -350,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- For "By Order ID" Tab ---
-    // ... (existing By Order ID logic - kept for brevity, assuming no changes needed here) ...
     const orderIdSearchInput = document.getElementById('order_id_search_input');
     const orderIdSearchButton = document.getElementById('order_id_search_button');
     const orderIdSearchResultsContainer = document.getElementById('order_id_search_results_container');
@@ -391,28 +528,16 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </div>
                             </div>
                         `;
-                        // Update card title
-                        if (cardTitleElement) {
-                            cardTitleElement.innerHTML = `${MAGNIFIER_ICON_HTML} Detail Pesanan #${query}`;
-                            cardTitleElement.classList.add('d-flex', 'align-items-center');
-                        }
+                        updateCardTitle('order', { orderId: query });
                     } else {
                         orderIdSearchResultsContainer.innerHTML = `<p class="text-warning">${data.message || 'Order not found or error fetching data.'}</p>`;
-                        // Reset card title to default
-                        if (cardTitleElement) {
-                            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                        }
+                        updateCardTitle('default');
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching order by ID:', error);
                     orderIdSearchResultsContainer.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
-                    // Reset card title to default on error
-                    if (cardTitleElement) {
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                    }
+                    updateCardTitle('default');
                 });
         });
     }
@@ -421,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- For "By Date" Tab ---
     const deliveryDateSearchInput = document.getElementById('delivery_date_search_input');
     const deliveryDateSearchResultsContainer = document.getElementById('delivery_date_search_results_container');
-    let dateIconAddonSpan = null; // To store the span for the icon
+    let dateIconAddonSpan = null;
 
     // Date navigation buttons
     const dateNavPrev = document.getElementById('date_nav_prev');
@@ -429,11 +554,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const dateNavNext = document.getElementById('date_nav_next');
 
     if (deliveryDateSearchInput) {
-        // Try to find the icon addon span
+
         if (deliveryDateSearchInput.parentElement && deliveryDateSearchInput.parentElement.classList.contains('input-icon')) {
             dateIconAddonSpan = deliveryDateSearchInput.parentElement.querySelector('.input-icon-addon');
             if (dateIconAddonSpan) {
-                dateIconAddonSpan.innerHTML = DATE_PICKER_CALENDAR_ICON_SVG; // Set initial icon
+                dateIconAddonSpan.innerHTML = DATE_PICKER_CALENDAR_ICON_SVG;
             } else {
                 console.error('Date icon addon span (.input-icon-addon) not found within the parent of delivery_date_search_input.');
             }
@@ -445,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function () {
             deliveryDateFlatpickrInstance = flatpickr(deliveryDateSearchInput, {
                 dateFormat: "Y-m-d",
                 locale: "id",
-                onChange: function(selectedDates, dateStr, instance) {
+                onChange: function() {
                     const dateQuery = deliveryDateSearchInput.value.trim();
 
                     if (dateIconAddonSpan) {
@@ -481,31 +606,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // Use the same rendering logic as navigation buttons
                                 renderDeliveriesTable(data.deliveries, dateQuery);
 
-                                // Update card title if there are deliveries
-                                if (cardTitleElement && data.deliveries.length > 0) {
-                                    try {
-                                        const dateObj = new Date(dateQuery + 'T00:00:00');
-                                        const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                                        // Use DATE_PICKER_CALENDAR_ICON_SVG for the card title icon as well for consistency
-                                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
-                                        cardTitleElement.classList.add('d-flex', 'align-items-center');
-                                    } catch (e) {
-                                        console.error("Error formatting date for card title:", e);
-                                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                                    }
-                                } else if (cardTitleElement) {
-                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                                }
+                                // Always update card title with the date, regardless of whether there are deliveries
+                                updateCardTitle('date', { date: dateQuery });
                             } else {
                                 // Show empty state with appropriate SVG based on day of week
                                 renderEmptyState(dateQuery);
-
-                                if (cardTitleElement) {
-                                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                                }
+                                // Still show the date in card title even if no data
+                                updateCardTitle('date', { date: dateQuery });
                             }
                         })
                         .catch(error => {
@@ -517,29 +624,76 @@ document.addEventListener('DOMContentLoaded', function () {
                                 dateIconAddonSpan.innerHTML = DATE_PICKER_CALENDAR_ICON_SVG;
                             }
                         });
-                } // End onChange
-            }); // End flatpickr init
-        } // End if flatpickr undefined
-    } // End if deliveryDateSearchInput
+                }
+            });
+        }
+    }
+
+    // Function to get today's date in server timezone (Asia/Makassar)
+    function getTodayInServerTimezone() {
+        // Create date in server timezone (Asia/Makassar = UTC+8)
+        const now = new Date();
+        const serverTimezoneOffset = 8 * 60; // Asia/Makassar is UTC+8
+        const localTimezoneOffset = now.getTimezoneOffset(); // Browser timezone offset in minutes
+
+        // Calculate the difference and adjust
+        const timezoneAdjustment = (serverTimezoneOffset + localTimezoneOffset) * 60 * 1000;
+        const serverTime = new Date(now.getTime() + timezoneAdjustment);
+
+        const year = serverTime.getFullYear();
+        const month = (serverTime.getMonth() + 1).toString().padStart(2, '0');
+        const day = serverTime.getDate().toString().padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    }
 
     // Function to set today's date if input is empty
     function ensureDateInputIsPopulated(triggerChangeEvent) {
         if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-            const localDate = new Date();
-            const year = localDate.getFullYear();
-            const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
-            const day = localDate.getDate().toString().padStart(2, '0');
-            const today = `${year}-${month}-${day}`;
-            // deliveryDateSearchInput.value = today; // setDate will update the input's value
+            const today = getTodayInServerTimezone();
+
             if (deliveryDateFlatpickrInstance) {
                 deliveryDateFlatpickrInstance.setDate(today, triggerChangeEvent);
             } else {
-                // Fallback if flatpickr instance isn't available for some reason
                 deliveryDateSearchInput.value = today;
             }
         }
     }
-    // The event listener for deliveryDateSearchButton is removed as the button is removed.
+
+    // Function to handle initial data display for by_date view
+    function handleInitialByDateView() {
+        const currentDate = deliveryDateSearchInput ? deliveryDateSearchInput.value : getTodayInServerTimezone();
+
+        // Check if we have deliveries_for_today data from server-side rendering
+        if (window.deliveries_for_today && Array.isArray(window.deliveries_for_today)) {
+            console.log('Using server-provided deliveries data:', window.deliveries_for_today);
+
+            if (window.deliveries_for_today.length > 0) {
+                // Display the server-provided data
+                renderDeliveriesTable(window.deliveries_for_today, currentDate);
+            } else {
+                // Show empty state for the current date
+                renderEmptyState(currentDate);
+            }
+            updateCardTitle('date', { date: currentDate });
+
+            // Clear the global variable to prevent reuse
+            delete window.deliveries_for_today;
+        } else if (deliveryDateSearchInput && deliveryDateSearchInput.value) {
+            // If no server data but date input has value, trigger search
+            console.log('No server data found, triggering API search for date:', currentDate);
+            updateCardTitle('date', { date: currentDate });
+
+            // Trigger search for the current date
+            performDateSearch(currentDate, null);
+        } else {
+            // Fallback: show empty state for today
+            console.log('Fallback: showing empty state for today');
+            updateCardTitle('date', { date: currentDate });
+            renderEmptyState(currentDate);
+        }
+    }
+
 
     // Debounce function for date navigation
     function debounce(func, wait) {
@@ -565,9 +719,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let currentDate;
         if (deliveryDateSearchInput.value) {
-            currentDate = new Date(deliveryDateSearchInput.value);
+            // Parse the date string properly to avoid timezone issues
+            const dateParts = deliveryDateSearchInput.value.split('-');
+            currentDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
         } else {
-            currentDate = new Date(); // Default to today if no date is set
+            // Use server timezone for current date
+            const todayInServerTz = getTodayInServerTimezone();
+            const dateParts = todayInServerTz.split('-');
+            currentDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
         }
 
         let newDate;
@@ -581,7 +740,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 newDate.setDate(currentDate.getDate() + 1);
                 break;
             case 'today':
-                newDate = new Date();
+                // Use server timezone for today
+                const todayInServerTz = getTodayInServerTimezone();
+                const dateParts = todayInServerTz.split('-');
+                newDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
                 break;
             default:
                 return;
@@ -594,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Update input value and flatpickr
         deliveryDateSearchInput.value = formattedDate;
-        deliveryDateFlatpickrInstance.setDate(formattedDate, false); // false = don't trigger onChange
+        deliveryDateFlatpickrInstance.setDate(formattedDate, false);
 
         // Add loading state to clicked button
         if (clickedButton) {
@@ -649,9 +811,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.success && data.deliveries) {
                 // Render the deliveries data into HTML table
                 renderDeliveriesTable(data.deliveries, date);
+                // Update card title with the date
+                updateCardTitle('date', { date: date });
             } else {
                 // Show empty state with appropriate SVG based on day of week
                 renderEmptyState(date);
+                // Still show the date in card title even if no data
+                updateCardTitle('date', { date: date });
             }
         })
         .catch(error => {
@@ -663,6 +829,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 `;
             }
+            // Still show the date in card title even on error
+            updateCardTitle('date', { date: date });
         })
         .finally(() => {
             // Remove loading states
@@ -681,15 +849,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderEmptyState(date) {
         if (!deliveryDateSearchResultsContainer) return;
 
-        // Check if the date is Sunday
         const dateObj = new Date(date + 'T00:00:00');
-        const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayOfWeek = dateObj.getDay();
         const isSunday = dayOfWeek === 0;
 
         let svgContent, title, subtitle;
 
         if (isSunday) {
-            // Beach SVG for Sunday (holiday)
+
             svgContent = `
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 439.48 439.48" xml:space="preserve" width="200" height="200" style="margin: auto; display: block; margin-bottom: 1rem;">
                     <g>
@@ -713,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function () {
             title = 'Minggu Ceria!';
             subtitle = 'Tidak ada jadwal pengiriman pada hari Minggu.';
         } else {
-            // Bird SVG for other days
+
             svgContent = `
                 <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200" style="margin: auto; display: block; margin-bottom: 1rem;">
                     <path d="M484.32 375.24C575.25 255.5 857.87 527.6 788.67 581.07c-94.76 73.21-491.01 39.99-304.35-205.83z" fill="#1C80AA" />
@@ -751,19 +918,17 @@ document.addEventListener('DOMContentLoaded', function () {
         // Build the table HTML
         let tableHTML = `
             <div class="table-responsive">
-                <table class="table table-vcenter card-table table-striped">
+                <table class="table table-vcenter card-table table-selectable">
                     <thead>
                         <tr>
+                            <th><input class="form-check-input m-0 align-middle" type="checkbox" id="select-all-deliveries-by-date-js" aria-label="Select all deliveries"></th>
                             <th>Customer</th>
-                            <th>Order ID</th>
-                            <th>Items</th>
-                            <th>Notes (Dapur/Kurir)</th>
+                            <th>Details</th>
                             <th>Kurir</th>
-                            <th>Pembayaran</th>
                             <th>Ongkir</th>
                             <th>Total</th>
                             <th>Status</th>
-                            <th class="w-1">Aksi</th>
+                            <th class="w-1">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -775,31 +940,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
             tableHTML += `
                 <tr id="delivery-row-${delivery.delivery_id}">
-                    <td>${delivery.customer_name || 'N/A'}</td>
+                    <td><input class="form-check-input m-0 align-middle select-delivery-item" type="checkbox" value="${delivery.delivery_id}" aria-label="Select delivery ${delivery.delivery_id}"></td>
                     <td>
-                        <a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">
-                            #${delivery.order_id}
-                        </a>
+                        <div class="fw-bold">${delivery.customer_name || 'N/A'}</div>
+                        <div class="small text-muted">
+                            Order ID: <a href="/orders?view=by_order_id&order_id_query=${delivery.order_id}">#${delivery.order_id}</a>
+                            | ${formatPaymentMethod(delivery.payment_method)}
+                        </div>
                     </td>
-                    <td>${renderItemsColumn(items, delivery.subtotal_harga)}</td>
-                    <td>${renderNotesColumn(delivery.kitchen_note, delivery.courier_note)}</td>
-                    <td>${delivery.courier_name || 'N/A'}</td>
-                    <td>${formatPaymentMethod(delivery.payment_method)}</td>
+                    <td>${renderDetailsColumnWithAdditional(items, delivery.kitchen_note, delivery.courier_note)}</td>
+                    <td>${renderCourierBadge(delivery.courier_name, delivery.courier_color)}</td>
                     <td>${formatCurrency(delivery.ongkir)}</td>
                     <td>${formatCurrency((delivery.subtotal_harga || 0) + (delivery.ongkir || 0))}</td>
-                    <td>
+                    <td class="text-nowrap">
                         <span class="badge ${statusClass} me-1"></span>${formatStatus(delivery.status)}
                     </td>
                     <td>
                         <div class="btn-list flex-nowrap">
                             <button class="btn btn-sm btn-icon edit-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Edit Pengiriman">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
-                                    <path d="M13.5 6.5l4 4" />
+                                    <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                                    <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                                    <path d="M16 5l3 3" />
                                 </svg>
                             </button>
-                            <button class="btn btn-sm btn-icon delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
+                            <button class="btn btn-sm btn-icon text-danger delete-delivery-btn" data-delivery-id="${delivery.delivery_id}" title="Hapus Pengiriman">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                     <path d="M4 7l16 0" />
@@ -860,49 +1026,81 @@ document.addEventListener('DOMContentLoaded', function () {
         return new Intl.NumberFormat('id-ID').format(amount || 0);
     }
 
-    function renderItemsColumn(items, subtotalHarga) {
-        let html = '<ul class="list-unstyled mb-0">';
-
-        // Render package items
-        if (items.items && items.items.length > 0) {
-            html += '<li>Paket:</li><ul class="list-unstyled ps-3 mb-1">';
-            items.items.forEach(item => {
-                const price = item.price ? ` <span class="text-muted">@ ${formatCurrency(item.price)}</span>` : '';
-                html += `<li>${item.quantity}x ${item.package_name || 'N/A'}${price}</li>`;
-            });
-            html += '</ul>';
+    function renderCourierBadge(courierName, courierColor = null) {
+        if (!courierName || courierName === 'N/A') {
+            return '<span class="badge bg-default-lt">N/A</span>';
         }
 
-        // Render additional items
-        if (items.additional_items && items.additional_items.length > 0) {
-            const validItems = items.additional_items.filter(item =>
-                item.item_name && item.item_name !== '' && item.item_name !== 'N/A'
-            );
-            if (validItems.length > 0) {
-                html += '<li>Tambahan:</li><ul class="list-unstyled ps-3 mb-1">';
-                validItems.forEach(item => {
-                    const price = item.price && item.price > 0 ? ` <span class="text-muted">@ ${formatCurrency(item.price)}</span>` : '';
-                    html += `<li>${item.quantity || 1}x ${item.item_name}${price}</li>`;
-                });
-                html += '</ul>';
-            }
-        }
+        // Use provided color or fallback to default
+        const badgeColor = courierColor || 'blue';
 
-        html += `<li class="mt-1 text-muted"><strong>Subtotal Items: ${formatCurrency(subtotalHarga)}</strong></li>`;
-        html += '</ul>';
-
-        return html;
+        return `<span class="badge bg-${badgeColor}-lt">${courierName}</span>`;
     }
 
-    function renderNotesColumn(kitchenNote, courierNote) {
+
+
+
+
+
+    // New function for rendering Details column with additional items included
+    function renderDetailsColumnWithAdditional(items, kitchenNote, courierNote) {
         let html = '';
+
+        // Check if we have any items to display
+        const hasPackageItems = items.items && items.items.length > 0;
+        const validAdditionalItems = items.additional_items ?
+            items.additional_items.filter(item => item.item_name && item.item_name !== '' && item.item_name !== 'N/A') : [];
+        const hasAdditionalItems = validAdditionalItems.length > 0;
+
+        // Render table if there are package items or additional items
+        if (hasPackageItems || hasAdditionalItems) {
+            html += '<table class="table table-sm table-borderless mb-0"><tbody>';
+
+            // Render package items
+            if (hasPackageItems) {
+                items.items.forEach(item => {
+                    const price = item.price ? formatCurrency(item.price) : '';
+                    html += `
+                        <tr>
+                            <td>${item.package_name || 'N/A'}</td>
+                            <td>(${item.quantity})</td>
+                            <td class="text-end">${price}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Render additional items in the same table format
+            if (hasAdditionalItems) {
+                validAdditionalItems.forEach(item => {
+                    const price = item.price && item.price > 0 ? formatCurrency(item.price) : '';
+                    html += `
+                        <tr>
+                            <td>${item.item_name} <span class="text-success">+</span></td>
+                            <td></td>
+                            <td class="text-end">${price}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += '</tbody></table>';
+        }
+
+        // Add notes below table
         if (kitchenNote && kitchenNote.trim()) {
-            html += `<small class="d-block"><strong>Dapur:</strong> ${kitchenNote}</small>`;
+            html += `<small class="d-block text-muted mt-1"><em>Dapur: ${kitchenNote}</em></small>`;
         }
         if (courierNote && courierNote.trim()) {
-            html += `<small class="d-block"><strong>Kurir:</strong> ${courierNote}</small>`;
+            html += `<small class="d-block text-muted"><em>Kurir: ${courierNote}</em></small>`;
         }
-        return html || '<span class="text-muted">-</span>';
+
+        // Fallback for when there are no items
+        if (!hasPackageItems && !hasAdditionalItems && (!kitchenNote || !kitchenNote.trim()) && (!courierNote || !courierNote.trim())) {
+            html = '<span class="text-muted">- No items -</span>';
+        }
+
+        return html;
     }
 
     // Add event listeners for date navigation buttons
@@ -928,10 +1126,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Tab Management & Visibility ---
-    // ... (existing tab logic - kept for brevity) ...
     const tabButtons = document.querySelectorAll('#orders-view-tabs button.nav-link[data-bs-toggle="tab"]'); // Ensure buttons are selected
-    const byDateTabButton = document.querySelector('#orders-view-tabs button.nav-link[data-bs-target="#pane-by-date"]'); // Ensure button is selected
-    // const formSearchByName = document.getElementById('form_search_by_name'); // Already defined as customerSearchForm
+
+
     const formSearchByOrderId = document.getElementById('form_search_by_order_id');
     const formSearchByDate = document.getElementById('form_search_by_date');
     const allSearchForms = [customerSearchForm, formSearchByOrderId, formSearchByDate].filter(form => form !== null);
@@ -1001,16 +1198,35 @@ document.addEventListener('DOMContentLoaded', function () {
             if (activeTabTarget === '#pane-by-name') {
                 const customerId = currentUrl.searchParams.get('customer_id');
                 if (customerId) {
+                    // Check if we have customer name from sessionStorage or page context
+                    let customerName = sessionStorage.getItem('current_customer_name');
+
+                    // If not in sessionStorage, try to get from current card title (SSR)
+                    if (!customerName && cardTitleElement) {
+                        const titleText = cardTitleElement.textContent || cardTitleElement.innerText;
+                        if (titleText && !titleText.includes('Manajemen Pesanan') && !titleText.includes('Pencarian')) {
+                            customerName = titleText.trim();
+                        }
+                    }
+
+                    if (customerName) {
+                        // Store customer info and update title immediately
+                        storeCustomerInfo(customerId, customerName);
+                        updateCardTitle('customer', {
+                            customerId: customerId,
+                            customerName: customerName
+                        });
+                    }
                     // fetchAndUpdateOrdersView will handle the title if a customer is loaded
                     // If navigating to by_name and customerId is already in URL,
                     // fetchAndUpdateOrdersView is called, which updates title.
                     // If no customerId, title gets reset below.
                 } else {
-                    // No customer_id when switching to 'by_name'. Reset title.
-                    if (cardTitleElement) {
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                    }
+                    // No customer_id when switching to 'by_name' - show default state
+                    updateCardTitle('by_name_default');
+                    // Clear sessionStorage since no customer is selected in URL
+                    sessionStorage.removeItem('current_customer_id');
+                    sessionStorage.removeItem('current_customer_name');
                     // Ensure contentWrapper shows the "select customer" message
                     if (contentWrapper) {
                         contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
@@ -1020,23 +1236,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 // that function will set the title appropriately.
                 // This block primarily handles the reset case.
             } else if (activeTabTarget === '#pane-by-date') {
-                // If date input is empty AND results container is also empty/initial, reset title.
-                // ensureDateInputIsPopulated will then trigger flatpickr's onChange, which loads data
-                // and sets the title based on whether deliveries are found for the (newly set) date.
-                if (deliveryDateSearchInput && deliveryDateSearchInput.value === '' &&
-                    (deliveryDateSearchResultsContainer && (deliveryDateSearchResultsContainer.innerHTML.trim() === '' || deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state')))) {
-                    if (cardTitleElement) {
-                        cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                        cardTitleElement.classList.remove('d-flex', 'align-items-center');
+                // When switching to by_date tab, handle initial data display
+                if (deliveryDateSearchInput) {
+                    if (deliveryDateSearchInput.value === '') {
+                        // Set today's date if input is empty
+                        const today = getTodayInServerTimezone();
+                        if (deliveryDateFlatpickrInstance) {
+                            deliveryDateFlatpickrInstance.setDate(today, false);
+                        } else {
+                            deliveryDateSearchInput.value = today;
+                        }
                     }
+                    // Always call handleInitialByDateView to check for server data
+                    handleInitialByDateView();
+                } else {
+                    updateCardTitle('by_date_default');
                 }
-                // ensureDateInputIsPopulated(true) is called later and will handle title updates based on API response
+                // ensureDateInputIsPopulated(true) is called above and will handle title updates based on API response
             } else if (activeTabTarget === '#pane-by-order-id') {
-                // Reset title and content when switching to 'by_order_id' tab before a search
-                if (cardTitleElement) {
-                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                }
+                // Set by_order_id default title and content when switching to 'by_order_id' tab before a search
+                updateCardTitle('by_order_id_default');
                 if (orderIdSearchResultsContainer) {
                     orderIdSearchResultsContainer.innerHTML = '<p class="text-muted py-5 text-center">Masukkan ID Pesanan di atas untuk memulai pencarian.</p>';
                 }
@@ -1058,6 +1277,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     fetchUrl.searchParams.set('limit', currentUrl.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
                     fetchUrl.searchParams.set('grouping', currentUrl.searchParams.get('grouping') || groupingSelect?.value || 'none');
 
+                    console.log('Tab switch to by_name with customer_id:', customerId, 'fetching data with URL:', fetchUrl.toString());
                     if (typeof fetchAndUpdateOrdersView === 'function') {
                         fetchAndUpdateOrdersView(fetchUrl.toString());
                     } else {
@@ -1067,22 +1287,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 // If no customerId, the title reset and content message are handled by the block above.
             } else if (activeTabTarget === '#pane-by-date') {
-                // ensureDateInputIsPopulated will trigger flatpickr's onChange if date is empty,
-                // which then loads data and sets the title.
-                // If date input is already populated (e.g. from SSR or previous selection)
-                // and results are already there, title should be set.
-                // If input has value but no results, flatpickr onChange should have set default title.
-                // The specific title reset for empty input + empty results is handled above.
-                if (deliveryDateSearchInput && (deliveryDateSearchInput.value === '' || (deliveryDateSearchResultsContainer && deliveryDateSearchResultsContainer.innerHTML.trim() === ''))) {
-                     ensureDateInputIsPopulated(true); // This will eventually update title via its fetch
-                } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '') {
-                    // If date input has a value, but perhaps no action was triggered to load data yet for this tab switch
-                    // (e.g. if it was populated by SSR and user is just switching back to the tab)
-                    // We might need to manually trigger the flatpickr's onChange if current results don't match the date,
-                    // or rely on ensureDateInputIsPopulated if it's smart enough.
-                    // For now, assume if date is populated, its corresponding data (and title) should be too, or will be loaded.
-                    // The `ensureDateInputIsPopulated(true)` call will effectively re-trigger if input is empty.
-                    // If input is NOT empty, we assume the title reflects its state or will shortly.
+                // Load today's date and handle initial data display
+                if (deliveryDateSearchInput) {
+                    if (deliveryDateSearchInput.value === '') {
+                        // Set today's date if input is empty
+                        const today = getTodayInServerTimezone();
+                        if (deliveryDateFlatpickrInstance) {
+                            deliveryDateFlatpickrInstance.setDate(today, false);
+                        } else {
+                            deliveryDateSearchInput.value = today;
+                        }
+                    }
+                    // Always call handleInitialByDateView to check for server data
+                    handleInitialByDateView();
                 }
             }
             // For '#pane-by-order-id', title and content reset is handled above.
@@ -1095,16 +1312,140 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    const currentUrlParams = new URLSearchParams(window.location.search);
-    const urlView = currentUrlParams.get('view');
-    let activeTabTargetOnLoad = localStorage.getItem('activeOrdersTab') || '#pane-by-name'; // Default to by_name
+    // Function to activate tab and populate content
+    function activateTabAndPopulateContent(activeTabTarget) {
+        // Activate the tab button
+        const activeTabButton = document.querySelector(`#orders-view-tabs button[data-bs-target="${activeTabTarget}"]`);
+        if (activeTabButton) {
+            // Remove active from all tabs
+            document.querySelectorAll('#orders-view-tabs button.nav-link').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
 
-    // If 'view' param in URL, it overrides localStorage
-    if (urlView) {
-        if (urlView === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
-        else if (urlView === 'by_order_id') activeTabTargetOnLoad = '#pane-by-order-id';
-        else if (urlView === 'by_date') activeTabTargetOnLoad = '#pane-by-date';
+            // Activate the target tab
+            activeTabButton.classList.add('active');
+            activeTabButton.setAttribute('aria-selected', 'true');
+        }
+
+        // Activate the tab pane
+        const activeTabPane = document.querySelector(activeTabTarget);
+        if (activeTabPane) {
+            // Remove active from all panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+
+            // Activate the target pane
+            activeTabPane.classList.add('show', 'active');
+        }
+
+        // Update search form visibility
+        updateSearchFormVisibility(activeTabTarget);
+
+        // Populate content based on tab
+        const currentUrlParams = new URLSearchParams(window.location.search);
+
+        if (activeTabTarget === '#pane-by-name') {
+            const customerId = currentUrlParams.get('customer_id');
+            const contentWrapper = document.getElementById('orders-by-name-content-wrapper');
+
+            if (!customerId && contentWrapper) {
+                contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
+                updateCardTitle('by_name_default');
+            } else if (customerId) {
+                // Load customer data if customer_id exists
+                console.log('activateTabAndPopulateContent: Loading data for customer_id:', customerId);
+
+                // Trigger fetchAndUpdateOrdersView to load the data
+                const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
+                fetchUrl.searchParams.set('view', 'by_name');
+                fetchUrl.searchParams.set('customer_id', customerId);
+                fetchUrl.searchParams.set('page', currentUrlParams.get('page') || '1');
+                fetchUrl.searchParams.set('limit', currentUrlParams.get('limit') || itemsPerPageSelect?.value || '100');
+                fetchUrl.searchParams.set('grouping', currentUrlParams.get('grouping') || groupingSelect?.value || 'none');
+
+                if (typeof fetchAndUpdateOrdersView === 'function') {
+                    console.log('activateTabAndPopulateContent: Calling fetchAndUpdateOrdersView with URL:', fetchUrl.toString());
+                    fetchAndUpdateOrdersView(fetchUrl.toString());
+                } else {
+                    console.error('activateTabAndPopulateContent: fetchAndUpdateOrdersView function not available');
+                    updateCardTitle('by_name_default'); // Fallback
+                }
+            }
+        } else if (activeTabTarget === '#pane-by-date') {
+            // Handle by_date initial state
+            if (deliveryDateSearchInput) {
+                if (deliveryDateSearchInput.value === '') {
+                    const today = getTodayInServerTimezone();
+                    deliveryDateSearchInput.value = today;
+                }
+                // Always call handleInitialByDateView to check for server data
+                handleInitialByDateView();
+            }
+        } else if (activeTabTarget === '#pane-by-order-id') {
+            const orderIdContainer = document.getElementById('order_id_search_results_container');
+            if (orderIdContainer) {
+                orderIdContainer.innerHTML = `<p class="text-muted py-5 text-center">Masukkan ID Pesanan di atas untuk memulai pencarian.</p>`;
+            }
+            updateCardTitle('by_order_id_default');
+        }
     }
+
+    // Initialize page state from localStorage first
+    function initializePageState() {
+        const currentUrlParams = new URLSearchParams(window.location.search);
+        const urlView = currentUrlParams.get('view');
+
+        // Determine active tab: URL takes precedence, then localStorage, then default
+        let activeTabTargetOnLoad;
+        if (urlView) {
+            // URL parameter exists, use it
+            if (urlView === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
+            else if (urlView === 'by_order_id') activeTabTargetOnLoad = '#pane-by-order-id';
+            else if (urlView === 'by_date') activeTabTargetOnLoad = '#pane-by-date';
+            else activeTabTargetOnLoad = '#pane-by-name'; // fallback for invalid view
+        } else {
+            // No URL parameter, check localStorage
+            const storedTab = localStorage.getItem('activeOrdersTab');
+            if (storedTab && [
+                '#pane-by-name',
+                '#pane-by-order-id',
+                '#pane-by-date'
+            ].includes(storedTab)) {
+                activeTabTargetOnLoad = storedTab;
+                // Update URL to reflect localStorage choice (without reload)
+                const newUrl = new URL(window.location.href);
+                const viewName = storedTab === '#pane-by-name' ? 'by_name' :
+                               storedTab === '#pane-by-order-id' ? 'by_order_id' : 'by_date';
+                newUrl.searchParams.set('view', viewName);
+                if (history.replaceState) {
+                    history.replaceState({path: newUrl.toString()}, '', newUrl.toString());
+                }
+            } else {
+                // No valid localStorage, use default
+                activeTabTargetOnLoad = '#pane-by-name';
+            }
+        }
+
+        // Activate the determined tab and populate content
+        activateTabAndPopulateContent(activeTabTargetOnLoad);
+
+        // Hide loading state and show content
+        const loadingState = document.getElementById('initial-loading-state');
+        const tabContent = document.getElementById('orders-tab-content');
+        const controlBar = document.getElementById('control-bar');
+        const tabsNav = document.getElementById('orders-view-tabs');
+
+        if (loadingState) loadingState.style.display = 'none';
+        if (tabContent) tabContent.style.display = 'block';
+        if (controlBar) controlBar.style.visibility = 'visible';
+        if (tabsNav) tabsNav.style.visibility = 'visible';
+
+        return activeTabTargetOnLoad;
+    }
+
+    const activeTabTargetOnLoad = initializePageState();
 
     // Activate the determined tab
     const activeTabButton = document.querySelector(`.nav-link[data-bs-target="${activeTabTargetOnLoad}"]`);
@@ -1125,23 +1466,57 @@ document.addEventListener('DOMContentLoaded', function () {
         updateSearchFormVisibility(activeTabTargetOnLoad);
         // Manual title setting based on active tab on load (if not handled by 'shown.bs.tab')
         if (activeTabTargetOnLoad === '#pane-by-name') {
-            if (!currentUrlParams.get('customer_id') && cardTitleElement) { // No customer selected
-                cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                cardTitleElement.classList.remove('d-flex', 'align-items-center');
-            } // If customer selected, SSR or subsequent fetchAndUpdateOrdersView should handle title
+            const customerId = currentUrlParams.get('customer_id');
+            if (!customerId) { // No customer selected
+                updateCardTitle('by_name_default');
+            } else {
+                // Customer is selected, check if we have customer name from sessionStorage first
+                let selectedCustomerNameFromPage = sessionStorage.getItem('current_customer_name');
+
+                // If not in sessionStorage, try to get from current card title (SSR)
+                if (!selectedCustomerNameFromPage && cardTitleElement) {
+                    const titleText = cardTitleElement.textContent || cardTitleElement.innerText;
+                    // If the title contains customer name (not default titles)
+                    if (titleText && !titleText.includes('Manajemen Pesanan') && !titleText.includes('Pencarian')) {
+                        selectedCustomerNameFromPage = titleText.trim();
+                    }
+                }
+
+                // If still not found, try to get from page context
+                if (!selectedCustomerNameFromPage) {
+                    selectedCustomerNameFromPage = getSelectedCustomerNameFromPage();
+                }
+
+                if (selectedCustomerNameFromPage) {
+                    // Store customer info for later use
+                    storeCustomerInfo(customerId, selectedCustomerNameFromPage);
+                    updateCardTitle('customer', {
+                        customerId: customerId,
+                        customerName: selectedCustomerNameFromPage
+                    });
+                } else {
+                    // Fallback to default if customer name not found
+                    updateCardTitle('by_name_default');
+                }
+            }
         } else if (activeTabTargetOnLoad === '#pane-by-date') {
-            // If date input is empty and no results on load, set default title
-            if (deliveryDateSearchInput && deliveryDateSearchInput.value === '' && cardTitleElement) {
-                 const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer || deliveryDateSearchResultsContainer.innerHTML.trim() === '' || deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state');
-                 if (containerIsEmptyOrInitial) {
-                    cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-                    cardTitleElement.classList.remove('d-flex', 'align-items-center');
-                 }
+            // Always try to handle initial data display first for by_date view
+            if (deliveryDateSearchInput) {
+                if (deliveryDateSearchInput.value === '') {
+                    // If input is empty, set today's date first
+                    const today = getTodayInServerTimezone();
+                    if (deliveryDateFlatpickrInstance) {
+                        deliveryDateFlatpickrInstance.setDate(today, false);
+                    } else {
+                        deliveryDateSearchInput.value = today;
+                    }
+                }
+                // Always call handleInitialByDateView to check for server data
+                handleInitialByDateView();
             }
             // ensureDateInputIsPopulated(true) will be called below if conditions match, handling further title updates
-        } else if (activeTabTargetOnLoad === '#pane-by-order-id' && cardTitleElement) {
-            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE; // Default for By Order ID on load
-            cardTitleElement.classList.remove('d-flex', 'align-items-center');
+        } else if (activeTabTargetOnLoad === '#pane-by-order-id') {
+            updateCardTitle('by_order_id_default'); // Default for By Order ID on load
         }
     }
 
@@ -1149,28 +1524,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (activeTabTargetOnLoad) {
         updateSearchFormVisibility(activeTabTargetOnLoad); // Call this regardless of how tab was shown
         if (activeTabTargetOnLoad === '#pane-by-date') {
-             if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer ||
-                                                 deliveryDateSearchResultsContainer.innerHTML.trim() === '' ||
-                                                 deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state') !== null;
-                if (containerIsEmptyOrInitial) {
-                    ensureDateInputIsPopulated(true); // This triggers flatpickr onChange, leading to title update
+             if (deliveryDateSearchInput) {
+                if (deliveryDateSearchInput.value === '') {
+                    // Set today's date if input is empty
+                    const today = getTodayInServerTimezone();
+                    if (deliveryDateFlatpickrInstance) {
+                        deliveryDateFlatpickrInstance.setDate(today, false);
+                    } else {
+                        deliveryDateSearchInput.value = today;
+                    }
                 }
-            } else if (deliveryDateSearchInput && deliveryDateSearchInput.value !== '' && cardTitleElement) {
-                // If date is populated (e.g. SSR with default_date), and no specific title was set by SSR for date,
-                // or if JS needs to re-confirm title.
-                // Check if title is still default, if so, try to format based on existing date.
-                // This case is tricky, as flatpickr's onChange is the primary mechanism for date title.
-                // If SSR provides results, Twig should set the title. If JS loads results, flatpickr onChange does.
-                // This is more of a fallback if title is default but date is set.
-                if (cardTitleElement.innerHTML === DEFAULT_CARD_TITLE || !cardTitleElement.querySelector('svg.icon')) {
-                     try {
-                        const dateObj = new Date(deliveryDateSearchInput.value + 'T00:00:00');
-                        const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                        cardTitleElement.innerHTML = `${DATE_PICKER_CALENDAR_ICON_SVG} ${formattedDate}`;
-                        cardTitleElement.classList.add('d-flex', 'align-items-center');
-                    } catch (e) { /* keep default title if error */ }
-                }
+                // Always call handleInitialByDateView to check for server data
+                handleInitialByDateView();
             }
         }
         // For by_name, if a customer_id is in URL, SSR handles initial title or fetchAndUpdateOrdersView does.
@@ -1178,10 +1543,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (!urlView && !localStorage.getItem('activeOrdersTab')) {
         // Default to 'by_name' if no URL param and no localStorage
         updateSearchFormVisibility('#pane-by-name');
-        if (cardTitleElement) { // Set default title if no specific context
-            cardTitleElement.innerHTML = DEFAULT_CARD_TITLE;
-            cardTitleElement.classList.remove('d-flex', 'align-items-center');
-        }
+        updateCardTitle('by_name_default'); // Set by_name default title if no specific context
     }
 
 
@@ -1282,11 +1644,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function performDeleteDelivery(deliveryId) {
         console.log('Attempting to delete delivery ID:', deliveryId);
 
-        if (typeof window.showToast !== 'function') {
-            console.error('showToast function is not defined. Make sure utils.js is loaded correctly.');
-            alert('An error occurred while trying to display a notification.');
-            return;
-        }
+
 
         fetch(`/api/delivery/${deliveryId}`, {
             method: 'DELETE',
@@ -1312,14 +1670,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     console.warn('Could not find row to remove for delivery ID:', deliveryId, '. Consider reloading list.');
                 }
-                window.showToast('Sukses', data.message || `Pengiriman ID ${deliveryId} berhasil dihapus.`, 'success');
+                showToast('Sukses', data.message || `Pengiriman ID ${deliveryId} berhasil dihapus.`, 'success');
+
+                // Update batch delete toast
+                updateBatchDeleteToast();
             } else {
-                window.showToast('Error', data.message || `Gagal menghapus pengiriman ID ${deliveryId}.`, 'error');
+                showToast('Error', data.message || `Gagal menghapus pengiriman ID ${deliveryId}.`, 'error');
             }
         })
         .catch(error => {
             console.error('Error in performDeleteDelivery:', error);
-            window.showToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, 'error');
+            showToast('Error', error.message || `Terjadi kesalahan saat menghapus pengiriman ID ${deliveryId}.`, 'error');
         });
     }
 
@@ -1496,23 +1857,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Initial toast update on page load logic (from end of file) is moved up to be part of initial setup block
-    // ... (The initialActiveTab logic and updateBatchDeleteToast call will be covered by the existing block below)
-
-    // Determine initial active tab based on URL or localStorage
-    const currentUrlOnLoad = new URL(window.location.href);
-    const urlViewOnLoad = currentUrlOnLoad.searchParams.get('view');
-    // NOTE: activeTabTargetOnLoad is already declared much earlier (around line 727)
-    // let activeTabTSRgetOnLoad = localStorage.getItem('activeOrdersTab') || '#pane-by-name'; // This was a duplicate declaration
-
-    if (urlViewOnLoad) {
-        if (urlViewOnLoad === 'by_name') activeTabTargetOnLoad = '#pane-by-name';
-        else if (urlViewOnLoad === 'by_order_id') activeTabTargetOnLoad = '#pane-by-order-id';
-        else if (urlViewOnLoad === 'by_date') activeTabTargetOnLoad = '#pane-by-date';
-        // If view in URL doesn't match localStorage, URL takes precedence
-        if (localStorage.getItem('activeOrdersTab') !== activeTabTargetOnLoad) {
-             localStorage.setItem('activeOrdersTab', activeTabTargetOnLoad);
-        }
-    }
+    // The activeTabTargetOnLoad is already determined by initializePageState() function above
 
     // Activate the determined tab using Bootstrap's API
     // This will also trigger the 'shown.bs.tab' event for the initial load if the tab changes from a default (or no) active state
@@ -1545,9 +1890,14 @@ document.addEventListener('DOMContentLoaded', function () {
                  // Manually call visibility update if Bootstrap event won't fire from .show()
                  updateSearchFormVisibility(activeTabTargetOnLoad);
                  // Manually trigger content loading logic if needed (e.g. for by_date if it's the target and needs initial load)
-                 if (activeTabTargetOnLoad === '#pane-by-date' && deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                    ensureDateInputIsPopulated(true);
-                 } else if (activeTabTargetOnLoad === '#pane-by-name' && !currentUrlOnLoad.searchParams.get('customer_id')) {
+                 if (activeTabTargetOnLoad === '#pane-by-date') {
+                    if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
+                        ensureDateInputIsPopulated(true);
+                    } else {
+                        // Handle initial data display for by_date view
+                        handleInitialByDateView();
+                    }
+                 } else if (activeTabTargetOnLoad === '#pane-by-name' && !new URL(window.location.href).searchParams.get('customer_id')) {
                     if (contentWrapper) contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
                  }
                  updateBatchDeleteToast(); // Also update toast manually
@@ -1557,25 +1907,73 @@ document.addEventListener('DOMContentLoaded', function () {
             // 'shown.bs.tab' might not have fired if no change in tab. So, manually call necessary setup functions.
             updateSearchFormVisibility(activeTabTargetOnLoad);
             if (activeTabTargetOnLoad === '#pane-by-date') {
-                if (deliveryDateSearchInput && deliveryDateSearchInput.value === '') {
-                    const containerIsEmptyOrInitial = !deliveryDateSearchResultsContainer ||
-                                                     deliveryDateSearchResultsContainer.innerHTML.trim() === '' ||
-                                                     deliveryDateSearchResultsContainer.querySelector('#initial-by-date-empty-state') !== null;
-                    if (containerIsEmptyOrInitial) ensureDateInputIsPopulated(true);
+                if (deliveryDateSearchInput) {
+                    if (deliveryDateSearchInput.value === '') {
+                        // Set today's date if input is empty
+                        const today = getTodayInServerTimezone();
+                        if (deliveryDateFlatpickrInstance) {
+                            deliveryDateFlatpickrInstance.setDate(today, false);
+                        } else {
+                            deliveryDateSearchInput.value = today;
+                        }
+                    }
+                    // Always call handleInitialByDateView to check for server data
+                    handleInitialByDateView();
                 }
             } else if (activeTabTargetOnLoad === '#pane-by-name') {
-                if (!currentUrlOnLoad.searchParams.get('customer_id') && contentWrapper) {
+                const currentUrl = new URL(window.location.href);
+                const customerId = currentUrl.searchParams.get('customer_id');
+                if (!customerId && contentWrapper) {
                      contentWrapper.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih atau cari pelanggan untuk melihat riwayat pengiriman.</div>`;
-                } else if (currentUrlOnLoad.searchParams.get('customer_id') && contentWrapper && contentWrapper.innerHTML.trim() === ''){
-                    // If customer_id is present but content is empty (e.g. user navigated back to this state)
-                    // We might need to re-trigger the view update from 'shown.bs.tab' logic
-                    const customerId = currentUrlOnLoad.searchParams.get('customer_id');
+                     updateCardTitle('by_name_default');
+                } else if (customerId) {
+                    // Check if card title is already set by SSR with customer name
+                    let customerName = sessionStorage.getItem('current_customer_name');
+
+                    // If not in sessionStorage, try to get from current card title (SSR)
+                    if (!customerName && cardTitleElement) {
+                        const titleText = cardTitleElement.textContent || cardTitleElement.innerText;
+                        if (titleText && !titleText.includes('Manajemen Pesanan') && !titleText.includes('Pencarian')) {
+                            customerName = titleText.trim();
+                        }
+                    }
+
+                    if (customerName) {
+                        // Store customer info and ensure title is set correctly
+                        storeCustomerInfo(customerId, customerName);
+                        updateCardTitle('customer', {
+                            customerId: customerId,
+                            customerName: customerName
+                        });
+                    } else {
+                        updateCardTitle('by_name_default');
+                    }
+
+                    // Always trigger data fetch when customer_id is present on initial load
+                    console.log('Initial load with customer_id:', customerId, 'triggering data fetch');
                     const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
                     fetchUrl.searchParams.set('view', 'by_name');
                     fetchUrl.searchParams.set('customer_id', customerId);
-                    fetchUrl.searchParams.set('page', currentUrlOnLoad.searchParams.get('page') || '1');
-                    fetchUrl.searchParams.set('limit', currentUrlOnLoad.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
-                    fetchUrl.searchParams.set('grouping', currentUrlOnLoad.searchParams.get('grouping') || groupingSelect?.value || 'none');
+                    fetchUrl.searchParams.set('page', currentUrl.searchParams.get('page') || '1');
+                    fetchUrl.searchParams.set('limit', currentUrl.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    fetchUrl.searchParams.set('grouping', currentUrl.searchParams.get('grouping') || groupingSelect?.value || 'none');
+
+                    if (typeof fetchAndUpdateOrdersView === 'function') {
+                        console.log('Calling fetchAndUpdateOrdersView with URL:', fetchUrl.toString());
+                        fetchAndUpdateOrdersView(fetchUrl.toString());
+                    } else {
+                        console.error('fetchAndUpdateOrdersView function not available');
+                    }
+                } else if (currentUrl.searchParams.get('customer_id') && contentWrapper && contentWrapper.innerHTML.trim() === ''){
+                    // If customer_id is present but content is empty (e.g. user navigated back to this state)
+                    // We might need to re-trigger the view update from 'shown.bs.tab' logic
+                    const customerId = currentUrl.searchParams.get('customer_id');
+                    const fetchUrl = new URL(customerSearchForm?.action || (window.location.origin + '/orders'));
+                    fetchUrl.searchParams.set('view', 'by_name');
+                    fetchUrl.searchParams.set('customer_id', customerId);
+                    fetchUrl.searchParams.set('page', currentUrl.searchParams.get('page') || '1');
+                    fetchUrl.searchParams.set('limit', currentUrl.searchParams.get('limit') || itemsPerPageSelect?.value || '100');
+                    fetchUrl.searchParams.set('grouping', currentUrl.searchParams.get('grouping') || groupingSelect?.value || 'none');
                     if (typeof fetchAndUpdateOrdersView === 'function') {
                         fetchAndUpdateOrdersView(fetchUrl.toString());
                     }
@@ -1780,7 +2178,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const hargaTambahanInput = document.getElementById('harga-tambahan-input');
 
         const ongkir = parseFloat(ongkirInput ? ongkirInput.value : 0) || 0;
-        const hargaTambahan = parseFloat(hargaTambahanInput ? hargaTambahanInput.value : 0) || 0;
+        // Only include harga_tambahan if it has a valid value
+        const hargaTambahanValue = hargaTambahanInput ? hargaTambahanInput.value.trim() : '';
+        const hargaTambahan = hargaTambahanValue ? (parseFloat(hargaTambahanValue) || 0) : 0;
 
         const grandTotal = sumOfItemSubtotals + ongkir + hargaTambahan;
         overallTotalDisplay.value = grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
@@ -1792,7 +2192,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const modalElement = document.getElementById('editOrderModal');
         if (!modalElement) {
             console.error('Edit Order Modal element #editOrderModal not found.');
-            if (window.showToast) window.showToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
+            showToast('Error', 'Komponen modal edit tidak ditemukan.', 'error');
             return;
         }
 
@@ -1822,7 +2222,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } catch (error) {
             console.error('Error opening edit order modal:', error);
-            if (window.showToast) window.showToast('Error', error.message, 'error');
+            showToast('Error', error.message, 'error');
         } finally {
             // Hide loading state
             if (formElement) {
@@ -1842,7 +2242,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     openEditOrderModal(deliveryId);
                 } else {
                     console.error('Edit button clicked but data-delivery-id attribute is missing or empty.');
-                    if(window.showToast) window.showToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
+                    showToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
                 }
             }
         });
@@ -1909,13 +2309,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to gather data from the edit modal form
     function gatherEditModalFormData() {
+        // Helper function to parse price input - returns null if empty, otherwise parsed float
+        function parsePriceInput(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input || !input.value.trim()) {
+                return null;
+            }
+            const parsed = parseFloat(input.value.trim());
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        // Helper function to handle text input - returns null if empty
+        function parseTextInput(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input || !input.value.trim()) {
+                return null;
+            }
+            return input.value.trim();
+        }
+
         const data = {
             tanggal: document.getElementById('delivery-date-input').value,
             kurir_id: document.getElementById('kurir-select').value,
             ongkir: parseFloat(document.getElementById('ongkir-input').value) || 0,
-            item_tambahan: document.getElementById('item-tambahan-input').value,
-            harga_tambahan: parseFloat(document.getElementById('harga-tambahan-input').value) || 0,
-            harga_modal_tambahan: parseFloat(document.getElementById('harga-modal-tambahan-input').value) || 0,
+            item_tambahan: parseTextInput('item-tambahan-input'),
+            harga_tambahan: parsePriceInput('harga-tambahan-input'),
+            harga_modal_tambahan: parsePriceInput('harga-modal-tambahan-input'),
             daily_kitchen_note: document.getElementById('daily-kitchen-note')?.value || '',
             daily_courier_note: document.getElementById('daily-courier-note')?.value || '',
             package_items: [],
@@ -1998,7 +2417,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!deliveryIdStr) {
                 console.error('Delivery ID not found on modal for submission.');
-                if(window.showToast) window.showToast('Error', 'Cannot save: Delivery ID missing.', 'error');
+                showToast('Error', 'Cannot save: Delivery ID missing.', 'error');
                 submitButton.disabled = false;
                 submitButton.innerHTML = originalButtonText;
                 return;
@@ -2009,7 +2428,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Simple client-side validation: ensure at least one package item if that's a rule
             if (formData.package_items.length === 0) {
-                 if(window.showToast) window.showToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
+                 showToast('Warning', 'Harap tambahkan minimal satu paket makanan.', 'warning');
                  const errorDisplayElement = document.getElementById('edit-modal-error-display');
                  if (errorDisplayElement) {
                     errorDisplayElement.textContent = 'Harap tambahkan minimal satu paket makanan.';
@@ -2040,7 +2459,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const result = await response.json(); // Expecting JSON response from our PHP backend
 
                 if (response.ok && result.success) { // Check for ok status AND success flag from our PHP response
-                    if(window.showToast) window.showToast('Success', result.message || 'Order updated successfully!', 'success');
+                    showToast('Success', result.message || 'Order updated successfully!', 'success');
 
                     const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
                     if (bootstrapModal) bootstrapModal.hide();
@@ -2057,8 +2476,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (errorDisplayElement) {
                     errorDisplayElement.textContent = error.message;
                     errorDisplayElement.style.display = 'block';
-                } else if(window.showToast) {
-                    window.showToast('Error', error.message, 'error');
+                } else {
+                    showToast('Error', error.message, 'error');
                 }
             } finally {
                 submitButton.disabled = false;
