@@ -317,6 +317,9 @@ function toggleDate(dayElement) {
     }
     renderSelectedDates();
     calculateTotalPayment();
+
+    // Update progress bar when dates are toggled
+    updateFormProgress();
 }
 
 function renderSelectedDates() {
@@ -348,6 +351,9 @@ function renderSelectedDates() {
             renderCalendar(displayedYear, displayedMonth);
             renderSelectedDates();
             calculateTotalPayment();
+
+            // Update progress bar when date is removed
+            updateFormProgress();
         });
         badge.appendChild(closeButton);
 
@@ -577,6 +583,39 @@ function resetForm() {
     renderSelectedDates();
     document.querySelectorAll('.added-package').forEach(el => el.remove());
     calculateTotalPayment();
+
+    // Clear all form validation states
+    clearFormValidationStates();
+
+    // Reset form progress bar to reflect empty form state
+    updateFormProgress();
+}
+
+function clearFormValidationStates() {
+    // Clear validation states from all form elements
+    const formElements = document.querySelectorAll('#order-form input, #order-form select, #order-form textarea');
+    formElements.forEach(element => {
+        element.classList.remove('is-valid', 'is-invalid');
+    });
+
+    // Clear validation feedback messages
+    const feedbackElements = document.querySelectorAll('#order-form .invalid-feedback, #order-form .valid-feedback');
+    feedbackElements.forEach(feedback => {
+        feedback.textContent = '';
+    });
+
+    // Clear specific feedback elements by ID
+    const specificFeedbacks = [
+        'customer-input-feedback',
+        'package-select-feedback',
+        'order-quantity-feedback'
+    ];
+    specificFeedbacks.forEach(feedbackId => {
+        const element = document.getElementById(feedbackId);
+        if (element) {
+            element.textContent = '';
+        }
+    });
 }
 
 function validateFormData(formData) {
@@ -963,6 +1002,9 @@ function setupEventListeners() {
         await renderCalendar(displayedYear, displayedMonth);
         renderSelectedDates();
         calculateTotalPayment();
+
+        // Update progress bar after clearing dates
+        updateFormProgress();
     });
 
     // Handle mouse up for all devices
