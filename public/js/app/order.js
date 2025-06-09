@@ -211,17 +211,24 @@ function addDayEventListeners(dayElement, date) {
         return;
     }
 
-    // Enhanced mobile-first event handling
+    // Enhanced event handling for both touch and mouse
     let touchStarted = false;
     let touchMoved = false;
+    let clickHandled = false;
+    let touchStartTime = 0;
 
     // Touch events for mobile devices
     dayElement.addEventListener('touchstart', (e) => {
         e.preventDefault(); // Prevent scrolling and zooming
         touchStarted = true;
         touchMoved = false;
+        clickHandled = false;
+        touchStartTime = Date.now();
         isDragging = true;
+
+        // Only toggle on touchstart for immediate feedback
         toggleDate(dayElement);
+        clickHandled = true;
 
         // Add haptic feedback if supported
         if (navigator.vibrate) {
@@ -243,48 +250,51 @@ function addDayEventListeners(dayElement, date) {
 
     dayElement.addEventListener('touchend', (e) => {
         e.preventDefault();
-        touchStarted = false;
-        isDragging = false;
 
-        // If it was just a tap (no movement), ensure the date is toggled
-        if (!touchMoved) {
-            // Date was already toggled in touchstart, no need to toggle again
-        }
+        // Reset touch state after a short delay to prevent click interference
+        setTimeout(() => {
+            touchStarted = false;
+            touchMoved = false;
+            isDragging = false;
+            clickHandled = false;
+        }, 100);
     }, { passive: false });
 
-    // Mouse events for desktop (fallback)
+    // Mouse events for desktop and hybrid devices
     dayElement.addEventListener('mousedown', (e) => {
-        // Only handle mouse events if touch is not supported
-        if ('ontouchstart' in window) return;
+        // Skip if touch event was recently handled
+        if (touchStarted || (Date.now() - touchStartTime < 500)) return;
 
         e.preventDefault();
         isDragging = true;
         toggleDate(dayElement);
+        clickHandled = true;
     });
 
     dayElement.addEventListener('mouseover', () => {
-        // Only handle mouse events if touch is not supported
-        if ('ontouchstart' in window) return;
+        // Skip if touch event was recently handled
+        if (touchStarted || (Date.now() - touchStartTime < 500)) return;
 
         if (isDragging) toggleDate(dayElement);
     });
 
     dayElement.addEventListener('mouseup', () => {
-        // Only handle mouse events if touch is not supported
-        if ('ontouchstart' in window) return;
+        // Skip if touch event was recently handled
+        if (touchStarted || (Date.now() - touchStartTime < 500)) return;
 
         isDragging = false;
     });
 
-    // Click event as final fallback for both desktop and mobile
+    // Click event as fallback for devices that don't support mousedown/touchstart properly
     dayElement.addEventListener('click', (e) => {
-        // Prevent double-toggling on touch devices
-        if (touchStarted || touchMoved) return;
+        // Skip if already handled by touch or mouse events
+        if (clickHandled || touchStarted || touchMoved) return;
 
-        // For devices that don't support touch or when mouse is used
-        if (!('ontouchstart' in window)) {
-            toggleDate(dayElement);
-        }
+        // Skip if touch event was recently handled
+        if (Date.now() - touchStartTime < 500) return;
+
+        // Handle the click
+        toggleDate(dayElement);
     });
 }
 
@@ -955,11 +965,9 @@ function setupEventListeners() {
         calculateTotalPayment();
     });
 
-    // Handle mouse up for desktop devices
+    // Handle mouse up for all devices
     document.addEventListener('mouseup', () => {
-        if (!('ontouchstart' in window)) {
-            isDragging = false;
-        }
+        isDragging = false;
     });
 
     // Handle touch end for mobile devices (already handled in setupMobileEventHandlers)
