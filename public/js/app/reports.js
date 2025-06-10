@@ -1,9 +1,63 @@
 /*
  * File: reports.js
  * Description: JavaScript untuk halaman reports dan analytics
+ * Features: State management dengan localStorage, improved Flatpickr UX
  */
 
-import { showToast } from './utils.js';
+// import { showToast } from './utils.js';
+
+// Fallback showToast function
+function showToast(title, message, type = 'success') {
+    console.log(`Toast [${type}]: ${title} - ${message}`);
+    // Simple alert fallback for testing
+    if (type === 'error') {
+        alert(`${title}: ${message}`);
+    }
+}
+
+// Constants for localStorage keys
+const STORAGE_KEYS = {
+    PERIOD_TYPE: 'reports_period_type',
+    SELECTED_DATES: 'reports_selected_dates',
+    LAST_QUERY: 'reports_last_query'
+};
+
+/**
+ * Hide loading state and restore normal state
+ */
+function hideLoadingState() {
+    // Remove loading class from cards
+    const cards = document.querySelectorAll('.row-cards .card');
+    cards.forEach(card => {
+        card.classList.remove('loading');
+    });
+
+    // Restore apply buttons
+    const applyBtn = document.getElementById('apply-period-btn');
+    const applyBtnMobile = document.getElementById('apply-period-btn-mobile');
+
+    [applyBtn, applyBtnMobile].forEach(btn => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M21 21l-6 -6"/>
+                    <path d="M9 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z"/>
+                </svg>
+            `;
+        }
+    });
+
+    // Restore navigation buttons
+    const navButtons = ['period-nav-prev', 'period-nav-today', 'period-nav-next'];
+    navButtons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.classList.remove('disabled', 'btn-loading');
+        }
+    });
+}
 
 /**
  * Initialize reports page functionality
@@ -13,12 +67,25 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Ensure loading state is cleared when page is fully loaded
+ */
+window.addEventListener('load', function() {
+    // Clear any loading states after page is fully loaded
+    setTimeout(() => {
+        hideLoadingState();
+    }, 500);
+});
+
+/**
  * Main initialization function for reports page
  */
 function initializeReportsPage() {
     console.log('Initializing Reports page...');
 
-    // Initialize dynamic period picker
+    // Hide any existing loading state
+    hideLoadingState();
+
+    // Initialize dynamic period picker with state management
     initDynamicPeriodPicker();
 
     // Initialize card hover effects
@@ -31,14 +98,36 @@ function initializeReportsPage() {
 }
 
 /**
- * Initialize dynamic period picker with Flatpickr
+ * Initialize dynamic period picker with Flatpickr and state management
  */
 function initDynamicPeriodPicker() {
+    console.log('Starting initDynamicPeriodPicker...');
+
     const periodInput = document.getElementById('period-input');
+    const periodInputMobile = document.getElementById('period-input-mobile');
     const periodTypeDropdown = document.getElementById('period-type-dropdown');
     const periodTypeLabel = document.getElementById('period-type-label');
     const applyBtn = document.getElementById('apply-period-btn');
+    const applyBtnMobile = document.getElementById('apply-period-btn-mobile');
     const periodTypeOptions = document.querySelectorAll('.period-type-option');
+
+    // Navigation buttons
+    const navPrev = document.getElementById('period-nav-prev');
+    const navToday = document.getElementById('period-nav-today');
+    const navNext = document.getElementById('period-nav-next');
+
+    console.log('Elements found:', {
+        periodInput: !!periodInput,
+        periodInputMobile: !!periodInputMobile,
+        periodTypeDropdown: !!periodTypeDropdown,
+        periodTypeLabel: !!periodTypeLabel,
+        applyBtn: !!applyBtn,
+        applyBtnMobile: !!applyBtnMobile,
+        periodTypeOptions: periodTypeOptions.length,
+        navPrev: !!navPrev,
+        navToday: !!navToday,
+        navNext: !!navNext
+    });
 
     if (!periodInput || !periodTypeDropdown || !periodTypeLabel || !applyBtn) {
         console.warn('Period picker elements not found');
@@ -47,10 +136,11 @@ function initDynamicPeriodPicker() {
 
     let currentPeriodType = 'monthly';
     let flatpickrInstance = null;
+    let flatpickrInstanceMobile = null;
     let selectedDates = null;
 
-    // Initialize with current period type from URL
-    initializeFromURL();
+    // Initialize with state management (URL params + localStorage)
+    initializeFromState();
 
     // Handle period type selection
     periodTypeOptions.forEach(option => {
@@ -58,37 +148,135 @@ function initDynamicPeriodPicker() {
             e.preventDefault();
             const newPeriodType = this.dataset.period;
             changePeriodType(newPeriodType);
+
+            // Auto-apply filter with default dates for better UX
+            setTimeout(() => {
+                if (selectedDates && selectedDates.length > 0) {
+                    saveStateToStorage();
+                    applyPeriodFilter();
+                }
+            }, 100);
         });
     });
 
-    // Handle apply button
-    applyBtn.addEventListener('click', function() {
-        if (selectedDates) {
-            applyPeriodFilter();
-        } else {
-            showToast('warning', 'Silakan pilih periode terlebih dahulu');
+    // Handle reset filter button
+    const resetBtn = document.getElementById('reset-filter-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            resetFilter();
+        });
+    }
+
+    // Handle apply buttons (desktop & mobile)
+    [applyBtn, applyBtnMobile].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', function() {
+                if (selectedDates) {
+                    saveStateToStorage();
+                    applyPeriodFilter();
+                } else {
+                    showToast('Peringatan', 'Silakan pilih periode terlebih dahulu', 'error');
+                }
+            });
         }
     });
 
-    /**
-     * Initialize period picker based on current URL parameters
-     */
-    function initializeFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const period = urlParams.get('period');
-        const startDate = urlParams.get('start_date');
-        const endDate = urlParams.get('end_date');
+    // Handle navigation buttons
+    if (navPrev) {
+        navPrev.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigatePeriod('prev');
+        });
+    }
 
-        if (startDate && endDate) {
-            currentPeriodType = 'custom';
-            selectedDates = [startDate, endDate];
-        } else if (period === 'weekly') {
-            currentPeriodType = 'weekly';
+    if (navToday) {
+        navToday.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigatePeriod('today');
+        });
+    }
+
+    if (navNext) {
+        navNext.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigatePeriod('next');
+        });
+    }
+
+    /**
+     * Initialize period picker based on URL parameters and localStorage
+     */
+    function initializeFromState() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlStartDate = urlParams.get('start_date');
+        const urlEndDate = urlParams.get('end_date');
+
+        // Priority: URL params > localStorage > defaults
+        if (urlStartDate && urlEndDate) {
+            // URL has date parameters - use them
+            currentPeriodType = determinePeriodTypeFromDates(urlStartDate, urlEndDate);
+            selectedDates = [new Date(urlStartDate), new Date(urlEndDate)];
         } else {
-            currentPeriodType = 'monthly';
+            // Try to restore from localStorage
+            const savedPeriodType = localStorage.getItem(STORAGE_KEYS.PERIOD_TYPE);
+            const savedDates = localStorage.getItem(STORAGE_KEYS.SELECTED_DATES);
+
+            if (savedPeriodType && savedDates) {
+                currentPeriodType = savedPeriodType;
+                try {
+                    const parsedDates = JSON.parse(savedDates);
+                    selectedDates = parsedDates.map(dateStr => new Date(dateStr));
+                } catch (e) {
+                    console.warn('Failed to parse saved dates:', e);
+                    selectedDates = null;
+                }
+            } else {
+                // Use defaults
+                currentPeriodType = 'monthly';
+                selectedDates = null;
+            }
         }
 
         changePeriodType(currentPeriodType);
+    }
+
+    /**
+     * Determine period type based on date range
+     */
+    function determinePeriodTypeFromDates(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+        // Check if it's a week (6-7 days) and starts on Monday
+        if (diffDays >= 6 && diffDays <= 7 && start.getDay() === 1) {
+            return 'weekly';
+        }
+
+        // Check if it's a full month
+        const isFirstDay = start.getDate() === 1;
+        const isLastDay = end.getDate() === new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+        if (isFirstDay && isLastDay && start.getMonth() === end.getMonth()) {
+            return 'monthly';
+        }
+
+        return 'custom';
+    }
+
+    /**
+     * Save current state to localStorage
+     */
+    function saveStateToStorage() {
+        localStorage.setItem(STORAGE_KEYS.PERIOD_TYPE, currentPeriodType);
+
+        if (selectedDates && selectedDates.length > 0) {
+            const dateStrings = selectedDates.map(date => date.toISOString());
+            localStorage.setItem(STORAGE_KEYS.SELECTED_DATES, JSON.stringify(dateStrings));
+        }
+
+        // Save query timestamp
+        localStorage.setItem(STORAGE_KEYS.LAST_QUERY, new Date().toISOString());
     }
 
     /**
@@ -110,27 +298,55 @@ function initDynamicPeriodPicker() {
             opt.classList.toggle('active', opt.dataset.period === newType);
         });
 
-        // Destroy existing Flatpickr instance
+        // Destroy existing Flatpickr instances
         if (flatpickrInstance) {
             flatpickrInstance.destroy();
             flatpickrInstance = null;
         }
+        if (flatpickrInstanceMobile) {
+            flatpickrInstanceMobile.destroy();
+            flatpickrInstanceMobile = null;
+        }
+
+        // Set default dates based on type
+        setDefaultDatesForType(newType);
 
         // Initialize new Flatpickr based on type
         initializeFlatpickr(newType);
     }
 
     /**
-     * Initialize Flatpickr based on period type
+     * Set default dates based on period type
+     */
+    function setDefaultDatesForType(type) {
+        switch (type) {
+            case 'weekly':
+                selectedDates = getDefaultWeekRange();
+                break;
+            case 'monthly':
+                selectedDates = [new Date()]; // Current month
+                break;
+            case 'custom':
+                selectedDates = getDefaultCustomRange(); // Last 7 days
+                break;
+        }
+    }
+
+    /**
+     * Initialize Flatpickr based on period type with improved UX
      */
     function initializeFlatpickr(type) {
+        console.log('Initializing Flatpickr for type:', type);
+
         const baseConfig = {
             locale: 'id',
             allowInput: false,
             clickOpens: true,
             onChange: function(selectedDatesArray, dateStr, instance) {
+                console.log('Flatpickr onChange:', selectedDatesArray);
                 selectedDates = selectedDatesArray;
                 updateInputDisplay(selectedDatesArray, type);
+                // Don't auto-save here, only save when user clicks apply
             }
         };
 
@@ -142,32 +358,40 @@ function initDynamicPeriodPicker() {
                     ...baseConfig,
                     mode: 'range',
                     dateFormat: 'd M Y',
-                    defaultDate: getDefaultWeekRange(),
+                    defaultDate: selectedDates || getDefaultWeekRange(),
+                    placeholder: 'Pilih minggu (Senin - Minggu)',
                     onReady: function(selectedDatesArray, dateStr, instance) {
-                        // Custom week selection logic
-                        instance.calendarContainer.addEventListener('click', function(e) {
-                            if (e.target.classList.contains('flatpickr-day')) {
-                                const clickedDate = new Date(e.target.dateObj);
-                                const weekRange = getWeekRange(clickedDate);
-                                instance.setDate(weekRange, true);
-                            }
-                        });
+                        console.log('Week picker ready');
+                        setupWeekSelection(instance);
                     },
-                    placeholder: 'Pilih minggu (Senin - Minggu)'
+                    onMonthChange: function(selectedDatesArray, dateStr, instance) {
+                        setupWeekSelection(instance);
+                    }
                 };
                 break;
 
             case 'monthly':
-                config = {
-                    ...baseConfig,
-                    plugins: [monthSelectPlugin({
-                        shorthand: true,
+                // Check if monthSelectPlugin is available
+                if (typeof monthSelectPlugin === 'function') {
+                    config = {
+                        ...baseConfig,
+                        plugins: [monthSelectPlugin({
+                            shorthand: false,
+                            dateFormat: 'F Y',
+                            altFormat: 'F Y'
+                        })],
+                        defaultDate: selectedDates && selectedDates.length > 0 ? selectedDates[0] : new Date(),
+                        placeholder: 'Pilih bulan'
+                    };
+                } else {
+                    console.warn('monthSelectPlugin not available, using fallback');
+                    config = {
+                        ...baseConfig,
                         dateFormat: 'F Y',
-                        altFormat: 'F Y'
-                    })],
-                    defaultDate: new Date(),
-                    placeholder: 'Pilih bulan'
-                };
+                        defaultDate: selectedDates && selectedDates.length > 0 ? selectedDates[0] : new Date(),
+                        placeholder: 'Pilih bulan'
+                    };
+                }
                 break;
 
             case 'custom':
@@ -181,12 +405,62 @@ function initDynamicPeriodPicker() {
                 break;
         }
 
-        flatpickrInstance = flatpickr(periodInput, config);
+        try {
+            // Initialize desktop instance
+            console.log('Creating desktop Flatpickr instance');
+            flatpickrInstance = flatpickr(periodInput, config);
 
-        // Set initial dates if available
-        if (selectedDates && selectedDates.length > 0) {
-            flatpickrInstance.setDate(selectedDates, true);
+            // Initialize mobile instance if element exists
+            if (periodInputMobile) {
+                console.log('Creating mobile Flatpickr instance');
+                flatpickrInstanceMobile = flatpickr(periodInputMobile, config);
+            }
+
+            // Set initial dates if available
+            if (selectedDates && selectedDates.length > 0) {
+                console.log('Setting initial dates:', selectedDates);
+                flatpickrInstance.setDate(selectedDates, true);
+                if (flatpickrInstanceMobile) {
+                    flatpickrInstanceMobile.setDate(selectedDates, true);
+                }
+                // Update display immediately
+                updateInputDisplay(selectedDates, type);
+            }
+
+            console.log('Flatpickr initialized successfully');
+        } catch (error) {
+            console.error('Error initializing Flatpickr:', error);
         }
+    }
+
+    /**
+     * Setup simple week selection for Flatpickr
+     */
+    function setupWeekSelection(instance) {
+        const calendar = instance.calendarContainer;
+
+        function handleWeekClick(e) {
+            if (!e.target.classList.contains('flatpickr-day')) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const clickedDate = new Date(e.target.dateObj);
+            const weekRange = getWeekRange(clickedDate);
+
+            // Set the week range
+            instance.setDate(weekRange, true);
+
+            // Close the calendar
+            setTimeout(() => {
+                instance.close();
+            }, 100);
+        }
+
+        // Remove existing listener to avoid duplicates
+        calendar.removeEventListener('click', handleWeekClick);
+        // Add click listener
+        calendar.addEventListener('click', handleWeekClick);
     }
 
     /**
@@ -221,11 +495,137 @@ function initDynamicPeriodPicker() {
     }
 
     /**
+     * Navigate period (prev/next/today)
+     */
+    function navigatePeriod(direction) {
+        if (!selectedDates || selectedDates.length === 0) {
+            setDefaultDatesForType(currentPeriodType);
+        }
+
+        // Add loading state to navigation buttons
+        setNavigationLoadingState(true);
+
+        let newDates;
+        const currentDate = selectedDates[0] || new Date();
+
+        switch (currentPeriodType) {
+            case 'weekly':
+                newDates = navigateWeek(currentDate, direction);
+                break;
+            case 'monthly':
+                newDates = navigateMonth(currentDate, direction);
+                break;
+            case 'custom':
+                newDates = navigateCustom(currentDate, direction);
+                break;
+        }
+
+        if (newDates) {
+            selectedDates = newDates;
+
+            // Update both instances
+            flatpickrInstance.setDate(newDates, true);
+            if (flatpickrInstanceMobile) {
+                flatpickrInstanceMobile.setDate(newDates, true);
+            }
+
+            // Update display
+            updateInputDisplay(newDates, currentPeriodType);
+
+            // Auto-apply the new period
+            setTimeout(() => {
+                saveStateToStorage();
+                applyPeriodFilter();
+            }, 100);
+        }
+    }
+
+    /**
+     * Set loading state for navigation buttons
+     */
+    function setNavigationLoadingState(isLoading) {
+        [navPrev, navToday, navNext].forEach(btn => {
+            if (btn) {
+                if (isLoading) {
+                    btn.classList.add('disabled', 'btn-loading');
+                } else {
+                    btn.classList.remove('disabled', 'btn-loading');
+                }
+            }
+        });
+    }
+
+    /**
+     * Navigate week periods
+     */
+    function navigateWeek(currentDate, direction) {
+        const date = new Date(currentDate);
+
+        switch (direction) {
+            case 'prev':
+                date.setDate(date.getDate() - 7);
+                break;
+            case 'next':
+                date.setDate(date.getDate() + 7);
+                break;
+            case 'today':
+                return getDefaultWeekRange();
+        }
+
+        return getWeekRange(date);
+    }
+
+    /**
+     * Navigate month periods
+     */
+    function navigateMonth(currentDate, direction) {
+        const date = new Date(currentDate);
+
+        switch (direction) {
+            case 'prev':
+                date.setMonth(date.getMonth() - 1);
+                break;
+            case 'next':
+                date.setMonth(date.getMonth() + 1);
+                break;
+            case 'today':
+                return [new Date()];
+        }
+
+        return [date];
+    }
+
+    /**
+     * Navigate custom periods (7 days range)
+     */
+    function navigateCustom(currentDate, direction) {
+        const startDate = new Date(selectedDates[0] || currentDate);
+        const endDate = new Date(selectedDates[1] || currentDate);
+        const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+        switch (direction) {
+            case 'prev':
+                startDate.setDate(startDate.getDate() - daysDiff - 1);
+                endDate.setDate(endDate.getDate() - daysDiff - 1);
+                break;
+            case 'next':
+                startDate.setDate(startDate.getDate() + daysDiff + 1);
+                endDate.setDate(endDate.getDate() + daysDiff + 1);
+                break;
+            case 'today':
+                return getDefaultCustomRange();
+        }
+
+        return [startDate, endDate];
+    }
+
+    /**
      * Update input display based on selected dates and type
      */
     function updateInputDisplay(dates, type) {
         if (!dates || dates.length === 0) {
             periodInput.value = '';
+            if (periodInputMobile) periodInputMobile.value = '';
             return;
         }
 
@@ -237,16 +637,18 @@ function initDynamicPeriodPicker() {
             });
         };
 
+        let displayValue = '';
+
         switch (type) {
             case 'weekly':
                 if (dates.length === 2) {
-                    periodInput.value = `${formatDate(dates[0])} - ${formatDate(dates[1])}`;
+                    displayValue = `${formatDate(dates[0])} - ${formatDate(dates[1])}`;
                 }
                 break;
 
             case 'monthly':
                 if (dates.length === 1) {
-                    periodInput.value = dates[0].toLocaleDateString('id-ID', {
+                    displayValue = dates[0].toLocaleDateString('id-ID', {
                         month: 'long',
                         year: 'numeric'
                     });
@@ -255,11 +657,17 @@ function initDynamicPeriodPicker() {
 
             case 'custom':
                 if (dates.length === 2) {
-                    periodInput.value = `${formatDate(dates[0])} - ${formatDate(dates[1])}`;
+                    displayValue = `${formatDate(dates[0])} - ${formatDate(dates[1])}`;
                 } else if (dates.length === 1) {
-                    periodInput.value = formatDate(dates[0]);
+                    displayValue = formatDate(dates[0]);
                 }
                 break;
+        }
+
+        // Update both desktop and mobile inputs
+        periodInput.value = displayValue;
+        if (periodInputMobile) {
+            periodInputMobile.value = displayValue;
         }
     }
 
@@ -274,11 +682,11 @@ function initDynamicPeriodPicker() {
     }
 
     /**
-     * Apply period filter and redirect
+     * Apply period filter and redirect with state preservation
      */
     function applyPeriodFilter() {
         if (!selectedDates || selectedDates.length === 0) {
-            showToast('warning', 'Silakan pilih periode terlebih dahulu');
+            showToast('Peringatan', 'Silakan pilih periode terlebih dahulu', 'error');
             return;
         }
 
@@ -310,11 +718,72 @@ function initDynamicPeriodPicker() {
                 break;
         }
 
+        // Save state before redirect
+        saveStateToStorage();
+
         // Show loading state
         showLoadingState();
 
         // Redirect to filtered page
         window.location.href = url.toString();
+    }
+
+    /**
+     * Clear saved state (for reset functionality)
+     */
+    function clearSavedState() {
+        localStorage.removeItem(STORAGE_KEYS.PERIOD_TYPE);
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_DATES);
+        localStorage.removeItem(STORAGE_KEYS.LAST_QUERY);
+    }
+
+    /**
+     * Reset filter to default state
+     */
+    function resetFilter() {
+        // Clear saved state
+        clearSavedState();
+
+        // Reset to default values
+        currentPeriodType = 'monthly';
+        selectedDates = null;
+
+        // Update UI
+        changePeriodType(currentPeriodType);
+
+        // Hide state indicator
+        const stateIndicator = document.getElementById('state-indicator');
+        if (stateIndicator) {
+            stateIndicator.classList.add('d-none');
+        }
+
+        // Show confirmation
+        showToast('Info', 'Filter telah direset ke default', 'success');
+
+        // Redirect to clean URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('start_date');
+        url.searchParams.delete('end_date');
+        url.searchParams.delete('period');
+
+        if (url.toString() !== window.location.href) {
+            window.location.href = url.toString();
+        }
+    }
+
+    // Expose functions for external use
+    window.ReportsPeriodPicker = {
+        clearSavedState,
+        saveStateToStorage,
+        resetFilter
+    };
+
+    // Show state restoration notification if applicable
+    const lastQueryInfo = getLastQueryInfo();
+    if (lastQueryInfo && lastQueryInfo.isRecent) {
+        setTimeout(() => {
+            showStateRestoredNotification(lastQueryInfo.periodType, lastQueryInfo.timestamp);
+        }, 500);
     }
 }
 
@@ -376,9 +845,81 @@ function showLoadingState() {
     cards.forEach(card => {
         card.classList.add('loading');
     });
-    
+
+    // Disable apply button during loading
+    const applyBtn = document.getElementById('apply-period-btn');
+    if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = `
+            <div class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            Memuat...
+        `;
+    }
+
     // Show loading toast
-    showToast('info', 'Memuat data...', 1000);
+    showToast('Loading', 'Memuat data...', 'success');
+}
+
+
+
+/**
+ * Show state restoration notification
+ */
+function showStateRestoredNotification(periodType, lastQuery) {
+    const lastQueryInfo = getLastQueryInfo();
+    if (lastQueryInfo && lastQueryInfo.isRecent) {
+        const timeAgo = getTimeAgo(lastQueryInfo.timestamp);
+
+        // Show toast notification
+        showToast('Filter Dipulihkan', `Filter terakhir dipulihkan (${periodType}, ${timeAgo})`, 'success');
+
+        // Show visual indicator
+        const stateIndicator = document.getElementById('state-indicator');
+        if (stateIndicator) {
+            stateIndicator.classList.remove('d-none');
+            stateIndicator.title = `Filter dipulihkan dari ${timeAgo}`;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                stateIndicator.classList.add('d-none');
+            }, 5000);
+        }
+    }
+}
+
+/**
+ * Get human readable time ago
+ */
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffMins < 1) return 'baru saja';
+    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffHours < 24) return `${diffHours} jam lalu`;
+    return 'kemarin';
+}
+
+/**
+ * Get last query info from localStorage (moved from inner function)
+ */
+function getLastQueryInfo() {
+    const lastQuery = localStorage.getItem(STORAGE_KEYS.LAST_QUERY);
+    const periodType = localStorage.getItem(STORAGE_KEYS.PERIOD_TYPE);
+
+    if (lastQuery && periodType) {
+        return {
+            timestamp: new Date(lastQuery),
+            periodType: periodType,
+            isRecent: (new Date() - new Date(lastQuery)) < 24 * 60 * 60 * 1000 // 24 hours
+        };
+    }
+
+    return null;
 }
 
 /**
@@ -436,7 +977,7 @@ function updateCardValues(data) {
  */
 function handleApiError(error) {
     console.error('API Error:', error);
-    showToast('error', 'Terjadi kesalahan saat memuat data. Silakan coba lagi.');
+    showToast('Error', 'Terjadi kesalahan saat memuat data. Silakan coba lagi.', 'error');
 }
 
 /**
@@ -446,5 +987,6 @@ window.ReportsPage = {
     updateCardValues,
     formatNumber,
     formatCurrency,
-    showLoadingState
+    showLoadingState,
+    hideLoadingState
 };

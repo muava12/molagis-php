@@ -1,0 +1,110 @@
+/* Month Selection Plugin CSS */
+.flatpickr-monthDropdown-months {
+    appearance: none;
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    color: var(--tblr-body-color);
+    cursor: pointer;
+    font-size: 0.875rem;
+    outline: none;
+    padding: 0.375rem 0.75rem;
+    position: relative;
+    width: auto;
+    min-width: 120px;
+}
+
+.flatpickr-monthDropdown-months:focus {
+    border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--tblr-primary-rgb), 0.25);
+}
+
+.flatpickr-monthDropdown-months:hover {
+    border-color: var(--tblr-border-color-dark);
+}
+
+.flatpickr-current-month {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    margin: 0;
+}
+
+.numInputWrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.numInputWrapper input {
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    color: var(--tblr-body-color);
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+    width: 80px;
+}
+
+.numInputWrapper input:focus {
+    border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--tblr-primary-rgb), 0.25);
+    outline: none;
+}
+
+.numInputWrapper span {
+    background: var(--tblr-bg-surface-secondary);
+    border: 1px solid var(--tblr-border-color);
+    border-left: none;
+    cursor: pointer;
+    display: block;
+    height: 50%;
+    position: absolute;
+    right: 0;
+    width: 20px;
+}
+
+.numInputWrapper span:hover {
+    background: var(--tblr-bg-surface-tertiary);
+}
+
+.numInputWrapper span.arrowUp {
+    border-bottom: none;
+    border-radius: 0 var(--tblr-border-radius) 0 0;
+    top: 0;
+}
+
+.numInputWrapper span.arrowDown {
+    border-radius: 0 0 var(--tblr-border-radius) 0;
+    bottom: 0;
+}
+
+.numInputWrapper span svg {
+    height: 8px;
+    width: 8px;
+    margin: auto;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] .flatpickr-monthDropdown-months,
+[data-bs-theme="dark"] .numInputWrapper input {
+    background: var(--tblr-bg-surface-dark);
+    border-color: var(--tblr-border-color);
+    color: var(--tblr-body-color);
+}
+
+[data-bs-theme="dark"] .numInputWrapper span {
+    background: var(--tblr-bg-surface-secondary);
+    border-color: var(--tblr-border-color);
+}
+
+[data-bs-theme="dark"] .numInputWrapper span:hover {
+    background: var(--tblr-bg-surface-tertiary);
+}
