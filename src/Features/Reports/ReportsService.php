@@ -42,6 +42,28 @@ class ReportsService
                     'start_date' => $startDate,
                     'end_date' => $endDate,
                     'description' => $this->getPeriodDescription($period, $startDate, $endDate)
+                ],
+                'financial_overview' => [
+                    // Revenue Section
+                    'product_revenue' => 8000000,      // Pendapatan Produk (Omset Murni)
+                    'delivery_revenue' => 1500000,     // Pendapatan Jasa Kirim (Ongkir)
+                    'gross_revenue' => 9500000,        // Total Pendapatan Kotor
+
+                    // COGS Section
+                    'product_cost' => 3600000,         // Modal Produk
+
+                    // Gross Profit
+                    'gross_profit' => 4400000,         // Laba Kotor (product_revenue - product_cost)
+                    'gross_margin' => 55,              // Margin Laba Kotor (%)
+
+                    // Operating Expenses
+                    'delivery_cost' => 1350000,        // Beban Jasa Kirim (Biaya Kurir)
+                    'other_expenses' => 1500000,       // Pengeluaran Lain (Gaji, Listrik, dll)
+                    'total_operating_expenses' => 2850000, // Total Biaya Operasional
+
+                    // Net Profit
+                    'net_profit' => 1550000,           // Laba Bersih (gross_profit - total_operating_expenses)
+                    'net_margin' => 16.3               // Margin Laba Bersih (%)
                 ]
             ];
 

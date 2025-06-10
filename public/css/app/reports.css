@@ -4,41 +4,123 @@
  */
 
 /* Overview Cards Styling */
-.row-cards .card {
+/* .row-cards .card {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
+} */
 
-.row-cards .card:hover {
+/* .row-cards .card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
+} */
 
 /* Card Body Enhancements */
-.card-body .h1 {
+/* .card-body .h1 {
     font-weight: 700;
     color: var(--tblr-primary);
-}
+} */
 
-.card-body .subheader {
+/* .card-body .subheader {
     font-weight: 600;
     color: var(--tblr-secondary);
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 0.5px;
-}
+} */
 
 /* Trend Indicators */
-.text-green {
+/* .text-green {
     color: var(--tblr-success) !important;
-}
-
+} */
+/* 
 .text-red {
     color: var(--tblr-danger) !important;
-}
+} */
 
 /* Role-based Access Styling */
 .alert-info {
     border-left: 4px solid var(--tblr-info);
+}
+
+/* Financial Overview Table Styling */
+.table-responsive .table tbody tr td {
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+/* Financial Overview Styling */
+.financial-overview .card {
+    transition: all 0.3s ease;
+}
+
+.financial-overview .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.financial-overview .avatar {
+    font-size: 1.2rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.financial-overview .h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.financial-overview .h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Section Headers */
+.financial-overview h4 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.financial-overview .badge {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Card Background Colors */
+/* .bg-azure-lt {
+    background-color: rgba(var(--tblr-azure-rgb), 0.1) !important;
+}
+
+.bg-red-lt {
+    background-color: rgba(var(--tblr-red-rgb), 0.1) !important;
+}
+
+.bg-green-lt {
+    background-color: rgba(var(--tblr-green-rgb), 0.1) !important;
+}
+
+.bg-primary-lt {
+    background-color: rgba(var(--tblr-primary-rgb), 0.1) !important;
+}
+
+.bg-success-lt {
+    background-color: rgba(var(--tblr-success-rgb), 0.1) !important;
+} */
+
+/* Border Enhancements */
+/* .border-success {
+    border-color: var(--tblr-success) !important;
+    border-width: 2px !important;
+} */
+
+/* Text Colors */
+.text-danger {
+    color: var(--tblr-danger) !important;
+}
+
+.text-success {
+    color: var(--tblr-success) !important;
 }
 
 .alert-danger {
@@ -166,9 +248,9 @@
     }
 }
 
-/* Dark Mode Adjustments */
+/* Dark Mode Adjustments - Let it follow natural dark mode */
 [data-bs-theme="dark"] .card {
-    background-color: var(--tblr-bg-surface);
+    background-color: transparent;
     border-color: var(--tblr-border-color-dark);
 }
 
@@ -219,7 +301,7 @@
     transform: translateY(-1px);
 }
 
-.btn-outline-primary:hover {
+/* .btn-outline-primary:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(var(--tblr-primary-rgb), 0.25);
-}
+} */

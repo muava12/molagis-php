@@ -232,6 +232,140 @@
         </div>
       {% endif %}
 
+      <!-- Financial Overview Section -->
+      {% if reports_data.access_level is defined and reports_data.access_level == 'full' %}
+      <div class="row mb-4">
+        <div class="col-12 col-md-8">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12"/>
+                  <path d="M20 12v4h-4a2 2 0 0 1 0 -4h4"/>
+                </svg>
+                Overview Keuangan
+              </h3>
+              <div class="card-actions">
+                <span class="badge rounded-pill">📅 Periode: {{ reports_data.period_info.description | default('Semua Waktu') }}</span>
+              </div>
+            </div>
+            <div class="card-body p-2">
+
+              <!-- Revenue Section -->
+              <div class="mb-3">
+                <h4 class="mb-2 d-flex align-items-center">
+                  <span class="avatar bg-success-lt me-2">📈</span>
+                  Pendapatan (Revenue)
+                </h4>
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <span>
+                      🍱 Pendapatan Produk (Omset Murni)
+                    </span>
+                    <span class="badge rounded-pill">
+                      Rp {{ reports_data.financial_overview.product_revenue | default(8000000) | number_format(0, ',', '.') }}
+                    </span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <span>
+                      🚚 Pendapatan Jasa Kirim (Ongkir)
+                    </span>
+                    <span class="badge rounded-pill">
+                      Rp {{ reports_data.financial_overview.delivery_revenue | default(1500000) | number_format(0, ',', '.') }}
+                    </span>
+                  </li>
+                </ul>
+                <div class="d-flex justify-content-between align-items-center p-3 rounded mt-2 border">
+                  <strong class="h5 mb-0">💰 Total Pendapatan Kotor</strong>
+                  <strong class="mb-0">Rp {{ reports_data.financial_overview.gross_revenue | default(9500000) | number_format(0, ',', '.') }}</strong>
+                </div>
+                <ul class="list-group list-group-flush d-none">
+                </ul>
+              </div>
+
+              <!-- COGS Section -->
+              <div class="mb-3">
+                <h4 class="mb-2 d-flex align-items-center">
+                  <span class="avatar bg-orange-lt me-2">📉</span>
+                  Biaya Pokok Penjualan (COGS)
+                </h4>
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <span>
+                      🏭 Modal Produk
+                    </span>
+                    <span class="badge rounded-pill">
+                      (Rp {{ reports_data.financial_overview.product_cost | default(3600000) | number_format(0, ',', '.') }})
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Gross Profit Section -->
+              <div class="mb-3">
+                <h4 class="mb-2 d-flex align-items-center">
+                  <span class="avatar bg-blue-lt me-2">🧮</span>
+                  Laba Kotor (Gross Profit)
+                </h4>
+                <p class="text-muted small mb-2">📊 Pendapatan Produk - Modal Produk</p>
+                <div class="d-flex justify-content-between align-items-center p-3 rounded">
+                  <div>
+                    <strong class="h5 mb-0">💎 Laba Kotor</strong>
+                    <br><small class="text-muted">📈 Margin: {{ reports_data.financial_overview.gross_margin | default(55) }}%</small>
+                  </div>
+                  <strong class="h4 mb-0">Rp {{ reports_data.financial_overview.gross_profit | default(4400000) | number_format(0, ',', '.') }}</strong>
+                </div>
+              </div>
+
+              <!-- Operating Expenses Section -->
+              <div class="mb-3">
+                <h4 class="mb-2 d-flex align-items-center">
+                  <span class="avatar bg-red-lt me-2">💸</span>
+                  Biaya Operasional (Operating Expenses)
+                </h4>
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <span>
+                      🛵 Beban Jasa Kirim (Biaya Kurir)
+                    </span>
+                    <span class="badge rounded-pill">
+                      (Rp {{ reports_data.financial_overview.delivery_cost | default(1350000) | number_format(0, ',', '.') }})
+                    </span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <span>
+                      🏢 Pengeluaran Lain (Gaji, Listrik, dll)
+                    </span>
+                    <span class="badge rounded-pill">
+                      (Rp {{ reports_data.financial_overview.other_expenses | default(1500000) | number_format(0, ',', '.') }})
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Net Profit Section -->
+              <div>
+                <h4 class="mb-2 d-flex align-items-center">
+                  <span class="avatar bg-teal-lt me-2">🎯</span>
+                  Laba Bersih (Net Profit)
+                </h4>
+                <p class="text-muted small mb-2">🧮 Laba Kotor - Biaya Operasional</p>
+                <div class="d-flex justify-content-between align-items-center p-3 rounded border border-2">
+                  <div>
+                    <strong class="h4 mb-0">🏆 Laba Bersih</strong>
+                    <br><small class="text-muted">📊 Margin: {{ reports_data.financial_overview.net_margin | default(16.3) }}%</small>
+                  </div>
+                  <strong class="h3 mb-0">Rp {{ reports_data.financial_overview.net_profit | default(1550000) | number_format(0, ',', '.') }}</strong>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Placeholder for future detailed reports -->
       <div class="row">
         <div class="col-12">
