@@ -264,6 +264,16 @@ function initDynamicPeriodPicker() {
     }
 
     /**
+     * Format date to YYYY-MM-DD without timezone conversion
+     */
+    function formatDateLocal(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    /**
      * Apply period filter and redirect
      */
     function applyPeriodFilter() {
@@ -281,8 +291,8 @@ function initDynamicPeriodPicker() {
             case 'weekly':
             case 'custom':
                 if (selectedDates.length === 2) {
-                    const startDate = selectedDates[0].toISOString().split('T')[0];
-                    const endDate = selectedDates[1].toISOString().split('T')[0];
+                    const startDate = formatDateLocal(selectedDates[0]);
+                    const endDate = formatDateLocal(selectedDates[1]);
                     url.searchParams.set('start_date', startDate);
                     url.searchParams.set('end_date', endDate);
                 }
@@ -294,8 +304,8 @@ function initDynamicPeriodPicker() {
                     const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
                     const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
-                    url.searchParams.set('start_date', startDate.toISOString().split('T')[0]);
-                    url.searchParams.set('end_date', endDate.toISOString().split('T')[0]);
+                    url.searchParams.set('start_date', formatDateLocal(startDate));
+                    url.searchParams.set('end_date', formatDateLocal(endDate));
                 }
                 break;
         }

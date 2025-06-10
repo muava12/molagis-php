@@ -36,7 +36,9 @@ RETURNS JSON
                     "product_cost": 3600000,
                     "gross_profit": 4400000,
                     "gross_margin": 55.0,
+                    "net_product_profit": 4400000,
                     "delivery_cost": 1350000,
+                    "net_delivery_profit": 150000,
                     "other_expenses": 1500000,
                     "total_operating_expenses": 2850000,
                     "net_profit": 1550000,
@@ -78,6 +80,14 @@ RETURNS JSON
 
 7. **Total Delivery Cost (Total Biaya Pengiriman)**
    - Calculation: Variable Delivery Cost + Courier Fee Cost
+
+8. **Net Product Profit (Laba Bersih Produk)**
+   - Calculation: Product Revenue - Product Cost
+   - Description: Keuntungan murni dari penjualan produk setelah dikurangi modal
+
+9. **Net Delivery Profit (Laba Bersih Pengiriman)**
+   - Calculation: Delivery Revenue - Total Delivery Cost
+   - Description: Keuntungan murni dari jasa pengiriman setelah dikurangi biaya operasional pengiriman
 
 ### Database Schema Changes Needed
 
@@ -196,6 +206,8 @@ Data sekarang diambil dari database real melalui RPC:
 - **Courier Fee Cost**: SUM(financial_records.amount) WHERE category = 'fee_kurir'
 - **Other Expenses**: SUM(financial_records.amount) WHERE category != 'fee_kurir'
 - **Total Delivery Cost**: Variable Delivery Cost + Courier Fee Cost
+- **Net Product Profit**: Product Revenue - Product Cost
+- **Net Delivery Profit**: Delivery Revenue - Total Delivery Cost
 
 ### Error Response Format
 ```json

@@ -180,8 +180,10 @@ class ReportsService
         }
 
         try {
-            $start = new \DateTime($startDate);
-            $end = new \DateTime($endDate);
+            // Create DateTime objects with explicit timezone to avoid timezone issues
+            $timezone = new \DateTimeZone('Asia/Jakarta'); // or use server timezone
+            $start = new \DateTime($startDate, $timezone);
+            $end = new \DateTime($endDate, $timezone);
 
             // Format bulan Indonesia
             $monthNames = [

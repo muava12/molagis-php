@@ -3,50 +3,6 @@
  * Custom styling for reports and analytics page
  */
 
-/* Overview Cards Styling */
-/* .row-cards .card {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-} */
-
-/* .row-cards .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-} */
-
-/* Card Body Enhancements */
-/* .card-body .h1 {
-    font-weight: 700;
-    color: var(--tblr-primary);
-} */
-
-/* .card-body .subheader {
-    font-weight: 600;
-    color: var(--tblr-secondary);
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-} */
-
-/* Trend Indicators */
-/* .text-green {
-    color: var(--tblr-success) !important;
-} */
-/* 
-.text-red {
-    color: var(--tblr-danger) !important;
-} */
-
-/* Role-based Access Styling */
-.alert-info {
-    border-left: 4px solid var(--tblr-info);
-}
-
-/* Financial Overview Table Styling */
-.table-responsive .table tbody tr td {
-    padding: 0.75rem;
-    vertical-align: middle;
-}
-
 /* Financial Overview Styling */
 .financial-overview .card {
     transition: all 0.3s ease;
@@ -87,121 +43,83 @@
     padding: 0.5rem 0.75rem;
 }
 
-/* Card Background Colors */
-/* .bg-azure-lt {
-    background-color: rgba(var(--tblr-azure-rgb), 0.1) !important;
+/* Net Profit Breakdown Styling */
+.financial-overview .list-group-item {
+    border: none;
+    padding: 0.75rem 0;
 }
 
-.bg-red-lt {
-    background-color: rgba(var(--tblr-red-rgb), 0.1) !important;
+.financial-overview .list-group-item:not(:last-child) {
+    border-bottom: 1px solid var(--tblr-border-color-light);
 }
 
-.bg-green-lt {
-    background-color: rgba(var(--tblr-green-rgb), 0.1) !important;
+/* Nominal styling - no badges, just colored text */
+.financial-overview .text-success {
+    font-weight: 600;
+    color: var(--tblr-success) !important;
 }
 
-.bg-primary-lt {
-    background-color: rgba(var(--tblr-primary-rgb), 0.1) !important;
+.financial-overview .text-info {
+    font-weight: 600;
+    color: var(--tblr-info) !important;
 }
 
-.bg-success-lt {
-    background-color: rgba(var(--tblr-success-rgb), 0.1) !important;
-} */
+.financial-overview .text-muted {
+    font-weight: 500;
+    color: var(--tblr-secondary) !important;
+}
 
-/* Border Enhancements */
-/* .border-success {
-    border-color: var(--tblr-success) !important;
-    border-width: 2px !important;
-} */
+/* Formula Badge Styling */
+.financial-overview .badge.bg-secondary-lt {
+    background-color: rgba(var(--tblr-secondary-rgb), 0.1) !important;
+    color: var(--tblr-secondary) !important;
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--tblr-border-radius);
+}
 
-/* Flatpickr Custom Styling for Tabler */
+.financial-overview .badge.bg-light {
+    background-color: var(--tblr-bg-surface-secondary) !important;
+    color: var(--tblr-body-color) !important;
+    border: 1px solid var(--tblr-border-color-light) !important;
+    font-weight: 500;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--tblr-border-radius-sm);
+}
+
+/* Dark mode adjustments for formula badges */
+[data-bs-theme="dark"] .financial-overview .badge.bg-light {
+    background-color: var(--tblr-bg-surface-dark) !important;
+    color: var(--tblr-body-color) !important;
+    border-color: var(--tblr-border-color) !important;
+}
+
+/* Role-based Access Styling */
+.alert-info {
+    border-left: 4px solid var(--tblr-info);
+}
+
+/* Financial Overview Table Styling */
+.table-responsive .table tbody tr td {
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+/* Flatpickr Simple Styling - same as orders page */
 .flatpickr-calendar {
-    border: 1px solid var(--tblr-border-color) !important;
-    border-radius: var(--tblr-border-radius) !important;
-    box-shadow: var(--tblr-box-shadow-dropdown) !important;
-    font-family: var(--tblr-font-sans-serif) !important;
-}
-
-.flatpickr-calendar.open {
     z-index: 1060 !important; /* Above Bootstrap modals */
 }
 
-.flatpickr-months {
-    background: var(--tblr-bg-surface) !important;
-    border-bottom: 1px solid var(--tblr-border-color) !important;
+/* Period Input Styling */
+#period-input {
+    cursor: pointer !important;
 }
 
-.flatpickr-month {
-    color: var(--tblr-body-color) !important;
-}
-
-.flatpickr-prev-month,
-.flatpickr-next-month {
-    color: var(--tblr-secondary) !important;
-}
-
-.flatpickr-prev-month:hover,
-.flatpickr-next-month:hover {
-    color: var(--tblr-primary) !important;
-}
-
-.flatpickr-weekdays {
-    background: var(--tblr-bg-surface-secondary) !important;
-}
-
-.flatpickr-weekday {
-    color: var(--tblr-secondary) !important;
-    font-weight: 600 !important;
-}
-
-.flatpickr-days {
-    background: var(--tblr-bg-surface) !important;
-}
-
-.flatpickr-day {
-    color: var(--tblr-body-color) !important;
-    border-radius: var(--tblr-border-radius-sm) !important;
-}
-
-.flatpickr-day:hover {
-    background: var(--tblr-primary-lt) !important;
-    color: var(--tblr-primary) !important;
-}
-
-.flatpickr-day.selected {
-    background: var(--tblr-primary) !important;
-    border-color: var(--tblr-primary) !important;
-    color: white !important;
-}
-
-.flatpickr-day.startRange,
-.flatpickr-day.endRange {
-    background: var(--tblr-primary) !important;
-    border-color: var(--tblr-primary) !important;
-    color: white !important;
-}
-
-.flatpickr-day.inRange {
-    background: var(--tblr-primary-lt) !important;
-    color: var(--tblr-primary) !important;
-    border-color: transparent !important;
-}
-
-.flatpickr-day.today {
-    border-color: var(--tblr-primary) !important;
-    color: var(--tblr-primary) !important;
-}
-
-.flatpickr-day.today:hover {
-    background: var(--tblr-primary) !important;
-    color: white !important;
-}
-
-/* Month/Year Selector Custom Styling */
+/* Month/Year Selector Simple Styling */
 .flatpickr-month-year-selector {
     padding: 1rem !important;
-    background: var(--tblr-bg-surface) !important;
-    border-bottom: 1px solid var(--tblr-border-color) !important;
 }
 
 .flatpickr-month-year-selector select {
@@ -217,223 +135,3 @@
     border-color: var(--tblr-primary) !important;
     box-shadow: 0 0 0 0.25rem rgba(var(--tblr-primary-rgb), 0.25) !important;
 }
-
-/* Period Input Styling */
-#period-input {
-    cursor: pointer !important;
-    background-color: var(--tblr-bg-surface) !important;
-}
-
-#period-input:focus {
-    border-color: var(--tblr-primary) !important;
-    box-shadow: 0 0 0 0.25rem rgba(var(--tblr-primary-rgb), 0.25) !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .flatpickr-calendar {
-        width: 100% !important;
-        max-width: 320px !important;
-    }
-
-    .flatpickr-month-year-selector {
-        padding: 0.75rem !important;
-    }
-
-    .flatpickr-month-year-selector select {
-        font-size: 0.8rem !important;
-        padding: 0.25rem 0.5rem !important;
-    }
-}
-
-/* Text Colors */
-.text-danger {
-    color: var(--tblr-danger) !important;
-}
-
-.text-success {
-    color: var(--tblr-success) !important;
-}
-
-.alert-danger {
-    border-left: 4px solid var(--tblr-danger);
-}
-
-/* Filter Dropdown Styling */
-.dropdown-toggle {
-    border-radius: 6px;
-    font-weight: 500;
-}
-
-.dropdown-menu {
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--tblr-border-color);
-}
-
-.dropdown-item {
-    padding: 8px 16px;
-    font-weight: 500;
-    transition: background-color 0.15s ease-in-out;
-}
-
-.dropdown-item:hover {
-    background-color: var(--tblr-bg-surface-secondary);
-}
-
-.dropdown-item.active {
-    background-color: var(--tblr-primary);
-    color: white;
-}
-
-/* Modal Styling */
-.modal-content {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-    border-bottom: 1px solid var(--tblr-border-color);
-    padding: 1.5rem;
-}
-
-.modal-body {
-    padding: 1.5rem;
-}
-
-.modal-footer {
-    border-top: 1px solid var(--tblr-border-color);
-    padding: 1rem 1.5rem;
-}
-
-/* Form Controls */
-.form-control {
-    border-radius: 6px;
-    border: 1px solid var(--tblr-border-color);
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.form-control:focus {
-    border-color: var(--tblr-primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--tblr-primary-rgb), 0.25);
-}
-
-/* Page Header Enhancements */
-.page-title {
-    font-weight: 700;
-    color: var(--tblr-body-color);
-}
-
-.text-muted {
-    font-weight: 500;
-}
-
-/* Coming Soon Section */
-.text-center .icon-lg {
-    opacity: 0.6;
-}
-
-.text-center h3 {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .row-cards .col-sm-6 {
-        margin-bottom: 1rem;
-    }
-    
-    .card-body .h1 {
-        font-size: 1.75rem;
-    }
-    
-    .btn-list {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .dropdown-toggle {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 576px) {
-    .page-header .container-xl {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
-    .page-body .container-xl {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
-    .card-body .h1 {
-        font-size: 1.5rem;
-    }
-    
-    .modal-dialog {
-        margin: 1rem;
-    }
-}
-
-/* Dark Mode Adjustments - Let it follow natural dark mode */
-[data-bs-theme="dark"] .card {
-    background-color: transparent;
-    border-color: var(--tblr-border-color-dark);
-}
-
-[data-bs-theme="dark"] .dropdown-menu {
-    background-color: var(--tblr-bg-surface);
-    border-color: var(--tblr-border-color-dark);
-}
-
-[data-bs-theme="dark"] .modal-content {
-    background-color: var(--tblr-bg-surface);
-}
-
-/* Animation for loading states (future use) */
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-    100% {
-        opacity: 1;
-    }
-}
-
-.loading {
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-/* Icon styling */
-.icon {
-    flex-shrink: 0;
-}
-
-.alert-icon .icon {
-    width: 1.5rem;
-    height: 1.5rem;
-}
-
-/* Button enhancements */
-.btn {
-    font-weight: 500;
-    border-radius: 6px;
-    transition: all 0.15s ease-in-out;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-/* .btn-outline-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--tblr-primary-rgb), 0.25);
-} */
