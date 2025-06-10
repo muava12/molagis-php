@@ -5,6 +5,9 @@
 {% block stylesheets %}
   {{ parent() }}
   <link rel="stylesheet" href="/css/app/reports.css?v={{ 'now'|date('U') }}">
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 {% endblock %}
 
 {% block content %}
@@ -24,25 +27,65 @@
           </div>
         </div>
         <div class="col-auto ms-auto d-print-none">
-          <div class="btn-list">
-            <!-- Filter Period Dropdown -->
+          <div class="d-flex align-items-center gap-2">
+            <!-- Dynamic Date Input -->
+            <div class="input-group" style="min-width: 200px;">
+              <input type="text" id="period-input" class="form-control" placeholder="Pilih periode..." readonly>
+              <button class="btn btn-outline-secondary" type="button" id="apply-period-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M21 21l-6 -6"/>
+                  <path d="M9 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Period Type Dropdown -->
             <div class="dropdown">
-              <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <button class="btn btn-outline-primary dropdown-toggle" type="button" id="period-type-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/>
                   <path d="M16 3v4"/>
                   <path d="M8 3v4"/>
                   <path d="M4 11h16"/>
                 </svg>
-                Filter Periode
+                <span id="period-type-label">Monthly</span>
               </button>
               <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="/reports">Semua Waktu</a></li>
-                <li><a class="dropdown-item" href="/reports?period=weekly">Minggu Ini</a></li>
-                <li><a class="dropdown-item" href="/reports?period=monthly">Bulan Ini</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#custom-period-modal">Periode Kustom</a></li>
+                <li><h6 class="dropdown-header">Tipe Periode</h6></li>
+                <li><a class="dropdown-item period-type-option" href="#" data-period="monthly">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <rect x="4" y="5" width="16" height="16" rx="2"/>
+                    <line x1="16" y1="3" x2="16" y2="7"/>
+                    <line x1="8" y1="3" x2="8" y2="7"/>
+                    <line x1="4" y1="11" x2="20" y2="11"/>
+                  </svg>
+                  Monthly
+                  <small class="text-muted d-block">Pilih bulan</small>
+                </a></li>
+                <li><a class="dropdown-item period-type-option" href="#" data-period="weekly">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                  </svg>
+                  Weekly
+                  <small class="text-muted d-block">Pilih minggu (Senin-Minggu)</small>
+                </a></li>
+                <li><a class="dropdown-item period-type-option" href="#" data-period="custom">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <rect x="4" y="5" width="16" height="16" rx="2"/>
+                    <line x1="16" y1="3" x2="16" y2="7"/>
+                    <line x1="8" y1="3" x2="8" y2="7"/>
+                    <line x1="4" y1="11" x2="20" y2="11"/>
+                    <path d="M11 15h1v4h1"/>
+                  </svg>
+                  Custom Range
+                  <small class="text-muted d-block">Pilih rentang tanggal</small>
+                </a></li>
               </ul>
             </div>
           </div>
@@ -392,36 +435,14 @@
   </div>
 </div>
 
-<!-- Custom Period Modal -->
-<div class="modal modal-blur fade" id="custom-period-modal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-sm" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Pilih Periode Kustom</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="custom-period-form">
-          <div class="mb-3">
-            <label class="form-label">Tanggal Mulai</label>
-            <input type="date" class="form-control" name="start_date" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Tanggal Akhir</label>
-            <input type="date" class="form-control" name="end_date" required>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">Batal</a>
-        <button type="submit" class="btn btn-primary ms-auto" form="custom-period-form">Terapkan Filter</button>
-      </div>
-    </div>
-  </div>
-</div>
+
 {% endblock %}
 
 {% block javascripts %}
   {{ parent() }}
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
+  <script src="/js/lib/flatpickr-month-select.js?v={{ 'now'|date('U') }}"></script>
   <script type="module" src="/js/app/reports.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

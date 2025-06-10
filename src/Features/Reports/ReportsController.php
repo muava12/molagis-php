@@ -35,6 +35,12 @@ class ReportsController
         $startDate = $queryParams['start_date'] ?? null;
         $endDate = $queryParams['end_date'] ?? null;
 
+        // Process period parameters
+        $processedDates = $this->processPeriodParameters($period, $startDate, $endDate);
+        $startDate = $processedDates['start_date'];
+        $endDate = $processedDates['end_date'];
+        $period = $processedDates['period'];
+
         // Initialize view data array
         $viewData = [
             'title' => 'Reports & Analytics',
@@ -51,9 +57,9 @@ class ReportsController
 
         // Determine user role (mock for now, will be integrated with actual user system)
         $userRole = $user['role'] ?? 'owner'; // Default to owner for full access
-        
-        // Get reports data based on role
-        $reportsResult = $this->reportsService->getReportsByRole($userRole, $accessToken);
+
+        // Get reports data based on role with date filters
+        $reportsResult = $this->reportsService->getReportsByRole($userRole, $accessToken, $startDate, $endDate);
         $viewData['reports_data'] = $reportsResult['data'] ?? [];
         $reportsError = $reportsResult['error'] ?? null;
         
@@ -75,5 +81,70 @@ class ReportsController
         }
 
         return $this->twig->render('reports.html.twig', $viewData);
+    }
+
+    /**
+     * Process period parameters and return standardized dates.
+     *
+     * @param string|null $period Period type (weekly, monthly)
+     * @param string|null $startDate Start date string
+     * @param string|null $endDate End date string
+     * @return array Processed dates and period info
+     */
+    private function processPeriodParameters(?string $period, ?string $startDate, ?string $endDate): array
+    {
+        $now = new \DateTime();
+
+        // If custom dates are provided, use them
+        if ($startDate && $endDate) {
+            try {
+                $start = new \DateTime($startDate);
+                $end = new \DateTime($endDate);
+
+                // Validate date range
+                if ($start > $end) {
+                    throw new \InvalidArgumentException('Start date cannot be greater than end date');
+                }
+
+                // Limit to reasonable range (max 2 years)
+                $daysDiff = $start->diff($end)->days;
+                if ($daysDiff > 730) {
+                    throw new \InvalidArgumentException('Date range too large (max 2 years)');
+                }
+
+                return [
+                    'start_date' => $start->format('Y-m-d'),
+                    'end_date' => $end->format('Y-m-d'),
+                    'period' => 'custom'
+                ];
+            } catch (\Exception $e) {
+                error_log('Invalid date parameters: ' . $e->getMessage());
+                // Fall back to default (current month)
+                $period = 'monthly';
+            }
+        }
+
+        // Handle predefined periods
+        switch ($period) {
+            case 'weekly':
+                // Last 7 days (including today)
+                $endDate = $now->format('Y-m-d');
+                $startDate = $now->modify('-6 days')->format('Y-m-d');
+                break;
+
+            case 'monthly':
+            default:
+                // Current month
+                $startDate = $now->format('Y-m-01'); // First day of current month
+                $endDate = $now->format('Y-m-t');   // Last day of current month
+                $period = 'monthly';
+                break;
+        }
+
+        return [
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'period' => $period
+        ];
     }
 }
