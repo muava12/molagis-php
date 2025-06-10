@@ -95,36 +95,60 @@
     <script src="/js/tabler.min.js"></script>
     <script src="/js/flatpickr.min.js"></script>
     <script src="/js/flatpickr-l10n/id.js"></script>
+    <script src="/js/flatpickr-plugins/weekSelect.js"></script>
     <script src="/js/lib/flatpickr-month-select.js"></script>
     <script>
-        // Simple test script
+        // Test script for weekSelect plugin
         document.addEventListener('DOMContentLoaded', function() {
             const debugContent = document.getElementById('debug-content');
-            
+
             function updateDebug(message) {
                 debugContent.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
             }
-            
+
             updateDebug('DOM loaded');
             updateDebug('Flatpickr available: ' + (typeof flatpickr !== 'undefined'));
+            updateDebug('weekSelect available: ' + (typeof weekSelect !== 'undefined'));
             updateDebug('monthSelectPlugin available: ' + (typeof monthSelectPlugin !== 'undefined'));
-            
+
             const periodInput = document.getElementById('period-input');
             if (periodInput) {
                 updateDebug('Period input found');
-                
-                // Test simple flatpickr
+
+                // Test weekSelect plugin
                 try {
                     const fp = flatpickr(periodInput, {
                         locale: 'id',
-                        dateFormat: 'd M Y',
+                        plugins: [new weekSelect({})],
+                        dateFormat: '\\W\\e\\e\\k #W, Y',
+                        altFormat: 'd M Y',
                         onChange: function(selectedDates) {
-                            updateDebug('Date selected: ' + selectedDates);
+                            updateDebug('Week selected: ' + selectedDates);
+                            // Extract the week number
+                            const weekNumber = selectedDates[0]
+                                ? this.config.getWeek(selectedDates[0])
+                                : null;
+                            updateDebug('Week number: ' + weekNumber);
                         }
                     });
-                    updateDebug('Flatpickr initialized successfully');
+                    updateDebug('WeekSelect Flatpickr initialized successfully');
                 } catch (error) {
-                    updateDebug('Flatpickr error: ' + error.message);
+                    updateDebug('WeekSelect Flatpickr error: ' + error.message);
+
+                    // Fallback to simple flatpickr
+                    try {
+                        const fp = flatpickr(periodInput, {
+                            locale: 'id',
+                            mode: 'range',
+                            dateFormat: 'd M Y',
+                            onChange: function(selectedDates) {
+                                updateDebug('Fallback date selected: ' + selectedDates);
+                            }
+                        });
+                        updateDebug('Fallback Flatpickr initialized successfully');
+                    } catch (fallbackError) {
+                        updateDebug('Fallback Flatpickr error: ' + fallbackError.message);
+                    }
                 }
             } else {
                 updateDebug('Period input NOT found');

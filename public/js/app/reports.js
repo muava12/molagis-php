@@ -354,20 +354,50 @@ function initDynamicPeriodPicker() {
 
         switch (type) {
             case 'weekly':
-                config = {
-                    ...baseConfig,
-                    mode: 'range',
-                    dateFormat: 'd M Y',
-                    defaultDate: selectedDates || getDefaultWeekRange(),
-                    placeholder: 'Pilih minggu (Senin - Minggu)',
-                    onReady: function(selectedDatesArray, dateStr, instance) {
-                        console.log('Week picker ready');
-                        setupWeekSelection(instance);
-                    },
-                    onMonthChange: function(selectedDatesArray, dateStr, instance) {
-                        setupWeekSelection(instance);
-                    }
-                };
+                // Check if weekSelect plugin is available
+                if (typeof weekSelect === 'function') {
+                    config = {
+                        ...baseConfig,
+                        plugins: [new weekSelect({})],
+                        dateFormat: '\\W\\e\\e\\k #W, Y',
+                        altFormat: 'd M Y',
+                        defaultDate: selectedDates && selectedDates.length > 0 ? selectedDates[0] : new Date(),
+                        placeholder: 'Pilih minggu (Senin - Minggu)',
+                        onChange: function(selectedDatesArray, dateStr, instance) {
+                            console.log('Week selected:', selectedDatesArray);
+                            // Extract the week number
+                            const weekNumber = selectedDatesArray[0]
+                                ? instance.config.getWeek(selectedDatesArray[0])
+                                : null;
+                            console.log('Week number:', weekNumber);
+
+                            // Store the selected dates for later use
+                            selectedDates = selectedDatesArray;
+
+                            // For display purposes, show as week range
+                            if (selectedDatesArray.length > 0) {
+                                const weekRange = getWeekRange(selectedDatesArray[0]);
+                                updateInputDisplay(weekRange, type);
+                            }
+                        }
+                    };
+                } else {
+                    console.warn('weekSelect plugin not available, using fallback');
+                    config = {
+                        ...baseConfig,
+                        mode: 'range',
+                        dateFormat: 'd M Y',
+                        defaultDate: selectedDates || getDefaultWeekRange(),
+                        placeholder: 'Pilih minggu (Senin - Minggu)',
+                        onReady: function(selectedDatesArray, dateStr, instance) {
+                            console.log('Week picker ready (fallback)');
+                            setupWeekSelection(instance);
+                        },
+                        onMonthChange: function(selectedDatesArray, dateStr, instance) {
+                            setupWeekSelection(instance);
+                        }
+                    };
+                }
                 break;
 
             case 'monthly':
@@ -697,6 +727,19 @@ function initDynamicPeriodPicker() {
 
         switch (currentPeriodType) {
             case 'weekly':
+                if (selectedDates.length >= 1) {
+                    // For weekSelect plugin, convert single date to week range
+                    const weekRange = selectedDates.length === 1
+                        ? getWeekRange(selectedDates[0])
+                        : selectedDates;
+
+                    const startDate = formatDateLocal(weekRange[0]);
+                    const endDate = formatDateLocal(weekRange[1]);
+                    url.searchParams.set('start_date', startDate);
+                    url.searchParams.set('end_date', endDate);
+                }
+                break;
+
             case 'custom':
                 if (selectedDates.length === 2) {
                     const startDate = formatDateLocal(selectedDates[0]);
