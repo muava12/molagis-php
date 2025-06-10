@@ -1,0 +1,225 @@
+/*
+ * Reports Page Styles
+ * Custom styling for reports and analytics page
+ */
+
+/* Overview Cards Styling */
+.row-cards .card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.row-cards .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Card Body Enhancements */
+.card-body .h1 {
+    font-weight: 700;
+    color: var(--tblr-primary);
+}
+
+.card-body .subheader {
+    font-weight: 600;
+    color: var(--tblr-secondary);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+/* Trend Indicators */
+.text-green {
+    color: var(--tblr-success) !important;
+}
+
+.text-red {
+    color: var(--tblr-danger) !important;
+}
+
+/* Role-based Access Styling */
+.alert-info {
+    border-left: 4px solid var(--tblr-info);
+}
+
+.alert-danger {
+    border-left: 4px solid var(--tblr-danger);
+}
+
+/* Filter Dropdown Styling */
+.dropdown-toggle {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--tblr-border-color);
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.dropdown-item:hover {
+    background-color: var(--tblr-bg-surface-secondary);
+}
+
+.dropdown-item.active {
+    background-color: var(--tblr-primary);
+    color: white;
+}
+
+/* Modal Styling */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--tblr-border-color);
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--tblr-border-color);
+    padding: 1rem 1.5rem;
+}
+
+/* Form Controls */
+.form-control {
+    border-radius: 6px;
+    border: 1px solid var(--tblr-border-color);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--tblr-primary-rgb), 0.25);
+}
+
+/* Page Header Enhancements */
+.page-title {
+    font-weight: 700;
+    color: var(--tblr-body-color);
+}
+
+.text-muted {
+    font-weight: 500;
+}
+
+/* Coming Soon Section */
+.text-center .icon-lg {
+    opacity: 0.6;
+}
+
+.text-center h3 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .row-cards .col-sm-6 {
+        margin-bottom: 1rem;
+    }
+    
+    .card-body .h1 {
+        font-size: 1.75rem;
+    }
+    
+    .btn-list {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .dropdown-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .page-header .container-xl {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .page-body .container-xl {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .card-body .h1 {
+        font-size: 1.5rem;
+    }
+    
+    .modal-dialog {
+        margin: 1rem;
+    }
+}
+
+/* Dark Mode Adjustments */
+[data-bs-theme="dark"] .card {
+    background-color: var(--tblr-bg-surface);
+    border-color: var(--tblr-border-color-dark);
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--tblr-bg-surface);
+    border-color: var(--tblr-border-color-dark);
+}
+
+[data-bs-theme="dark"] .modal-content {
+    background-color: var(--tblr-bg-surface);
+}
+
+/* Animation for loading states (future use) */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Icon styling */
+.icon {
+    flex-shrink: 0;
+}
+
+.alert-icon .icon {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Button enhancements */
+.btn {
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(var(--tblr-primary-rgb), 0.25);
+}

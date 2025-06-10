@@ -18,6 +18,8 @@ use Molagis\Features\Order\OrderService;
 use Molagis\Features\Settings\SettingsController;
 use Molagis\Features\Settings\SettingsService;
 use Molagis\Features\Paket\PaketService; // Added
+use Molagis\Features\Reports\ReportsController;
+use Molagis\Features\Reports\ReportsService;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -84,6 +86,13 @@ $containerBuilder->addDefinitions([
         $c->get(\Molagis\Shared\SupabaseService::class),
         $c->get(\Twig\Environment::class)
     ),
+    // Reports feature
+    ReportsService::class => fn($c) => new ReportsService($c->get(\Molagis\Shared\SupabaseClient::class)),
+    ReportsController::class => fn($c) => new ReportsController(
+        $c->get(ReportsService::class),
+        $c->get(\Molagis\Features\Settings\SettingsService::class),
+        $c->get(\Twig\Environment::class)
+    ),
     Environment::class => fn() => new Environment(
         new FilesystemLoader([
             "{$basePath}/src/Shared/templates",
@@ -95,6 +104,7 @@ $containerBuilder->addDefinitions([
             "{$basePath}/src/Features/Order/templates", // Stays for input-order
             "{$basePath}/src/Features/Orders/templates", // Added for order list
             "{$basePath}/src/Features/Settings/templates",
+            "{$basePath}/src/Features/Reports/templates", // Added for reports
         ]),
         [
             'debug' => $_ENV['APP_ENV'] === 'development',
@@ -164,6 +174,8 @@ $routes = [
     ['POST', '/api/paket/{id:\d+}/update', [SettingsController::class, 'updatePaket'], [AuthMiddleware::class]],
     ['DELETE', '/api/paket/{id:\d+}/delete', [SettingsController::class, 'deletePaket'], [AuthMiddleware::class]],
     ['POST', '/api/paket/order/update', [SettingsController::class, 'updatePaketOrder'], [AuthMiddleware::class]],
+    // Reports Routes
+    ['GET', '/reports', [ReportsController::class, 'showReports'], [AuthMiddleware::class]],
 ];
 
 // Create FastRoute dispatcher
@@ -246,6 +258,8 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'updatePaket' => [$request, $vars],
                     'deletePaket' => [$request, $vars],
                     'updatePaketOrder' => [$request],
+                    // Reports methods
+                    'showReports' => [$request],
                     default => []
                 };
 
