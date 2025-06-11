@@ -23,40 +23,48 @@ const STORAGE_KEYS = {
 };
 
 /**
- * Hide loading state and restore normal state
+ * Hide loading state and restore normal state - Robust implementation
  */
 function hideLoadingState() {
-    // Remove loading class from cards
-    const cards = document.querySelectorAll('.row-cards .card');
-    cards.forEach(card => {
-        card.classList.remove('loading');
-    });
+    try {
+        // Remove loading class from cards
+        const cards = document.querySelectorAll('.row-cards .card');
+        cards.forEach(card => {
+            if (card && card.classList) {
+                card.classList.remove('loading');
+            }
+        });
 
-    // Restore apply buttons
-    const applyBtn = document.getElementById('apply-period-btn');
-    const applyBtnMobile = document.getElementById('apply-period-btn-mobile');
+        // Restore apply buttons with correct search icon
+        const applyBtn = document.getElementById('apply-period-btn');
+        const applyBtnMobile = document.getElementById('apply-period-btn-mobile');
 
-    [applyBtn, applyBtnMobile].forEach(btn => {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M21 21l-6 -6"/>
-                    <path d="M9 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z"/>
-                </svg>
-            `;
-        }
-    });
+        [applyBtn, applyBtnMobile].forEach(btn => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
+                        <path d="M21 21l-6 -6"/>
+                    </svg>
+                `;
+            }
+        });
 
-    // Restore navigation buttons
-    const navButtons = ['period-nav-prev', 'period-nav-today', 'period-nav-next'];
-    navButtons.forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.classList.remove('disabled', 'btn-loading');
-        }
-    });
+        // Restore navigation buttons
+        const navButtons = ['period-nav-prev', 'period-nav-today', 'period-nav-next'];
+        navButtons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn && btn.classList) {
+                btn.disabled = false;
+                btn.classList.remove('disabled', 'btn-loading');
+                btn.removeAttribute('aria-busy');
+            }
+        });
+    } catch (error) {
+        console.error('Error hiding loading state:', error);
+    }
 }
 
 /**
@@ -138,6 +146,7 @@ function initDynamicPeriodPicker() {
     let flatpickrInstance = null;
     let flatpickrInstanceMobile = null;
     let selectedDates = null;
+    let isNavigating = false;
 
     // Initialize with state management (URL params + localStorage)
     initializeFromState();
@@ -402,16 +411,26 @@ function initDynamicPeriodPicker() {
 
             case 'monthly':
                 // Check if monthSelectPlugin is available
+                console.log('monthSelectPlugin type:', typeof monthSelectPlugin);
+                console.log('monthSelectPlugin function:', monthSelectPlugin);
+
                 if (typeof monthSelectPlugin === 'function') {
+                    console.log('Using monthSelectPlugin');
                     config = {
                         ...baseConfig,
-                        plugins: [monthSelectPlugin({
+                        plugins: [new monthSelectPlugin({
                             shorthand: false,
                             dateFormat: 'F Y',
-                            altFormat: 'F Y'
+                            altFormat: 'F Y',
+                            theme: 'light'
                         })],
                         defaultDate: selectedDates && selectedDates.length > 0 ? selectedDates[0] : new Date(),
-                        placeholder: 'Pilih bulan'
+                        placeholder: 'Pilih bulan',
+                        onChange: function(selectedDatesArray, dateStr, instance) {
+                            console.log('Month selected:', selectedDatesArray);
+                            selectedDates = selectedDatesArray;
+                            updateInputDisplay(selectedDatesArray, type);
+                        }
                     };
                 } else {
                     console.warn('monthSelectPlugin not available, using fallback');
@@ -525,128 +544,225 @@ function initDynamicPeriodPicker() {
     }
 
     /**
-     * Navigate period (prev/next/today)
+     * Navigate period (prev/next/today) - Robust implementation
      */
     function navigatePeriod(direction) {
-        if (!selectedDates || selectedDates.length === 0) {
-            setDefaultDatesForType(currentPeriodType);
-        }
+        try {
+            console.log('Navigating period:', direction, 'Current type:', currentPeriodType);
 
-        // Add loading state to navigation buttons
-        setNavigationLoadingState(true);
-
-        let newDates;
-        const currentDate = selectedDates[0] || new Date();
-
-        switch (currentPeriodType) {
-            case 'weekly':
-                newDates = navigateWeek(currentDate, direction);
-                break;
-            case 'monthly':
-                newDates = navigateMonth(currentDate, direction);
-                break;
-            case 'custom':
-                newDates = navigateCustom(currentDate, direction);
-                break;
-        }
-
-        if (newDates) {
-            selectedDates = newDates;
-
-            // Update both instances
-            flatpickrInstance.setDate(newDates, true);
-            if (flatpickrInstanceMobile) {
-                flatpickrInstanceMobile.setDate(newDates, true);
+            // Prevent multiple rapid clicks
+            if (isNavigating) {
+                console.log('Navigation already in progress, skipping');
+                return;
             }
 
-            // Update display
-            updateInputDisplay(newDates, currentPeriodType);
+            isNavigating = true;
 
-            // Auto-apply the new period
-            setTimeout(() => {
-                saveStateToStorage();
-                applyPeriodFilter();
-            }, 100);
+            // Ensure we have valid dates
+            if (!selectedDates || selectedDates.length === 0) {
+                console.log('No selected dates, setting defaults');
+                setDefaultDatesForType(currentPeriodType);
+            }
+
+            // Add loading state to navigation buttons
+            setNavigationLoadingState(true);
+
+            let newDates;
+            const currentDate = selectedDates && selectedDates.length > 0 ? selectedDates[0] : new Date();
+
+            switch (currentPeriodType) {
+                case 'weekly':
+                    newDates = navigateWeek(currentDate, direction);
+                    break;
+                case 'monthly':
+                    newDates = navigateMonth(currentDate, direction);
+                    break;
+                case 'custom':
+                    newDates = navigateCustom(currentDate, direction);
+                    break;
+                default:
+                    console.warn('Unknown period type:', currentPeriodType);
+                    newDates = null;
+            }
+
+            if (newDates && newDates.length > 0) {
+                selectedDates = newDates;
+
+                // Update both instances safely
+                try {
+                    if (flatpickrInstance && typeof flatpickrInstance.setDate === 'function') {
+                        flatpickrInstance.setDate(newDates, true);
+                    }
+                    if (flatpickrInstanceMobile && typeof flatpickrInstanceMobile.setDate === 'function') {
+                        flatpickrInstanceMobile.setDate(newDates, true);
+                    }
+                } catch (flatpickrError) {
+                    console.warn('Error updating Flatpickr instances:', flatpickrError);
+                }
+
+                // Update display
+                updateInputDisplay(newDates, currentPeriodType);
+
+                // Auto-apply the new period with delay
+                setTimeout(() => {
+                    try {
+                        saveStateToStorage();
+                        applyPeriodFilter();
+                    } catch (applyError) {
+                        console.error('Error applying filter:', applyError);
+                    } finally {
+                        // Always reset navigation state
+                        isNavigating = false;
+                        setNavigationLoadingState(false);
+                    }
+                }, 200);
+            } else {
+                console.warn('Failed to generate new dates for navigation');
+                isNavigating = false;
+                setNavigationLoadingState(false);
+            }
+
+        } catch (error) {
+            console.error('Error in navigatePeriod:', error);
+            isNavigating = false;
+            setNavigationLoadingState(false);
         }
     }
 
     /**
-     * Set loading state for navigation buttons
+     * Set loading state for navigation buttons - Robust implementation
      */
     function setNavigationLoadingState(isLoading) {
-        [navPrev, navToday, navNext].forEach(btn => {
-            if (btn) {
-                if (isLoading) {
-                    btn.classList.add('disabled', 'btn-loading');
-                } else {
-                    btn.classList.remove('disabled', 'btn-loading');
+        try {
+            const buttons = [
+                document.getElementById('period-nav-prev'),
+                document.getElementById('period-nav-today'),
+                document.getElementById('period-nav-next')
+            ];
+
+            buttons.forEach(btn => {
+                if (btn && btn.classList) {
+                    if (isLoading) {
+                        btn.disabled = true;
+                        btn.classList.add('disabled');
+                        btn.setAttribute('aria-busy', 'true');
+                    } else {
+                        btn.disabled = false;
+                        btn.classList.remove('disabled');
+                        btn.removeAttribute('aria-busy');
+                    }
                 }
-            }
-        });
+            });
+        } catch (error) {
+            console.error('Error setting navigation loading state:', error);
+        }
     }
 
     /**
-     * Navigate week periods
+     * Navigate week periods - Robust implementation
      */
     function navigateWeek(currentDate, direction) {
-        const date = new Date(currentDate);
+        try {
+            const date = new Date(currentDate);
 
-        switch (direction) {
-            case 'prev':
-                date.setDate(date.getDate() - 7);
-                break;
-            case 'next':
-                date.setDate(date.getDate() + 7);
-                break;
-            case 'today':
+            // Validate date
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date for week navigation, using current date');
                 return getDefaultWeekRange();
-        }
+            }
 
-        return getWeekRange(date);
+            switch (direction) {
+                case 'prev':
+                    date.setDate(date.getDate() - 7);
+                    break;
+                case 'next':
+                    date.setDate(date.getDate() + 7);
+                    break;
+                case 'today':
+                    return getDefaultWeekRange();
+                default:
+                    console.warn('Unknown direction for week navigation:', direction);
+                    return getDefaultWeekRange();
+            }
+
+            return getWeekRange(date);
+        } catch (error) {
+            console.error('Error in navigateWeek:', error);
+            return getDefaultWeekRange();
+        }
     }
 
     /**
-     * Navigate month periods
+     * Navigate month periods - Robust implementation
      */
     function navigateMonth(currentDate, direction) {
-        const date = new Date(currentDate);
+        try {
+            const date = new Date(currentDate);
 
-        switch (direction) {
-            case 'prev':
-                date.setMonth(date.getMonth() - 1);
-                break;
-            case 'next':
-                date.setMonth(date.getMonth() + 1);
-                break;
-            case 'today':
+            // Validate date
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date for month navigation, using current date');
                 return [new Date()];
-        }
+            }
 
-        return [date];
+            switch (direction) {
+                case 'prev':
+                    date.setMonth(date.getMonth() - 1);
+                    break;
+                case 'next':
+                    date.setMonth(date.getMonth() + 1);
+                    break;
+                case 'today':
+                    return [new Date()];
+                default:
+                    console.warn('Unknown direction for month navigation:', direction);
+                    return [new Date()];
+            }
+
+            return [date];
+        } catch (error) {
+            console.error('Error in navigateMonth:', error);
+            return [new Date()];
+        }
     }
 
     /**
-     * Navigate custom periods (7 days range)
+     * Navigate custom periods - Robust implementation
      */
     function navigateCustom(currentDate, direction) {
-        const startDate = new Date(selectedDates[0] || currentDate);
-        const endDate = new Date(selectedDates[1] || currentDate);
-        const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        try {
+            const startDate = new Date(selectedDates && selectedDates[0] ? selectedDates[0] : currentDate);
+            const endDate = new Date(selectedDates && selectedDates[1] ? selectedDates[1] : currentDate);
 
-        switch (direction) {
-            case 'prev':
-                startDate.setDate(startDate.getDate() - daysDiff - 1);
-                endDate.setDate(endDate.getDate() - daysDiff - 1);
-                break;
-            case 'next':
-                startDate.setDate(startDate.getDate() + daysDiff + 1);
-                endDate.setDate(endDate.getDate() + daysDiff + 1);
-                break;
-            case 'today':
+            // Validate dates
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                console.warn('Invalid dates for custom navigation, using default range');
                 return getDefaultCustomRange();
-        }
+            }
 
-        return [startDate, endDate];
+            const daysDiff = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
+
+            switch (direction) {
+                case 'prev':
+                    startDate.setDate(startDate.getDate() - daysDiff - 1);
+                    endDate.setDate(endDate.getDate() - daysDiff - 1);
+                    break;
+                case 'next':
+                    startDate.setDate(startDate.getDate() + daysDiff + 1);
+                    endDate.setDate(endDate.getDate() + daysDiff + 1);
+                    break;
+                case 'today':
+                    return getDefaultCustomRange();
+                default:
+                    console.warn('Unknown direction for custom navigation:', direction);
+                    return getDefaultCustomRange();
+            }
+
+            return [startDate, endDate];
+        } catch (error) {
+            console.error('Error in navigateCustom:', error);
+            return getDefaultCustomRange();
+        }
     }
 
     /**

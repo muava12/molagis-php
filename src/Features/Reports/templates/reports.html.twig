@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="/css/app/reports.css?v={{ 'now'|date('U') }}">
   <!-- Flatpickr CSS - same as orders page -->
   <link rel="stylesheet" href="/css/flatpickr.min.css">
+  <!-- Flatpickr plugins CSS -->
+  <link rel="stylesheet" href="/css/flatpickr-plugins/monthSelect.css?v={{ 'now'|date('U') }}">
 {% endblock %}
 
 {% block content %}
@@ -74,11 +76,11 @@
               </div>
 
               <!-- Apply Button -->
-              <button class="btn btn-outline-secondary" type="button" id="apply-period-btn" title="Terapkan filter periode">
+              <button class="btn btn-primary" type="button" id="apply-period-btn" title="Terapkan filter periode">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
                   <path d="M21 21l-6 -6"/>
-                  <path d="M9 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z"/>
                 </svg>
               </button>
             </div>
@@ -87,11 +89,11 @@
             <div class="d-md-none">
               <div class="input-group" style="min-width: 200px;">
                 <input type="text" id="period-input-mobile" class="form-control" placeholder="Pilih periode..." readonly>
-                <button class="btn btn-outline-secondary" type="button" id="apply-period-btn-mobile" title="Terapkan filter periode">
+                <button class="btn btn-primary" type="button" id="apply-period-btn-mobile" title="Terapkan filter periode">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
                     <path d="M21 21l-6 -6"/>
-                    <path d="M9 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z"/>
                   </svg>
                 </button>
               </div>
@@ -583,6 +585,6 @@
   <script src="/js/flatpickr-l10n/id.js"></script>
   <!-- Flatpickr plugins -->
   <script src="/js/flatpickr-plugins/weekSelect.js?v={{ 'now'|date('U') }}"></script>
-  <script src="/js/lib/flatpickr-month-select.js?v={{ 'now'|date('U') }}"></script>
+  <script src="/js/flatpickr-plugins/monthSelect.js?v={{ 'now'|date('U') }}"></script>
   <script src="/js/app/reports.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

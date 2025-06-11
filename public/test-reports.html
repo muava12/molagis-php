@@ -6,6 +6,8 @@
     <title>Test Reports Input</title>
     <link rel="stylesheet" href="/css/tabler.min.css">
     <link rel="stylesheet" href="/css/flatpickr.min.css">
+    <link rel="stylesheet" href="/css/flatpickr-plugins/monthSelect.css">
+    <link rel="stylesheet" href="/css/app/reports.css">
 </head>
 <body>
     <div class="container mt-4">
@@ -96,6 +98,7 @@
     <script src="/js/flatpickr.min.js"></script>
     <script src="/js/flatpickr-l10n/id.js"></script>
     <script src="/js/flatpickr-plugins/weekSelect.js"></script>
+    <script src="/js/flatpickr-plugins/monthSelect.js"></script>
     <script src="/js/lib/flatpickr-month-select.js"></script>
     <script>
         // Test script for weekSelect plugin
@@ -111,47 +114,73 @@
             updateDebug('weekSelect available: ' + (typeof weekSelect !== 'undefined'));
             updateDebug('monthSelectPlugin available: ' + (typeof monthSelectPlugin !== 'undefined'));
 
-            const periodInput = document.getElementById('period-input');
-            if (periodInput) {
-                updateDebug('Period input found');
+            // Test both plugins
+            testWeekSelect();
+            testMonthSelect();
 
-                // Test weekSelect plugin
-                try {
-                    const fp = flatpickr(periodInput, {
-                        locale: 'id',
-                        plugins: [new weekSelect({})],
-                        dateFormat: '\\W\\e\\e\\k #W, Y',
-                        altFormat: 'd M Y',
-                        onChange: function(selectedDates) {
-                            updateDebug('Week selected: ' + selectedDates);
-                            // Extract the week number
-                            const weekNumber = selectedDates[0]
-                                ? this.config.getWeek(selectedDates[0])
-                                : null;
-                            updateDebug('Week number: ' + weekNumber);
-                        }
-                    });
-                    updateDebug('WeekSelect Flatpickr initialized successfully');
-                } catch (error) {
-                    updateDebug('WeekSelect Flatpickr error: ' + error.message);
+            function testWeekSelect() {
+                const periodInput = document.getElementById('period-input');
+                if (periodInput) {
+                    updateDebug('Period input found for weekSelect test');
 
-                    // Fallback to simple flatpickr
+                    // Test weekSelect plugin
                     try {
                         const fp = flatpickr(periodInput, {
                             locale: 'id',
-                            mode: 'range',
-                            dateFormat: 'd M Y',
+                            plugins: [new weekSelect({})],
+                            dateFormat: '\\W\\e\\e\\k #W, Y',
+                            altFormat: 'd M Y',
                             onChange: function(selectedDates) {
-                                updateDebug('Fallback date selected: ' + selectedDates);
+                                updateDebug('Week selected: ' + selectedDates);
+                                // Extract the week number
+                                const weekNumber = selectedDates[0]
+                                    ? this.config.getWeek(selectedDates[0])
+                                    : null;
+                                updateDebug('Week number: ' + weekNumber);
                             }
                         });
-                        updateDebug('Fallback Flatpickr initialized successfully');
-                    } catch (fallbackError) {
-                        updateDebug('Fallback Flatpickr error: ' + fallbackError.message);
+                        updateDebug('WeekSelect Flatpickr initialized successfully');
+                    } catch (error) {
+                        updateDebug('WeekSelect Flatpickr error: ' + error.message);
                     }
+                } else {
+                    updateDebug('Period input NOT found for weekSelect');
                 }
-            } else {
-                updateDebug('Period input NOT found');
+            }
+
+            function testMonthSelect() {
+                // Create a separate input for monthSelect test
+                const monthInput = document.createElement('input');
+                monthInput.type = 'text';
+                monthInput.id = 'month-test-input';
+                monthInput.className = 'form-control mt-3';
+                monthInput.placeholder = 'Test monthSelect plugin...';
+                monthInput.readonly = true;
+
+                const debugInfo = document.getElementById('debug-info');
+                debugInfo.appendChild(monthInput);
+
+                updateDebug('Created month test input');
+
+                // Test monthSelectPlugin
+                try {
+                    const fp = flatpickr(monthInput, {
+                        locale: 'id',
+                        plugins: [new monthSelectPlugin({
+                            shorthand: false,
+                            dateFormat: 'F Y',
+                            altFormat: 'F Y',
+                            theme: 'light'
+                        })],
+                        onChange: function(selectedDates) {
+                            updateDebug('Month selected: ' + selectedDates);
+                            updateDebug('Formatted: ' + (selectedDates[0] ? selectedDates[0].toLocaleDateString('id-ID', {month: 'long', year: 'numeric'}) : 'none'));
+                        }
+                    });
+                    updateDebug('MonthSelect Flatpickr initialized successfully');
+                } catch (error) {
+                    updateDebug('MonthSelect Flatpickr error: ' + error.message);
+                }
             }
         });
     </script>
