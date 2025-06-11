@@ -1348,6 +1348,341 @@ function generateFinancialMarkdown(period, data) {
 }
 
 /**
+ * Initialize customer details functionality
+ */
+function initializeCustomerDetails() {
+    console.log('Initializing customer details functionality...');
+
+    // Initialize search functionality
+    const searchInput = document.getElementById('customer-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(filterCustomers, 300));
+    }
+
+    // Initialize sort functionality
+    const sortSelect = document.getElementById('customer-sort');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', sortCustomers);
+    }
+
+    // Initialize filter functionality
+    const filterSelect = document.getElementById('customer-filter');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', filterCustomers);
+    }
+
+    // Initialize clear filters button
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', clearAllFilters);
+    }
+
+    // Initialize refresh button
+    const refreshBtn = document.getElementById('refresh-customer-data-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshCustomerData);
+    }
+
+    // Initialize export buttons
+    const exportExcelBtn = document.getElementById('export-excel-btn');
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+    
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            exportCustomerDataToExcel();
+        });
+    }
+
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            exportCustomerDataToPDF();
+        });
+    }
+
+    console.log('Customer details functionality initialized');
+}
+
+/**
+ * Debounce function to limit search frequency
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Filter customers based on search and filter criteria
+ */
+function filterCustomers() {
+    const searchTerm = document.getElementById('customer-search').value.toLowerCase();
+    const filterValue = document.getElementById('customer-filter').value;
+    const rows = document.querySelectorAll('#customer-orders-tbody .customer-row');
+
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const customerName = row.dataset.customerName;
+        const customerStatus = row.dataset.status;
+        
+        // Check search term
+        const matchesSearch = !searchTerm || customerName.includes(searchTerm);
+        
+        // Check filter
+        let matchesFilter = true;
+        switch (filterValue) {
+            case 'vip':
+                matchesFilter = customerStatus === 'vip';
+                break;
+            case 'new':
+                matchesFilter = customerStatus === 'new';
+                break;
+            case 'active':
+                matchesFilter = customerStatus === 'active';
+                break;
+            case 'all':
+            default:
+                matchesFilter = true;
+                break;
+        }
+
+        const shouldShow = matchesSearch && matchesFilter;
+        row.style.display = shouldShow ? '' : 'none';
+        
+        if (shouldShow) {
+            visibleCount++;
+            // Update row number
+            const numberCell = row.querySelector('td:first-child');
+            if (numberCell) {
+                numberCell.textContent = visibleCount;
+            }
+        }
+    });
+
+    // Update summary if no results
+    if (visibleCount === 0) {
+        showNoResultsMessage();
+    } else {
+        hideNoResultsMessage();
+    }
+
+    // Update summary totals
+    updateSummaryTotals();
+}
+
+/**
+ * Sort customers based on selected criteria
+ */
+function sortCustomers() {
+    const sortValue = document.getElementById('customer-sort').value;
+    const tbody = document.getElementById('customer-orders-tbody');
+    const rows = Array.from(tbody.querySelectorAll('.customer-row'));
+
+    rows.sort((a, b) => {
+        switch (sortValue) {
+            case 'name_asc':
+                return a.dataset.customerName.localeCompare(b.dataset.customerName);
+            case 'name_desc':
+                return b.dataset.customerName.localeCompare(a.dataset.customerName);
+            case 'total_desc':
+                const totalA = parseFloat(a.querySelector('td:nth-child(7) .fw-bold').textContent.replace(/[^\d]/g, ''));
+                const totalB = parseFloat(b.querySelector('td:nth-child(7) .fw-bold').textContent.replace(/[^\d]/g, ''));
+                return totalB - totalA;
+            case 'total_asc':
+                const totalA2 = parseFloat(a.querySelector('td:nth-child(7) .fw-bold').textContent.replace(/[^\d]/g, ''));
+                const totalB2 = parseFloat(b.querySelector('td:nth-child(7) .fw-bold').textContent.replace(/[^\d]/g, ''));
+                return totalA2 - totalB2;
+            case 'orders_desc':
+                const ordersA = parseInt(a.querySelector('td:nth-child(3) .badge').textContent.replace(/[^\d]/g, ''));
+                const ordersB = parseInt(b.querySelector('td:nth-child(3) .badge').textContent.replace(/[^\d]/g, ''));
+                return ordersB - ordersA;
+            case 'orders_asc':
+                const ordersA2 = parseInt(a.querySelector('td:nth-child(3) .badge').textContent.replace(/[^\d]/g, ''));
+                const ordersB2 = parseInt(b.querySelector('td:nth-child(3) .badge').textContent.replace(/[^\d]/g, ''));
+                return ordersA2 - ordersB2;
+            default:
+                return 0;
+        }
+    });
+
+    // Re-append sorted rows
+    rows.forEach((row, index) => {
+        tbody.appendChild(row);
+        // Update row numbers
+        const numberCell = row.querySelector('td:first-child');
+        if (numberCell && row.style.display !== 'none') {
+            numberCell.textContent = index + 1;
+        }
+    });
+
+    // Re-apply filters to update numbering
+    filterCustomers();
+}
+
+/**
+ * Clear all filters and search
+ */
+function clearAllFilters() {
+    document.getElementById('customer-search').value = '';
+    document.getElementById('customer-filter').value = 'all';
+    document.getElementById('customer-sort').value = 'total_desc';
+    
+    filterCustomers();
+    sortCustomers();
+    
+    showToast('Info', 'Filter dan pencarian telah direset', 'success');
+}
+
+/**
+ * Show no results message
+ */
+function showNoResultsMessage() {
+    let noResultsRow = document.getElementById('no-results-row');
+    if (!noResultsRow) {
+        const tbody = document.getElementById('customer-orders-tbody');
+        noResultsRow = document.createElement('tr');
+        noResultsRow.id = 'no-results-row';
+        noResultsRow.innerHTML = `
+            <td colspan="10" class="text-center py-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg text-muted mb-2" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
+                    <path d="M21 21l-6 -6"/>
+                </svg>
+                <div class="text-muted">Tidak ada customer yang sesuai dengan kriteria pencarian</div>
+                <button class="btn btn-sm btn-outline mt-2" onclick="clearAllFilters()">Reset Filter</button>
+            </td>
+        `;
+        tbody.appendChild(noResultsRow);
+    }
+    noResultsRow.style.display = '';
+}
+
+/**
+ * Hide no results message
+ */
+function hideNoResultsMessage() {
+    const noResultsRow = document.getElementById('no-results-row');
+    if (noResultsRow) {
+        noResultsRow.style.display = 'none';
+    }
+}
+
+/**
+ * Update summary totals based on visible rows
+ */
+function updateSummaryTotals() {
+    const visibleRows = document.querySelectorAll('#customer-orders-tbody .customer-row[style=""], #customer-orders-tbody .customer-row:not([style])');
+    
+    let totalCustomers = visibleRows.length;
+    let totalOrders = 0;
+    let totalRevenue = 0;
+    let totalShipping = 0;
+    let totalCost = 0;
+    let totalProfit = 0;
+
+    visibleRows.forEach(row => {
+        // Extract numbers from cells
+        const orders = parseInt(row.querySelector('td:nth-child(3) .badge').textContent.replace(/[^\d]/g, '')) || 0;
+        const revenue = parseFloat(row.querySelector('td:nth-child(4) .fw-bold').textContent.replace(/[^\d]/g, '')) || 0;
+        const shipping = parseFloat(row.querySelector('td:nth-child(5) .fw-bold').textContent.replace(/[^\d]/g, '')) || 0;
+        const cost = parseFloat(row.querySelector('td:nth-child(6) .fw-bold').textContent.replace(/[^\d]/g, '')) || 0;
+        const profit = parseFloat(row.querySelector('td:nth-child(8) .fw-bold').textContent.replace(/[^\d]/g, '')) || 0;
+
+        totalOrders += orders;
+        totalRevenue += revenue;
+        totalShipping += shipping;
+        totalCost += cost;
+        totalProfit += profit;
+    });
+
+    // Update summary elements
+    document.getElementById('total-customers').textContent = totalCustomers;
+    document.getElementById('total-orders').textContent = totalOrders;
+    document.getElementById('total-revenue').textContent = 'Rp ' + totalRevenue.toLocaleString('id-ID');
+    document.getElementById('total-shipping').textContent = 'Rp ' + totalShipping.toLocaleString('id-ID');
+    document.getElementById('total-cost').textContent = 'Rp ' + totalCost.toLocaleString('id-ID');
+    document.getElementById('total-profit').textContent = 'Rp ' + totalProfit.toLocaleString('id-ID');
+}
+
+/**
+ * Refresh customer data
+ */
+function refreshCustomerData() {
+    const refreshBtn = document.getElementById('refresh-customer-data-btn');
+    if (refreshBtn) {
+        // Add loading state
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm spinning" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
+                <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
+            </svg>
+            <span class="d-sm-none d-lg-inline">Refreshing...</span>
+        `;
+
+        // Simulate refresh (replace with actual API call)
+        setTimeout(() => {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
+                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
+                </svg>
+                <span class="d-sm-none d-lg-inline">Refresh</span>
+            `;
+            showToast('Berhasil', 'Data customer telah diperbarui', 'success');
+        }, 1500);
+    }
+}
+
+/**
+ * View customer details (placeholder for modal or detail page)
+ */
+function viewCustomerDetails(customerId) {
+    console.log('Viewing details for customer ID:', customerId);
+    showToast('Info', `Membuka detail customer ID: ${customerId}`, 'success');
+    // TODO: Implement modal or redirect to customer detail page
+}
+
+/**
+ * Export individual customer data
+ */
+function exportCustomerData(customerId) {
+    console.log('Exporting data for customer ID:', customerId);
+    showToast('Info', `Mengekspor data customer ID: ${customerId}`, 'success');
+    // TODO: Implement individual customer export
+}
+
+/**
+ * Export all customer data to Excel
+ */
+function exportCustomerDataToExcel() {
+    console.log('Exporting all customer data to Excel');
+    showToast('Info', 'Mengekspor data ke Excel...', 'success');
+    // TODO: Implement Excel export functionality
+}
+
+/**
+ * Export all customer data to PDF
+ */
+function exportCustomerDataToPDF() {
+    console.log('Exporting all customer data to PDF');
+    showToast('Info', 'Mengekspor data ke PDF...', 'success');
+    // TODO: Implement PDF export functionality
+}
+
+/**
  * Export functions for potential external use
  */
 window.ReportsPage = {
@@ -1358,3 +1693,8 @@ window.ReportsPage = {
     hideLoadingState,
     copyAsMarkdown
 };
+
+// Global functions for onclick handlers
+window.viewCustomerDetails = viewCustomerDetails;
+window.exportCustomerData = exportCustomerData;
+window.clearAllFilters = clearAllFilters;

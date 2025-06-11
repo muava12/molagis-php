@@ -56,3 +56,28 @@
         height: 14px;
     }
 }
+
+/* Customer Details Table Responsive Utilities - Using Tabler patterns */
+@media (max-width: 767.98px) {
+    .d-md-table-cell {
+        display: none !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .d-sm-table-cell {
+        display: none !important;
+    }
+}
+
+/* Enhance table hover effect using Tabler's existing classes */
+.table-hover tbody tr:hover {
+    background-color: var(--tblr-gray-50, #f8f9fa);
+}
+
+/* Improve mobile summary layout */
+@media (max-width: 767.98px) {
+    .customer-summary .col-6 {
+        margin-bottom: 1rem;
+    }
+}
