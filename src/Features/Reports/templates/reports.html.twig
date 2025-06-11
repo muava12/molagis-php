@@ -40,20 +40,20 @@
             <div class="d-none d-md-flex align-items-center gap-2">
               <!-- Navigation Buttons -->
               <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-secondary btn-icon" id="period-nav-prev" title="Periode sebelumnya">
+                <button type="button" class="btn btn-outline btn-icon" id="period-nav-prev" title="Periode sebelumnya">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                     <path d="M15 6l-6 6l6 6"/>
                   </svg>
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-icon" id="period-nav-today" title="Periode saat ini">
+                <button type="button" class="btn btn-outline btn-icon" id="period-nav-today" title="Periode saat ini">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M12 6v6l4 2"/>
                   </svg>
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-icon" id="period-nav-next" title="Periode selanjutnya">
+                <button type="button" class="btn btn-outline btn-icon" id="period-nav-next" title="Periode selanjutnya">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                     <path d="M9 6l6 6l-6 6"/>
@@ -78,7 +78,7 @@
                   </div>
                 </div>
                 <div class="col-auto">
-                  <button class="btn btn-primary" type="button" id="apply-period-btn" title="Terapkan filter periode">
+                  <button class="btn" type="button" id="apply-period-btn" title="Terapkan filter periode">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
@@ -107,7 +107,7 @@
 
             <!-- Period Type Dropdown -->
             <div class="dropdown">
-              <button class="btn btn-outline-primary dropdown-toggle" type="button" id="period-type-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <button class="btn btn-outline dropdown-toggle" type="button" id="period-type-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/>
@@ -365,13 +365,13 @@
                 Overview Keuangan
               </h3>
               <div class="card-actions">
-                <button class="btn btn-sm btn-outline-primary me-2" id="copyMarkdownBtn" title="Copy as Markdown">
+                <button class="btn btn-sm me-2" id="copyMarkdownBtn" title="Copy as Markdown">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                   </svg>
-                  Copy MD
+                  <span class="d-sm-none d-lg-inline">Copy MD</span>
                 </button>
                 <span class="badge rounded-pill">📅 Periode: {{ reports_data.period_info.description | default('Semua Waktu') }}</span>
               </div>

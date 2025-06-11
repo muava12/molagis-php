@@ -305,9 +305,9 @@ async function handleEditRecord(recordId) {
         // Extract data from table row
         const cells = row.querySelectorAll('td');
         const dateText = cells[0].querySelector('.text-muted').textContent.trim();
+        const description = cells[1].querySelector('.text-truncate').textContent.trim();
         const categoryText = cells[1].querySelector('.badge').textContent.trim();
-        const description = cells[2].querySelector('.text-truncate').textContent.trim();
-        const amountText = cells[3].textContent.trim();
+        const amountText = cells[2].textContent.trim();
 
         // Parse date (format: dd/mm/yyyy)
         const dateParts = dateText.split('/');
@@ -581,7 +581,7 @@ function updateTransactionTable(records) {
     if (records.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center py-5">
+                <td colspan="4" class="text-center py-5">
                     <div class="empty">
                         <div class="empty-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -620,13 +620,13 @@ function updateTransactionTable(records) {
                     })}</div>
                 </td>
                 <td>
-                    <span class="badge category-badge bg-secondary-lt">
-                        ${categoryName}
-                    </span>
-                </td>
-                <td>
                     <div class="text-truncate" style="max-width: 200px;" title="${description}">
                         ${description}
+                    </div>
+                    <div class="mt-1">
+                        <span class="badge category-badge bg-secondary-lt">
+                            ${categoryName}
+                        </span>
                     </div>
                 </td>
                 <td class="text-end amount-cell text-danger">
