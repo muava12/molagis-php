@@ -359,13 +359,21 @@
                 Overview Keuangan
               </h3>
               <div class="card-actions">
+                <button class="btn btn-sm btn-outline-primary me-2" id="copyMarkdownBtn" title="Copy as Markdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  Copy MD
+                </button>
                 <span class="badge rounded-pill">📅 Periode: {{ reports_data.period_info.description | default('Semua Waktu') }}</span>
               </div>
             </div>
             <div class="card-body p-2">
 
               <!-- Revenue Section -->
-              <div class="mb-3">
+              <div class="mb-3" data-section="revenue">
                 <h4 class="mb-2 d-flex align-items-center">
                   <span class="avatar bg-success-lt me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -403,7 +411,7 @@
               </div>
 
               <!-- COGS Section -->
-              <div class="mb-3">
+              <div class="mb-3" data-section="cogs">
                 <h4 class="mb-2 d-flex align-items-center">
                   <span class="avatar bg-orange-lt me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -427,7 +435,7 @@
               </div>
 
               <!-- Gross Profit Section -->
-              <div class="mb-3">
+              <div class="mb-3" data-section="gross-profit">
                 <h4 class="mb-2 d-flex align-items-center">
                   <span class="avatar bg-blue-lt me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -451,7 +459,7 @@
               </div>
 
               <!-- Operating Expenses Section -->
-              <div class="mb-3">
+              <div class="mb-3" data-section="operating-expenses">
                 <h4 class="mb-2 d-flex align-items-center">
                   <span class="avatar bg-red-lt me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -488,7 +496,7 @@
               </div>
 
               <!-- Net Profit Breakdown Section -->
-              <div class="mb-3">
+              <div class="mb-3" data-section="net-profit-breakdown">
                 <h4 class="mb-2 d-flex align-items-center">
                   <span class="avatar bg-purple-lt me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -537,7 +545,7 @@
               </div>
 
               <!-- Net Profit Section -->
-              <div>
+              <div data-section="net-profit">
                 <h4 class="mb-2 d-flex align-items-center">
                   <span class="avatar bg-teal-lt me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">

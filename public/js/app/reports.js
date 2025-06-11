@@ -102,7 +102,23 @@ function initializeReportsPage() {
     // Initialize dropdown interactions
     initDropdownInteractions();
 
+    // Initialize copy markdown functionality
+    initializeCopyMarkdown();
+
     console.log('Reports page initialized successfully');
+}
+
+/**
+ * Initialize copy markdown functionality
+ */
+function initializeCopyMarkdown() {
+    const copyBtn = document.getElementById('copyMarkdownBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copyAsMarkdown);
+        console.log('Copy markdown button initialized');
+    } else {
+        console.log('Copy markdown button not found');
+    }
 }
 
 /**
@@ -1140,6 +1156,175 @@ function handleApiError(error) {
 }
 
 /**
+ * Copy financial overview as Markdown
+ */
+function copyAsMarkdown() {
+    try {
+        // Get period info
+        const periodElement = document.querySelector('.badge.rounded-pill');
+        const period = periodElement ? periodElement.textContent.trim() : 'Periode tidak diketahui';
+
+        // Get all financial data from DOM
+        const financialData = extractFinancialDataFromDOM();
+
+        // Generate markdown
+        const markdown = generateFinancialMarkdown(period, financialData);
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(markdown).then(() => {
+            showToast('Berhasil', 'Overview keuangan berhasil disalin sebagai Markdown!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            showToast('Error', 'Gagal menyalin ke clipboard', 'error');
+        });
+
+    } catch (error) {
+        console.error('Error copying markdown:', error);
+        showToast('Error', 'Terjadi kesalahan saat menyalin data', 'error');
+    }
+}
+
+/**
+ * Extract financial data from DOM elements
+ */
+function extractFinancialDataFromDOM() {
+    const data = {};
+
+    // Revenue section
+    const revenueSection = document.querySelector('[data-section="revenue"]');
+    if (revenueSection) {
+        const revenueItems = revenueSection.querySelectorAll('.list-group-item');
+        data.productRevenue = revenueItems[0]?.querySelector('strong')?.textContent?.trim() || 'N/A';
+        data.deliveryRevenue = revenueItems[1]?.querySelector('strong')?.textContent?.trim() || 'N/A';
+        data.totalRevenue = revenueSection.querySelector('.border strong:last-child')?.textContent?.trim() || 'N/A';
+    }
+
+    // COGS section
+    const cogsSection = document.querySelector('[data-section="cogs"]');
+    if (cogsSection) {
+        data.productCost = cogsSection.querySelector('.text-orange')?.textContent?.trim() || 'N/A';
+    }
+
+    // Gross profit section
+    const grossProfitSection = document.querySelector('[data-section="gross-profit"]');
+    if (grossProfitSection) {
+        data.grossProfit = grossProfitSection.querySelector('.h4')?.textContent?.trim() || 'N/A';
+        const marginText = grossProfitSection.querySelector('small')?.textContent || '';
+        const marginMatch = marginText.match(/(\d+(?:\.\d+)?)%/);
+        data.grossMargin = marginMatch ? marginMatch[1] + '%' : 'N/A';
+    }
+
+    // Operating expenses section
+    const opexSection = document.querySelector('[data-section="operating-expenses"]');
+    if (opexSection) {
+        const opexItems = opexSection.querySelectorAll('.list-group-item');
+        data.deliveryCost = opexItems[0]?.querySelector('.text-muted')?.textContent?.trim() || 'N/A';
+        data.otherExpenses = opexItems[1]?.querySelector('.text-muted')?.textContent?.trim() || 'N/A';
+        data.totalOperatingExpenses = opexSection.querySelector('.border strong:last-child')?.textContent?.trim() || 'N/A';
+    }
+
+    // Net profit breakdown section
+    const netProfitBreakdownSection = document.querySelector('[data-section="net-profit-breakdown"]');
+    if (netProfitBreakdownSection) {
+        const profitItems = netProfitBreakdownSection.querySelectorAll('.list-group-item');
+        data.dailyCateringProfit = profitItems[0]?.querySelector('strong')?.textContent?.trim() || 'N/A';
+        data.eventCateringProfit = profitItems[1]?.querySelector('strong')?.textContent?.trim() || 'N/A';
+        data.deliveryProfit = profitItems[2]?.querySelector('strong')?.textContent?.trim() || 'N/A';
+    }
+
+    // Net profit section
+    const netProfitSection = document.querySelector('[data-section="net-profit"]');
+    if (netProfitSection) {
+        data.netProfit = netProfitSection.querySelector('.h3')?.textContent?.trim() || 'N/A';
+        const marginText = netProfitSection.querySelector('small')?.textContent || '';
+        const marginMatch = marginText.match(/(\d+(?:\.\d+)?)%/);
+        data.netMargin = marginMatch ? marginMatch[1] + '%' : 'N/A';
+    }
+
+    return data;
+}
+
+/**
+ * Generate formatted markdown from financial data
+ */
+function generateFinancialMarkdown(period, data) {
+    const currentDate = new Date().toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    return `# 📊 Overview Keuangan
+
+**${period}**
+*Laporan dibuat: ${currentDate}*
+
+---
+
+## 💰 Pendapatan (Revenue)
+
+| Kategori | Jumlah |
+|----------|--------|
+| 🍱 Pendapatan Catering Harian | ${data.productRevenue} |
+| 🚚 Pendapatan Jasa Kirim (Ongkir) | ${data.deliveryRevenue} |
+| **💰 Total Pendapatan** | **${data.totalRevenue}** |
+
+---
+
+## 🏭 Biaya Pokok Penjualan (COGS)
+
+| Kategori | Jumlah |
+|----------|--------|
+| 🏭 Modal Catering Harian | ${data.productCost} |
+
+---
+
+## 💎 Laba Kotor Catering Harian
+
+| Metrik | Nilai |
+|--------|-------|
+| 💎 Laba Kotor Catering | ${data.grossProfit} |
+| 📈 Margin | ${data.grossMargin} |
+
+*Formula: Pendapatan Catering Harian - Modal Produk*
+
+---
+
+## 💸 Biaya Operasional (Operating Expenses)
+
+| Kategori | Jumlah |
+|----------|--------|
+| 🛵 Beban Jasa Kirim (Fee Kurir) | ${data.deliveryCost} |
+| 🏢 Pengeluaran Operasional Lain | ${data.otherExpenses} |
+| **💸 Total Biaya Operasional** | **${data.totalOperatingExpenses}** |
+
+---
+
+## 🔍 Rincian Laba Bersih per Lini Bisnis
+
+| Lini Bisnis | Laba Bersih |
+|-------------|-------------|
+| 🍱 Laba Catering Harian | ${data.dailyCateringProfit} |
+| 🎉 Laba Catering Event | ${data.eventCateringProfit} |
+| 🚚 Laba Bersih Pengiriman | ${data.deliveryProfit} |
+
+---
+
+## 🏆 Laba Bersih Total (Net Profit)
+
+| Metrik | Nilai |
+|--------|-------|
+| 🏆 Laba Bersih Total | ${data.netProfit} |
+| 📊 Margin | ${data.netMargin} |
+
+*Formula: Laba Catering Harian + Laba Event + Laba Pengiriman - Biaya Operasional Lain*
+
+---
+
+*Laporan ini dibuat secara otomatis dari sistem Molagis*`;
+}
+
+/**
  * Export functions for potential external use
  */
 window.ReportsPage = {
@@ -1147,5 +1332,6 @@ window.ReportsPage = {
     formatNumber,
     formatCurrency,
     showLoadingState,
-    hideLoadingState
+    hideLoadingState,
+    copyAsMarkdown
 };

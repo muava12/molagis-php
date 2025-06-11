@@ -33,3 +33,26 @@
 .list-group-item .badge {
     max-width: calc(100% - 1rem);
 }
+
+/* Copy markdown button styling */
+#copyMarkdownBtn {
+    transition: all 0.2s ease;
+}
+
+#copyMarkdownBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Responsive adjustments for copy button */
+@media (max-width: 768px) {
+    #copyMarkdownBtn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    #copyMarkdownBtn .icon {
+        width: 14px;
+        height: 14px;
+    }
+}
