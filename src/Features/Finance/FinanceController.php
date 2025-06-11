@@ -6,6 +6,7 @@ namespace Molagis\Features\Finance;
 use Psr\Http\Message\ServerRequestInterface;
 use Laminas\Diactoros\Response\JsonResponse;
 use Twig\Environment;
+use Molagis\Features\Settings\SettingsService;
 
 /**
  * Controller untuk mengelola halaman keuangan dan API endpoints.
@@ -14,7 +15,9 @@ class FinanceController
 {
     public function __construct(
         private FinanceService $financeService,
-        private Environment $twig
+        private SettingsService $settingsService,
+        private Environment $twig,
+        private \Molagis\Shared\SupabaseService $supabaseService
     ) {}
 
     /**
@@ -69,6 +72,14 @@ class FinanceController
         // Calculate pagination info
         $totalPages = $totalRecords > 0 ? ceil($totalRecords / $limit) : 1;
 
+        // Ambil business_name dari settings (bukan dari profil user, agar konsisten)
+        $businessNameResponse = $this->settingsService->getSettingByKey('business_name', $accessToken);
+        $businessName = $businessNameResponse['data'] ?? 'Molagis';
+
+        // Ambil couriers
+        $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
+        $couriers = $couriersResult['data'] ?? [];
+
         $viewData = [
             'title' => 'Finance Management',
             'categories' => $categories,
@@ -84,7 +95,9 @@ class FinanceController
             'categories_error' => $categoriesResult['error'] ?? null,
             'summary_error' => $summaryResult['error'] ?? null,
             'records_error' => $recordsResult['error'] ?? null,
-            'count_error' => $countResult['error'] ?? null
+            'count_error' => $countResult['error'] ?? null,
+                        'business_name' => $businessName,
+            'couriers' => $couriers,
         ];
 
         try {

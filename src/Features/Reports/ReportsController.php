@@ -6,6 +6,7 @@ namespace Molagis\Features\Reports;
 use Psr\Http\Message\ServerRequestInterface;
 use Twig\Environment;
 use Molagis\Features\Settings\SettingsService;
+use Molagis\Shared\SupabaseService;
 
 /**
  * Controller untuk mengelola halaman reports dan statistik.
@@ -15,6 +16,7 @@ class ReportsController
     public function __construct(
         private ReportsService $reportsService,
         private SettingsService $settingsService,
+        private SupabaseService $supabaseService,
         private Environment $twig,
     ) {}
 
@@ -54,6 +56,9 @@ class ReportsController
         if (!empty($businessNameResponse['error'])) {
             error_log("Error fetching business_name setting: " . $businessNameResponse['error']);
         }
+        // Get couriers for header dropdown
+        $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
+        $viewData['couriers'] = $couriersResult['data'] ?? [];
 
         // Determine user role (mock for now, will be integrated with actual user system)
         $userRole = $user['role'] ?? 'owner'; // Default to owner for full access
@@ -73,7 +78,19 @@ class ReportsController
         $viewData['current_start_date'] = $startDate;
         $viewData['current_end_date'] = $endDate;
         $viewData['user_role'] = $userRole;
-
+        // Format date for subtitle
+        $formatter = new \IntlDateFormatter(
+            'id_ID', // Lokalisasi Indonesia
+            \IntlDateFormatter::FULL, // Gaya tanggal lengkap
+            \IntlDateFormatter::NONE, // Tidak menyertakan waktu
+            'Asia/Makassar', // Zona waktu
+            \IntlDateFormatter::GREGORIAN,
+            'EEEE, dd MMMM yyyy' // Format: Rabu, 14 Mei 2025
+        );
+        $currentDate = new \DateTime('now', new \DateTimeZone('Asia/Makassar'));
+        $formattedDate = $formatter->format($currentDate);
+        $viewData['date_subtitle'] = $formattedDate;
+        
         // Clean up error message
         $viewData['error'] = trim((string) $viewData['error']);
         if (empty($viewData['error'])) {

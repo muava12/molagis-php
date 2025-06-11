@@ -41,7 +41,7 @@
   </head>
   <body>
     <div class="page">
-      {% include 'header.html.twig' %}
+      {% include 'header.html.twig' with { business_name: business_name, couriers: couriers } %}
       <div class="page-wrapper">
         {% block content %}
           {# Konten halaman spesifik akan diisi di sini #}

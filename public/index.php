@@ -93,13 +93,16 @@ $containerBuilder->addDefinitions([
     ReportsController::class => fn($c) => new ReportsController(
         $c->get(ReportsService::class),
         $c->get(\Molagis\Features\Settings\SettingsService::class),
+        $c->get(\Molagis\Shared\SupabaseService::class),
         $c->get(\Twig\Environment::class)
     ),
     // Finance feature
     FinanceService::class => fn($c) => new FinanceService($c->get(SupabaseClient::class)),
     FinanceController::class => fn($c) => new FinanceController(
         $c->get(FinanceService::class),
-        $c->get(Environment::class)
+        $c->get(SettingsService::class),
+        $c->get(Environment::class),
+        $c->get(SupabaseService::class)
     ),
     Environment::class => fn() => new Environment(
         new FilesystemLoader([
