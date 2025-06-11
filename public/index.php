@@ -20,6 +20,8 @@ use Molagis\Features\Settings\SettingsService;
 use Molagis\Features\Paket\PaketService; // Added
 use Molagis\Features\Reports\ReportsController;
 use Molagis\Features\Reports\ReportsService;
+use Molagis\Features\Finance\FinanceController;
+use Molagis\Features\Finance\FinanceService;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -93,6 +95,12 @@ $containerBuilder->addDefinitions([
         $c->get(\Molagis\Features\Settings\SettingsService::class),
         $c->get(\Twig\Environment::class)
     ),
+    // Finance feature
+    FinanceService::class => fn($c) => new FinanceService($c->get(SupabaseClient::class)),
+    FinanceController::class => fn($c) => new FinanceController(
+        $c->get(FinanceService::class),
+        $c->get(Environment::class)
+    ),
     Environment::class => fn() => new Environment(
         new FilesystemLoader([
             "{$basePath}/src/Shared/templates",
@@ -105,6 +113,7 @@ $containerBuilder->addDefinitions([
             "{$basePath}/src/Features/Orders/templates", // Added for order list
             "{$basePath}/src/Features/Settings/templates",
             "{$basePath}/src/Features/Reports/templates", // Added for reports
+            "{$basePath}/src/Features/Finance/templates", // Added for finance
         ]),
         [
             'debug' => $_ENV['APP_ENV'] === 'development',
@@ -176,6 +185,14 @@ $routes = [
     ['POST', '/api/paket/order/update', [SettingsController::class, 'updatePaketOrder'], [AuthMiddleware::class]],
     // Reports Routes
     ['GET', '/reports', [ReportsController::class, 'showReports'], [AuthMiddleware::class]],
+
+    // Finance Routes
+    ['GET', '/finance', [FinanceController::class, 'showFinance'], [AuthMiddleware::class]],
+    ['GET', '/api/finance/categories', [FinanceController::class, 'getExpenseCategories'], [AuthMiddleware::class]],
+    ['GET', '/api/finance/records', [FinanceController::class, 'getFinancialRecords'], [AuthMiddleware::class]],
+    ['POST', '/api/finance/records', [FinanceController::class, 'addFinancialRecord'], [AuthMiddleware::class]],
+    ['PUT', '/api/finance/records/{id:\d+}', [FinanceController::class, 'updateFinancialRecord'], [AuthMiddleware::class]],
+    ['DELETE', '/api/finance/records/{id:\d+}', [FinanceController::class, 'deleteFinancialRecord'], [AuthMiddleware::class]],
 ];
 
 // Create FastRoute dispatcher
@@ -233,8 +250,8 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'getDeliveries' => [$request],
                     'getDeliveryDetails' => [$request],
                     'updateDeliveryStatus' => [$request],
-                    'showCustomers' => [$request],
-                    'getCustomers' => [$request],
+                    'showCustomers' => [$request->withAttribute('id', $vars['id'] ?? null)],
+                    'getCustomers' => [$request->withAttribute('id', $vars['id'] ?? null)],
                     'addCustomer' => [$request],
                     'updateCustomer' => [$request],
                     'deleteCustomer' => [$request],
@@ -260,6 +277,13 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'updatePaketOrder' => [$request],
                     // Reports methods
                     'showReports' => [$request],
+                    // Finance methods
+                    'showFinance' => [$request],
+                    'getExpenseCategories' => [$request],
+                    'getFinancialRecords' => [$request],
+                    'addFinancialRecord' => [$request],
+                    'updateFinancialRecord' => [$request->withAttribute('id', $vars['id'] ?? null)],
+                    'deleteFinancialRecord' => [$request->withAttribute('id', $vars['id'] ?? null)],
                     default => []
                 };
 
