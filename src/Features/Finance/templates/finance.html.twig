@@ -16,29 +16,6 @@
       font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
       font-weight: 600;
     }
-    .form-floating-custom {
-      position: relative;
-    }
-    .form-floating-custom .form-control {
-      padding-top: 1.625rem;
-      padding-bottom: 0.625rem;
-    }
-    .form-floating-custom .form-label {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      padding: 1rem 0.75rem;
-      pointer-events: none;
-      border: 1px solid transparent;
-      transform-origin: 0 0;
-      transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
-    }
-    .form-floating-custom .form-control:focus ~ .form-label,
-    .form-floating-custom .form-control:not(:placeholder-shown) ~ .form-label {
-      opacity: 0.65;
-      transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
-    }
   </style>
 {% endblock %}
 
@@ -86,36 +63,28 @@
             <div class="card-body">
               <form id="expense-form">
                 <div class="mb-3">
-                  <div class="form-floating-custom">
-                    <input type="text" class="form-control" id="transaction-date" name="transaction_date" placeholder="Select date" required>
-                    <label for="transaction-date" class="form-label">Transaction Date</label>
-                  </div>
+                  <label for="transaction-date" class="form-label">Transaction Date</label>
+                  <input type="text" class="form-control" id="transaction-date" name="transaction_date" placeholder="Select date" required>
                 </div>
 
                 <div class="mb-3">
-                  <div class="form-floating-custom">
-                    <select class="form-select" id="category-select" name="category_id" required>
-                      <option value="" disabled selected>Select category</option>
-                      {% for category in categories %}
-                        <option value="{{ category.id }}">{{ category.display_name }}</option>
-                      {% endfor %}
-                    </select>
-                    <label for="category-select" class="form-label">Category</label>
-                  </div>
+                  <label for="category-select" class="form-label">Category</label>
+                  <select class="form-select" id="category-select" name="category_id" required>
+                    <option value="" disabled selected>Select category</option>
+                    {% for category in categories %}
+                      <option value="{{ category.id }}">{{ category.display_name }}</option>
+                    {% endfor %}
+                  </select>
                 </div>
 
                 <div class="mb-3">
-                  <div class="form-floating-custom">
-                    <input type="number" class="form-control" id="amount-input" name="amount" placeholder="0" min="1" step="1000" required>
-                    <label for="amount-input" class="form-label">Amount (Rp)</label>
-                  </div>
+                  <label for="amount-input" class="form-label">Amount (Rp)</label>
+                  <input type="number" class="form-control" id="amount-input" name="amount" placeholder="Enter amount" min="0" step="1" required>
                 </div>
 
                 <div class="mb-3">
-                  <div class="form-floating-custom">
-                    <textarea class="form-control" id="description-input" name="description" placeholder="Optional description" rows="3"></textarea>
-                    <label for="description-input" class="form-label">Description</label>
-                  </div>
+                  <label for="description-input" class="form-label">Description</label>
+                  <textarea class="form-control" id="description-input" name="description" placeholder="Optional description" rows="3"></textarea>
                 </div>
 
                 <div class="d-grid">
@@ -124,7 +93,8 @@
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M5 12l5 5l10 -10"/>
                     </svg>
-                    Save Transaction
+                    <span class="btn-text">Save Transaction</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                   </button>
                 </div>
               </form>
@@ -221,41 +191,53 @@
               </h3>
             </div>
             <div class="card-body">
-              <form id="filter-form" class="row g-3">
-                <div class="col-md-4">
-                  <label for="filter-start-date" class="form-label">From Date</label>
-                  <input type="text" class="form-control" id="filter-start-date" name="start_date" placeholder="Select start date" value="{{ current_start_date }}">
+              <form id="filter-form">
+                <div class="row g-3 mb-3">
+                  <div class="col-md-4">
+                    <label for="filter-start-date" class="form-label">From Date</label>
+                    <input type="text" class="form-control" id="filter-start-date" name="start_date" placeholder="Select start date" value="{{ current_start_date }}">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="filter-end-date" class="form-label">To Date</label>
+                    <input type="text" class="form-control" id="filter-end-date" name="end_date" placeholder="Select end date" value="{{ current_end_date }}">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="filter-category" class="form-label">Category</label>
+                    <select class="form-select" id="filter-category" name="category_id">
+                      <option value="">All Categories</option>
+                      {% for category in categories %}
+                        <option value="{{ category.id }}" {{ current_category_id == category.id ? 'selected' : '' }}>{{ category.display_name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
                 </div>
-                <div class="col-md-4">
-                  <label for="filter-end-date" class="form-label">To Date</label>
-                  <input type="text" class="form-control" id="filter-end-date" name="end_date" placeholder="Select end date" value="{{ current_end_date }}">
-                </div>
-                <div class="col-md-4">
-                  <label for="filter-category" class="form-label">Category</label>
-                  <select class="form-select" id="filter-category" name="category_id">
-                    <option value="">All Categories</option>
-                    {% for category in categories %}
-                      <option value="{{ category.id }}" {{ current_category_id == category.id ? 'selected' : '' }}>{{ category.display_name }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-12">
-                  <button type="submit" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                      <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
-                      <path d="M21 21l-6 -6"/>
-                    </svg>
-                    Filter
-                  </button>
-                  <button type="button" class="btn btn-secondary ms-2" id="clear-filter-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                      <path d="M18 6l-12 12"/>
-                      <path d="M6 6l12 12"/>
-                    </svg>
-                    Reset
-                  </button>
+
+                <div class="row g-2">
+                  <div class="col">
+                    <div class="row g-2">
+                      <div class="col-auto">
+                        <button type="submit" class="btn btn-primary" id="filter-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
+                            <path d="M21 21l-6 -6"/>
+                          </svg>
+                          <span class="btn-text">Filter</span>
+                          <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                      </div>
+                      <div class="col-auto">
+                        <button type="button" class="btn btn-secondary" id="clear-filter-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M18 6l-12 12"/>
+                            <path d="M6 6l12 12"/>
+                          </svg>
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </form>
             </div>

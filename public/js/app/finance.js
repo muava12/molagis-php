@@ -233,18 +233,27 @@ async function handleExpenseFormSubmit(e) {
  */
 function handleFilterFormSubmit(e) {
     e.preventDefault();
-    
+
+    const filterBtn = document.getElementById('filter-btn');
+    const btnText = filterBtn.querySelector('.btn-text');
+    const spinner = filterBtn.querySelector('.spinner-border');
+
+    // Show loading state
+    filterBtn.disabled = true;
+    if (btnText) btnText.textContent = 'Filtering...';
+    if (spinner) spinner.classList.remove('d-none');
+
     const form = document.getElementById('filter-form');
     const formData = new FormData(form);
     const params = new URLSearchParams();
-    
+
     // Add non-empty values to params
     for (const [key, value] of formData.entries()) {
         if (value.trim()) {
             params.append(key, value);
         }
     }
-    
+
     // Redirect with filter parameters
     const url = '/finance' + (params.toString() ? '?' + params.toString() : '');
     window.location.href = url;

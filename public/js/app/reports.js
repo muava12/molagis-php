@@ -42,13 +42,24 @@ function hideLoadingState() {
         [applyBtn, applyBtnMobile].forEach(btn => {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
-                        <path d="M21 21l-6 -6"/>
-                    </svg>
-                `;
+                const btnText = btn.querySelector('.btn-text');
+                const spinner = btn.querySelector('.spinner-border');
+
+                if (btnText) btnText.textContent = 'Search';
+                if (spinner) spinner.classList.add('d-none');
+
+                // Fallback if no structured elements
+                if (!btnText && !spinner) {
+                    btn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
+                            <path d="M21 21l-6 -6"/>
+                        </svg>
+                        <span class="btn-text d-none d-lg-inline">Search</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    `;
+                }
             }
         });
 
@@ -1025,12 +1036,24 @@ function showLoadingState() {
     const applyBtn = document.getElementById('apply-period-btn');
     if (applyBtn) {
         applyBtn.disabled = true;
-        applyBtn.innerHTML = `
-            <div class="spinner-border spinner-border-sm me-2" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            Memuat...
-        `;
+        const btnText = applyBtn.querySelector('.btn-text');
+        const spinner = applyBtn.querySelector('.spinner-border');
+
+        if (btnText) btnText.textContent = 'Loading...';
+        if (spinner) spinner.classList.remove('d-none');
+
+        // Fallback if no structured elements
+        if (!btnText && !spinner) {
+            applyBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
+                  <path d="M21 21l-6 -6"/>
+                </svg>
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <span class="btn-text d-none d-lg-inline">Loading...</span>
+            `;
+        }
     }
 
     // Show loading toast
