@@ -41,16 +41,33 @@ class FinanceController
         $summaryResult = $this->financeService->getFinancialSummary($accessToken, $startDate, $endDate);
         $summary = $summaryResult['data'] ?? [];
 
-        // Get recent financial records (limit to 10 for initial page load)
+        // Get pagination parameters
+        $page = isset($queryParams['page']) ? max(1, (int) $queryParams['page']) : 1;
+        $limit = isset($queryParams['limit']) ? min(500, max(10, (int) $queryParams['limit'])) : 500;
+        $offset = ($page - 1) * $limit;
+
+        // Get financial records with pagination
         $recordsResult = $this->financeService->getFinancialRecords(
             $accessToken,
             $startDate,
             $endDate,
             $categoryId,
-            10,
-            0
+            $limit,
+            $offset
         );
         $records = $recordsResult['data'] ?? [];
+
+        // Get total count for pagination
+        $countResult = $this->financeService->getFinancialRecordsCount(
+            $accessToken,
+            $startDate,
+            $endDate,
+            $categoryId
+        );
+        $totalRecords = $countResult['data'] ?? 0;
+
+        // Calculate pagination info
+        $totalPages = $totalRecords > 0 ? ceil($totalRecords / $limit) : 1;
 
         $viewData = [
             'title' => 'Finance Management',
@@ -60,9 +77,14 @@ class FinanceController
             'current_start_date' => $startDate,
             'current_end_date' => $endDate,
             'current_category_id' => $categoryId,
+            'current_page' => $page,
+            'current_limit' => $limit,
+            'total_records' => $totalRecords,
+            'total_pages' => $totalPages,
             'categories_error' => $categoriesResult['error'] ?? null,
             'summary_error' => $summaryResult['error'] ?? null,
-            'records_error' => $recordsResult['error'] ?? null
+            'records_error' => $recordsResult['error'] ?? null,
+            'count_error' => $countResult['error'] ?? null
         ];
 
         try {
@@ -112,8 +134,9 @@ class FinanceController
         $startDate = $queryParams['start_date'] ?? null;
         $endDate = $queryParams['end_date'] ?? null;
         $categoryId = isset($queryParams['category_id']) ? (int) $queryParams['category_id'] : null;
-        $limit = isset($queryParams['limit']) ? (int) $queryParams['limit'] : 50;
-        $offset = isset($queryParams['offset']) ? (int) $queryParams['offset'] : 0;
+        $page = isset($queryParams['page']) ? max(1, (int) $queryParams['page']) : 1;
+        $limit = isset($queryParams['limit']) ? min(500, max(10, (int) $queryParams['limit'])) : 500;
+        $offset = ($page - 1) * $limit;
 
         $result = $this->financeService->getFinancialRecords(
             $accessToken,
@@ -123,7 +146,7 @@ class FinanceController
             $limit,
             $offset
         );
-        
+
         if ($result['error']) {
             return new JsonResponse([
                 'success' => false,
@@ -131,9 +154,27 @@ class FinanceController
             ], 500);
         }
 
+        // Get total count for pagination
+        $countResult = $this->financeService->getFinancialRecordsCount(
+            $accessToken,
+            $startDate,
+            $endDate,
+            $categoryId
+        );
+        $totalRecords = $countResult['data'] ?? 0;
+        $totalPages = $totalRecords > 0 ? ceil($totalRecords / $limit) : 1;
+
         return new JsonResponse([
             'success' => true,
-            'data' => $result['data']
+            'data' => $result['data'],
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total_records' => $totalRecords,
+                'total_pages' => $totalPages,
+                'has_next' => $page < $totalPages,
+                'has_prev' => $page > 1
+            ]
         ]);
     }
 
@@ -147,7 +188,7 @@ class FinanceController
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $data = $request->getParsedBody();
-        
+
         if (!$data) {
             return new JsonResponse([
                 'success' => false,
@@ -156,7 +197,7 @@ class FinanceController
         }
 
         $result = $this->financeService->addFinancialRecord($data, $accessToken);
-        
+
         if ($result['error']) {
             return new JsonResponse([
                 'success' => false,

@@ -12,6 +12,11 @@ export function showToast(title, message, type = 'success') {
         toastElementId = 'toast-error';
         titleElementId = 'toast-error-title';
         messageElementId = 'toast-error-message';
+    } else if (type === 'info') {
+        // Use success toast for info messages
+        toastElementId = 'toast';
+        titleElementId = 'toast-title';
+        messageElementId = 'toast-message';
     } else {
         console.error('Unknown toast type:', type);
         return;
@@ -30,12 +35,21 @@ export function showToast(title, message, type = 'success') {
     titleElement.textContent = title;
     messageElement.textContent = message;
 
-    const bs = window.tabler?.bootstrap; // Use the Tabler-provided Bootstrap instance
-    if (bs && bs.Toast) {
-        const toastInstance = bs.Toast.getOrCreateInstance(toastElement);
+    // Try multiple Bootstrap instances
+    let toastInstance = null;
+
+    if (window.bootstrap && window.bootstrap.Toast) {
+        toastInstance = window.bootstrap.Toast.getOrCreateInstance(toastElement);
+    } else if (window.tabler?.bootstrap?.Toast) {
+        toastInstance = window.tabler.bootstrap.Toast.getOrCreateInstance(toastElement);
+    } else if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+        toastInstance = bootstrap.Toast.getOrCreateInstance(toastElement);
+    }
+
+    if (toastInstance) {
         toastInstance.show();
     } else {
-        console.error('Bootstrap Toast component (via window.tabler.bootstrap.Toast) not available.');
+        console.error('Bootstrap Toast component not available. Falling back to alert.');
         alert(`${title}: ${message}`); // Fallback
     }
 };

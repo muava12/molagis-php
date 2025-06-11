@@ -223,7 +223,6 @@ class FinanceService
             $response = $this->supabaseClient->delete(
                 "/rest/v1/financial_records?id=eq.{$id}",
                 [],
-                [],
                 $accessToken
             );
 
@@ -305,6 +304,65 @@ class FinanceService
         } catch (\Exception $e) {
             error_log('Exception in getFinancialSummary: ' . $e->getMessage());
             return ['data' => null, 'error' => 'Gagal mengambil ringkasan keuangan'];
+        }
+    }
+
+    /**
+     * Mendapatkan jumlah total financial records dengan filter.
+     *
+     * @param string|null $accessToken Token akses pengguna.
+     * @param string|null $startDate Tanggal mulai filter (format: Y-m-d).
+     * @param string|null $endDate Tanggal akhir filter (format: Y-m-d).
+     * @param int|null $categoryId ID kategori untuk filter.
+     * @return array Hasil yang berisi 'data' (int) atau 'error'.
+     */
+    public function getFinancialRecordsCount(?string $accessToken = null, ?string $startDate = null, ?string $endDate = null, ?int $categoryId = null): array
+    {
+        try {
+            // Build query parameters
+            $queryParams = ['select' => 'count'];
+
+            // Build filters
+            $filters = [];
+
+            if ($startDate) {
+                $filters[] = "transaction_date.gte.{$startDate}";
+            }
+
+            if ($endDate) {
+                $filters[] = "transaction_date.lte.{$endDate}";
+            }
+
+            if ($categoryId) {
+                $filters[] = "category_id.eq.{$categoryId}";
+            }
+
+            if (!empty($filters)) {
+                $queryParams['and'] = '(' . implode(',', $filters) . ')';
+            }
+
+            $queryString = http_build_query($queryParams);
+            $response = $this->supabaseClient->get(
+                "/rest/v1/financial_records?{$queryString}",
+                [],
+                $accessToken
+            );
+
+            if ($response['error']) {
+                error_log('Error getting financial records count: ' . $response['error']);
+                return ['data' => 0, 'error' => 'Gagal mengambil jumlah transaksi'];
+            }
+
+            $count = 0;
+            if (isset($response['data'][0]['count'])) {
+                $count = (int) $response['data'][0]['count'];
+            }
+
+            return ['data' => $count, 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Error getting financial records count: ' . $e->getMessage());
+            return ['data' => 0, 'error' => 'Gagal mengambil jumlah transaksi'];
         }
     }
 }
