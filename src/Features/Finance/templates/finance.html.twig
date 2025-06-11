@@ -271,8 +271,7 @@
                   {% for record in records %}
                     <tr data-record-id="{{ record.id }}">
                       <td>
-                        <div class="text-muted">{{ record.transaction_date | date('d/m/Y') }}</div>
-                        <div class="text-muted small">{{ record.created_at | date('H:i') }}</div>
+                        <div class="text-muted">{{ record.transaction_date | date('d/m/Y', 'Asia/Makassar') }}</div>
                       </td>
                       <td>
                         <span class="badge category-badge bg-secondary-lt">

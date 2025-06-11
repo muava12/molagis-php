@@ -603,8 +603,8 @@ function updateTransactionTable(records) {
     }
 
     tbody.innerHTML = records.map(record => {
-        const transactionDate = new Date(record.transaction_date);
-        const createdAt = new Date(record.created_at);
+        // Parse transaction date properly to avoid timezone issues
+        const transactionDate = new Date(record.transaction_date + 'T00:00:00');
         const categoryName = record.expense_categories?.display_name || 'Other';
         const description = record.description || '-';
         const amount = formatNumber(record.amount);
@@ -612,8 +612,12 @@ function updateTransactionTable(records) {
         return `
             <tr data-record-id="${record.id}">
                 <td>
-                    <div class="text-muted">${transactionDate.toLocaleDateString('id-ID')}</div>
-                    <div class="text-muted small">${createdAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="text-muted">${transactionDate.toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        timeZone: 'Asia/Makassar'
+                    })}</div>
                 </td>
                 <td>
                     <span class="badge category-badge bg-secondary-lt">
