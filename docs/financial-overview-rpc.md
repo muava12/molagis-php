@@ -161,8 +161,8 @@ $result = $this->callReportsRPC('get_financial_overview', [
 
 ### Updated Response Structure (Real Implementation)
 
-#### New Array-Based Response Format
-RPC function sekarang mengembalikan array dengan wrapper object:
+#### New Array-Based Response Format (Updated 2024)
+RPC function sekarang mengembalikan array dengan wrapper object dan struktur yang diperbaharui:
 
 ```json
 [
@@ -175,7 +175,26 @@ RPC function sekarang mengembalikan array dengan wrapper object:
                     "end_date": "2024-01-31"
                 },
                 "financial_overview": {
-                    "delivery_cost": 1350000
+                    "revenue": {
+                        "daily_catering": 8000000,
+                        "delivery": 1500000,
+                        "total": 9500000
+                    },
+                    "cost_of_goods_sold": {
+                        "daily_catering": 3600000
+                    },
+                    "operating_expenses": {
+                        "delivery": 1350000,
+                        "other": 1500000,
+                        "total": 2850000
+                    },
+                    "net_profit_analysis": {
+                        "daily_catering_profit": 4400000,
+                        "event_catering_profit": 500000,
+                        "delivery_profit": 150000,
+                        "total_net_profit": 2200000,
+                        "net_profit_margin_percent": 23.16
+                    }
                 }
             },
             "error": null
@@ -230,5 +249,30 @@ ReportsService.php menangani format array response:
 1. Extract `rpcData[0]['get_financial_overview']`
 2. Validasi `success` flag
 3. Extract `data` untuk template
-4. Apply role-based filtering jika diperlukan
-5. Generate period description yang user-friendly
+4. **Transform data structure** untuk kompatibilitas dengan template yang ada
+5. Apply role-based filtering jika diperlukan
+6. Generate period description yang user-friendly
+
+#### Data Transformation (Updated 2024)
+ReportsService.php sekarang melakukan transformasi data dari struktur RPC baru ke format yang diharapkan template:
+
+**Mapping Revenue:**
+- `revenue.daily_catering` → `product_revenue`
+- `revenue.delivery` → `delivery_revenue`
+- `revenue.total` → `total_revenue` & `gross_revenue`
+
+**Mapping Costs:**
+- `cost_of_goods_sold.daily_catering` → `product_cost`
+- `operating_expenses.delivery` → `delivery_cost`
+- `operating_expenses.other` → `other_expenses`
+- `operating_expenses.total` → `total_operating_expenses`
+
+**Mapping Profits:**
+- `net_profit_analysis.daily_catering_profit` → `gross_profit` & `net_product_profit`
+- `net_profit_analysis.event_catering_profit` → `event_catering_profit` (NEW)
+- `net_profit_analysis.delivery_profit` → `net_delivery_profit`
+- `net_profit_analysis.total_net_profit` → `net_profit`
+- `net_profit_analysis.net_profit_margin_percent` → `net_margin`
+
+**Calculated Fields:**
+- `gross_margin` dihitung dari `daily_catering_profit / daily_catering_revenue * 100`

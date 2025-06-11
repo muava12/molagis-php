@@ -68,9 +68,42 @@ class ReportsService
                 $financialData['period_info']['description'] = $this->generatePeriodDescription($startDate, $endDate);
             }
 
-            // RPC baru mengembalikan delivery_cost sebagai nilai tunggal
-            // Tidak perlu handling khusus untuk breakdown karena sudah disederhanakan di RPC
-            // delivery_cost sekarang adalah total dari variable_delivery_cost + courier_fee_cost
+            // Transform data structure untuk kompatibilitas dengan template yang ada
+            if (isset($financialData['financial_overview'])) {
+                $overview = $financialData['financial_overview'];
+
+                // Map struktur baru ke format yang diharapkan template
+                $transformedOverview = [
+                    // Revenue mapping
+                    'product_revenue' => $overview['revenue']['daily_catering'] ?? 0,
+                    'delivery_revenue' => $overview['revenue']['delivery'] ?? 0,
+                    'gross_revenue' => $overview['revenue']['total'] ?? 0,
+                    'total_revenue' => $overview['revenue']['total'] ?? 0,
+
+                    // Cost mapping
+                    'product_cost' => $overview['cost_of_goods_sold']['daily_catering'] ?? 0,
+                    'delivery_cost' => $overview['operating_expenses']['delivery'] ?? 0,
+                    'other_expenses' => $overview['operating_expenses']['other'] ?? 0,
+                    'total_operating_expenses' => $overview['operating_expenses']['total'] ?? 0,
+
+                    // Profit calculations
+                    'gross_profit' => $overview['net_profit_analysis']['daily_catering_profit'] ?? 0,
+                    'net_product_profit' => $overview['net_profit_analysis']['daily_catering_profit'] ?? 0,
+                    'net_delivery_profit' => $overview['net_profit_analysis']['delivery_profit'] ?? 0,
+                    'event_catering_profit' => $overview['net_profit_analysis']['event_catering_profit'] ?? 0,
+                    'net_profit' => $overview['net_profit_analysis']['total_net_profit'] ?? 0,
+
+                    // Margin calculations
+                    'gross_margin' => $this->calculateGrossMargin(
+                        $overview['net_profit_analysis']['daily_catering_profit'] ?? 0,
+                        $overview['revenue']['daily_catering'] ?? 0
+                    ),
+                    'net_margin' => $overview['net_profit_analysis']['net_profit_margin_percent'] ?? 0,
+                ];
+
+                // Replace the financial_overview with transformed data
+                $financialData['financial_overview'] = $transformedOverview;
+            }
 
             return ['data' => $financialData, 'error' => null];
 
@@ -90,7 +123,7 @@ class ReportsService
      * @param string|null $endDate Tanggal akhir filter
      * @return array Hasil yang berisi 'data' (statistik) atau 'error'.
      */
-    public function getOverviewStatistics(?string $accessToken = null, ?string $period = null, ?string $startDate = null, ?string $endDate = null): array
+    public function getOverviewStatistics(?string $accessToken = null, ?string $startDate = null, ?string $endDate = null): array
     {
         try {
             // Get financial data dari RPC
@@ -151,9 +184,11 @@ class ReportsService
                     $data['financial_overview']['gross_profit'] = null;
                     $data['financial_overview']['gross_margin'] = null;
                     $data['financial_overview']['delivery_cost'] = null;
-                    $data['financial_overview']['delivery_cost_breakdown'] = null;
                     $data['financial_overview']['other_expenses'] = null;
                     $data['financial_overview']['total_operating_expenses'] = null;
+                    $data['financial_overview']['net_product_profit'] = null;
+                    $data['financial_overview']['net_delivery_profit'] = null;
+                    $data['financial_overview']['event_catering_profit'] = null;
                     $data['financial_overview']['net_profit'] = null;
                     $data['financial_overview']['net_margin'] = null;
                 }
@@ -168,6 +203,17 @@ class ReportsService
             error_log('Error in getReportsByRole: ' . $e->getMessage());
             return ['data' => null, 'error' => 'Gagal mengambil data reports berdasarkan role'];
         }
+    }
+
+    /**
+     * Helper function untuk menghitung gross margin percentage.
+     */
+    private function calculateGrossMargin(float $grossProfit, float $revenue): float
+    {
+        if ($revenue <= 0) {
+            return 0.0;
+        }
+        return round(($grossProfit / $revenue) * 100, 2);
     }
 
     /**
