@@ -1317,7 +1317,7 @@ function generateFinancialMarkdown(period, data) {
 | 🏆 Laba Bersih Total | ${data.netProfit} |
 | 📊 Margin | ${data.netMargin} |
 
-*Formula: Laba Catering Harian + Laba Event + Laba Pengiriman - Biaya Operasional Lain*
+*Formula: Laba Catering Harian + Laba Event + Laba Pengiriman*
 
 ---
 

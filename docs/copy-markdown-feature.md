@@ -77,7 +77,7 @@ Berikut adalah contoh output Markdown yang dihasilkan:
 | 🏆 Laba Bersih Total | Rp 2.200.000 |
 | 📊 Margin | 23.16% |
 
-*Formula: Laba Catering Harian + Laba Event + Laba Pengiriman - Biaya Operasional Lain*
+*Formula: Laba Catering Harian + Laba Event + Laba Pengiriman*
 
 ---
 

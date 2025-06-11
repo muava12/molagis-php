@@ -164,6 +164,8 @@ $result = $this->callReportsRPC('get_financial_overview', [
 #### New Array-Based Response Format (Updated 2024)
 RPC function sekarang mengembalikan array dengan wrapper object dan struktur yang diperbaharui:
 
+**Latest Update**: Menambahkan section `gross_profit` terpisah untuk laba kotor harian yang dihitung di RPC level.
+
 ```json
 [
     {
@@ -182,6 +184,9 @@ RPC function sekarang mengembalikan array dengan wrapper object dan struktur yan
                     },
                     "cost_of_goods_sold": {
                         "daily_catering": 3600000
+                    },
+                    "gross_profit": {
+                        "daily_catering": 4400000
                     },
                     "operating_expenses": {
                         "delivery": 1350000,
@@ -268,11 +273,30 @@ ReportsService.php sekarang melakukan transformasi data dari struktur RPC baru k
 - `operating_expenses.total` → `total_operating_expenses`
 
 **Mapping Profits:**
-- `net_profit_analysis.daily_catering_profit` → `gross_profit` & `net_product_profit`
-- `net_profit_analysis.event_catering_profit` → `event_catering_profit` (NEW)
+- `gross_profit.daily_catering` → `gross_profit` (UPDATED)
+- `net_profit_analysis.daily_catering_profit` → `net_product_profit`
+- `net_profit_analysis.event_catering_profit` → `event_catering_profit`
 - `net_profit_analysis.delivery_profit` → `net_delivery_profit`
 - `net_profit_analysis.total_net_profit` → `net_profit`
 - `net_profit_analysis.net_profit_margin_percent` → `net_margin`
 
 **Calculated Fields:**
-- `gross_margin` dihitung dari `daily_catering_profit / daily_catering_revenue * 100`
+- `gross_margin` dihitung dari `gross_profit.daily_catering / daily_catering_revenue * 100` (UPDATED)
+
+#### Business Logic Changes (Latest Update)
+
+**RPC Level Calculations:**
+1. **Gross Profit**: Sekarang dihitung di RPC sebagai `daily_catering_revenue - daily_catering_cogs`
+2. **Daily Catering Profit**: Dihitung sebagai `gross_profit - other_operating_expenses`
+3. **Total Net Profit**: Formula baru = `daily_catering_profit + event_catering_profit + delivery_profit`
+
+**Formula Changes:**
+- **Old Formula**: `Laba Catering Harian + Laba Event + Laba Pengiriman - Biaya Operasional Lain`
+- **New Formula**: `Laba Catering Harian + Laba Event + Laba Pengiriman`
+- **Reason**: Biaya Operasional Lain sudah dikurangi di level Laba Catering Harian
+
+**Impact on Frontend:**
+- Template tetap menggunakan field names yang sama
+- Data transformation layer di ReportsService.php diupdate untuk mapping yang benar
+- Formula text diupdate untuk mencerminkan logika bisnis yang benar
+- Tidak ada perubahan visual di UI, hanya perbaikan akurasi kalkulasi dan formula

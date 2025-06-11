@@ -86,16 +86,16 @@ class ReportsService
                     'other_expenses' => $overview['operating_expenses']['other'] ?? 0,
                     'total_operating_expenses' => $overview['operating_expenses']['total'] ?? 0,
 
-                    // Profit calculations
-                    'gross_profit' => $overview['net_profit_analysis']['daily_catering_profit'] ?? 0,
+                    // Profit calculations - Updated to use new gross_profit structure
+                    'gross_profit' => $overview['gross_profit']['daily_catering'] ?? 0,
                     'net_product_profit' => $overview['net_profit_analysis']['daily_catering_profit'] ?? 0,
                     'net_delivery_profit' => $overview['net_profit_analysis']['delivery_profit'] ?? 0,
                     'event_catering_profit' => $overview['net_profit_analysis']['event_catering_profit'] ?? 0,
                     'net_profit' => $overview['net_profit_analysis']['total_net_profit'] ?? 0,
 
-                    // Margin calculations
+                    // Margin calculations - Updated to use gross_profit from RPC
                     'gross_margin' => $this->calculateGrossMargin(
-                        $overview['net_profit_analysis']['daily_catering_profit'] ?? 0,
+                        $overview['gross_profit']['daily_catering'] ?? 0,
                         $overview['revenue']['daily_catering'] ?? 0
                     ),
                     'net_margin' => $overview['net_profit_analysis']['net_profit_margin_percent'] ?? 0,
