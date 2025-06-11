@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test monthSelectPlugin</title>
+    <link rel="stylesheet" href="/css/tabler.min.css">
+    <link rel="stylesheet" href="/css/flatpickr.min.css">
+    <link rel="stylesheet" href="/css/flatpickr-plugins/monthSelect.css">
+    <link rel="stylesheet" href="/css/app/reports.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test monthSelectPlugin</h2>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h4>monthSelectPlugin Test</h4>
+                <input type="text" id="month-input" class="form-control" placeholder="Pilih bulan..." readonly>
+            </div>
+            <div class="col-md-6">
+                <h4>Regular Flatpickr (Fallback)</h4>
+                <input type="text" id="regular-input" class="form-control" placeholder="Pilih tanggal..." readonly>
+            </div>
+        </div>
+
+        <div id="debug-info" class="alert alert-info mt-4">
+            <h5>Debug Info:</h5>
+            <div id="debug-content">Loading...</div>
+        </div>
+    </div>
+
+    <script src="/js/tabler.min.js"></script>
+    <script src="/js/flatpickr.min.js"></script>
+    <script src="/js/flatpickr-l10n/id.js"></script>
+    <script src="/js/flatpickr-plugins/monthSelect.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugContent = document.getElementById('debug-content');
+            
+            function updateDebug(message) {
+                debugContent.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+                console.log(message);
+            }
+            
+            updateDebug('DOM loaded');
+            updateDebug('Flatpickr available: ' + (typeof flatpickr !== 'undefined'));
+            updateDebug('monthSelectPlugin available: ' + (typeof monthSelectPlugin !== 'undefined'));
+            
+            // Test monthSelectPlugin
+            const monthInput = document.getElementById('month-input');
+            if (monthInput && typeof monthSelectPlugin === 'function') {
+                try {
+                    updateDebug('Initializing monthSelectPlugin...');
+                    const fp = flatpickr(monthInput, {
+                        locale: 'id',
+                        plugins: [new monthSelectPlugin({
+                            shorthand: false,
+                            dateFormat: 'F Y',
+                            altFormat: 'F Y',
+                            theme: 'light'
+                        })],
+                        onChange: function(selectedDates) {
+                            updateDebug('Month selected: ' + selectedDates);
+                            if (selectedDates[0]) {
+                                updateDebug('Formatted: ' + selectedDates[0].toLocaleDateString('id-ID', {
+                                    month: 'long', 
+                                    year: 'numeric'
+                                }));
+                            }
+                        }
+                    });
+                    updateDebug('monthSelectPlugin initialized successfully');
+                } catch (error) {
+                    updateDebug('monthSelectPlugin error: ' + error.message);
+                    console.error('monthSelectPlugin error:', error);
+                }
+            } else {
+                updateDebug('monthSelectPlugin not available or input not found');
+            }
+            
+            // Test regular flatpickr as fallback
+            const regularInput = document.getElementById('regular-input');
+            if (regularInput) {
+                try {
+                    updateDebug('Initializing regular Flatpickr...');
+                    const fp2 = flatpickr(regularInput, {
+                        locale: 'id',
+                        dateFormat: 'F Y',
+                        onChange: function(selectedDates) {
+                            updateDebug('Regular date selected: ' + selectedDates);
+                        }
+                    });
+                    updateDebug('Regular Flatpickr initialized successfully');
+                } catch (error) {
+                    updateDebug('Regular Flatpickr error: ' + error.message);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

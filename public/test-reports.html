@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Reports Input</title>
+    <link rel="stylesheet" href="/css/tabler.min.css">
+    <link rel="stylesheet" href="/css/flatpickr.min.css">
+    <link rel="stylesheet" href="/css/flatpickr-plugins/monthSelect.css">
+    <link rel="stylesheet" href="/css/app/reports.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Reports Input</h2>
+        
+        <!-- Desktop Layout -->
+        <div class="d-none d-md-flex align-items-center gap-2 mb-3">
+            <!-- Navigation Buttons -->
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary btn-icon" id="period-nav-prev" title="Periode sebelumnya">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M15 6l-6 6l6 6"/>
+                    </svg>
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-icon" id="period-nav-today" title="Periode saat ini">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-icon" id="period-nav-next" title="Periode selanjutnya">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M9 6l6 6l-6 6"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Dynamic Date Input with Icon -->
+            <div class="input-icon" style="min-width: 200px;">
+                <input type="text" id="period-input" class="form-control" placeholder="Pilih periode..." readonly>
+                <span class="input-icon-addon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/>
+                        <path d="M16 3v4"/>
+                        <path d="M8 3v4"/>
+                        <path d="M4 11h16"/>
+                    </svg>
+                </span>
+            </div>
+
+            <!-- Apply Button -->
+            <button class="btn btn-outline-secondary" type="button" id="apply-period-btn" title="Terapkan filter periode">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M21 21l-6 -6"/>
+                    <path d="M9 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Period Type Dropdown -->
+        <div class="dropdown mb-3">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="period-type-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <span id="period-type-label">Monthly</span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item period-type-option" href="#" data-period="monthly">Monthly</a></li>
+                <li><a class="dropdown-item period-type-option" href="#" data-period="weekly">Weekly</a></li>
+                <li><a class="dropdown-item period-type-option" href="#" data-period="custom">Custom Range</a></li>
+            </ul>
+        </div>
+
+        <!-- Mobile Layout -->
+        <div class="d-md-none mb-3">
+            <div class="input-group" style="min-width: 200px;">
+                <input type="text" id="period-input-mobile" class="form-control" placeholder="Pilih periode..." readonly>
+                <button class="btn btn-outline-secondary" type="button" id="apply-period-btn-mobile" title="Terapkan filter periode">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M21 21l-6 -6"/>
+                        <path d="M9 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="debug-info" class="alert alert-info">
+            <h5>Debug Info:</h5>
+            <div id="debug-content">Loading...</div>
+        </div>
+    </div>
+
+    <script src="/js/tabler.min.js"></script>
+    <script src="/js/flatpickr.min.js"></script>
+    <script src="/js/flatpickr-l10n/id.js"></script>
+    <script src="/js/flatpickr-plugins/weekSelect.js"></script>
+    <script src="/js/flatpickr-plugins/monthSelect.js"></script>
+    <script src="/js/lib/flatpickr-month-select.js"></script>
+    <script>
+        // Test script for weekSelect plugin
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugContent = document.getElementById('debug-content');
+
+            function updateDebug(message) {
+                debugContent.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+            }
+
+            updateDebug('DOM loaded');
+            updateDebug('Flatpickr available: ' + (typeof flatpickr !== 'undefined'));
+            updateDebug('weekSelect available: ' + (typeof weekSelect !== 'undefined'));
+            updateDebug('monthSelectPlugin available: ' + (typeof monthSelectPlugin !== 'undefined'));
+
+            // Test both plugins
+            testWeekSelect();
+            testMonthSelect();
+
+            function testWeekSelect() {
+                const periodInput = document.getElementById('period-input');
+                if (periodInput) {
+                    updateDebug('Period input found for weekSelect test');
+
+                    // Test weekSelect plugin
+                    try {
+                        const fp = flatpickr(periodInput, {
+                            locale: 'id',
+                            plugins: [new weekSelect({})],
+                            dateFormat: '\\W\\e\\e\\k #W, Y',
+                            altFormat: 'd M Y',
+                            onChange: function(selectedDates) {
+                                updateDebug('Week selected: ' + selectedDates);
+                                // Extract the week number
+                                const weekNumber = selectedDates[0]
+                                    ? this.config.getWeek(selectedDates[0])
+                                    : null;
+                                updateDebug('Week number: ' + weekNumber);
+                            }
+                        });
+                        updateDebug('WeekSelect Flatpickr initialized successfully');
+                    } catch (error) {
+                        updateDebug('WeekSelect Flatpickr error: ' + error.message);
+                    }
+                } else {
+                    updateDebug('Period input NOT found for weekSelect');
+                }
+            }
+
+            function testMonthSelect() {
+                // Create a separate input for monthSelect test
+                const monthInput = document.createElement('input');
+                monthInput.type = 'text';
+                monthInput.id = 'month-test-input';
+                monthInput.className = 'form-control mt-3';
+                monthInput.placeholder = 'Test monthSelect plugin...';
+                monthInput.readonly = true;
+
+                const debugInfo = document.getElementById('debug-info');
+                debugInfo.appendChild(monthInput);
+
+                updateDebug('Created month test input');
+
+                // Test monthSelectPlugin
+                try {
+                    const fp = flatpickr(monthInput, {
+                        locale: 'id',
+                        plugins: [new monthSelectPlugin({
+                            shorthand: false,
+                            dateFormat: 'F Y',
+                            altFormat: 'F Y',
+                            theme: 'light'
+                        })],
+                        onChange: function(selectedDates) {
+                            updateDebug('Month selected: ' + selectedDates);
+                            updateDebug('Formatted: ' + (selectedDates[0] ? selectedDates[0].toLocaleDateString('id-ID', {month: 'long', year: 'numeric'}) : 'none'));
+                        }
+                    });
+                    updateDebug('MonthSelect Flatpickr initialized successfully');
+                } catch (error) {
+                    updateDebug('MonthSelect Flatpickr error: ' + error.message);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

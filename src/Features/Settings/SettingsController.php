@@ -37,8 +37,9 @@ class SettingsController
         $settings = $settingsResponse['data'] ?? [];
         $settingsMap = array_column($settings, 'value', 'key');
 
-        $couriersResponse = $this->settingsService->getActiveCouriers($accessToken);
-        $couriers = $couriersResponse['data'] ?? [];
+        // Ambil couriers dari SupabaseService agar konsisten dengan header
+        $couriersResult = $this->supabaseService->getActiveCouriers($accessToken);
+        $couriers = $couriersResult['data'] ?? [];
 
         $user = $this->supabaseService->getUser($accessToken);
         $userEmail = $user['email'] ?? '';
@@ -46,17 +47,25 @@ class SettingsController
         $paketsResponse = $this->paketService->getPakets($accessToken); // Added
         $pakets = $paketsResponse['data'] ?? []; // Added
 
+        // Ambil business_name dari settings
+        $businessNameResponse = $this->settingsService->getSettingByKey('business_name', $accessToken);
+        $businessName = $businessNameResponse['data'] ?? 'Molagis';
+
+        $viewData = [
+            'title' => 'Pengaturan',
+            'active_couriers' => $couriers,
+            'couriers' => $couriers,
+            'business_name' => $businessName,
+            'settingsMap' => $settingsMap,
+            'userEmail' => $userEmail,
+            'error' => $settingsResponse['error'] ?? null,
+            'pakets' => $pakets,
+            'paket_error' => $paketsResponse['error'] ?? null,
+                    ];
+
         $response = new Response();
         $response->getBody()->write(
-            $this->twig->render('settings.html.twig', [
-                'title' => 'Pengaturan',
-                'active_couriers' => $couriers,
-                'settingsMap' => $settingsMap,
-                'userEmail' => $userEmail, // Pass userEmail separately as it might be used as a default
-                'error' => $settingsResponse['error'] ?? null,
-                'pakets' => $pakets, // Added
-                'paket_error' => $paketsResponse['error'] ?? null, // Added
-            ])
+            $this->twig->render('settings.html.twig', $viewData)
         );
 
         return $response;
