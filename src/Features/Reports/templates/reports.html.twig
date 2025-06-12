@@ -701,7 +701,7 @@
                                                     {% endfor %}
                                                 </tbody>
                                             </table>
-                                        {% elif (customer.rincian_paket is defined and customer.rincian_paket|length > 0) %}
+                                        {% elseif (customer.rincian_paket is defined and customer.rincian_paket|length > 0) %}
                                             {# Only show "Tidak ada rincian item tambahan" if rincian_paket was shown, to avoid double "no data" messages if both are empty #}
                                             <div class="text-muted p-2">Tidak ada rincian item tambahan.</div>
                                         {% endif %}
