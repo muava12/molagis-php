@@ -17,7 +17,7 @@
   <div class="page-header d-print-none">
     <div class="container-xl">
       <div class="row align-items-center">
-        <div class="col"<h2 class="page-title">Reports & Analytics</h2>
+        <div class="col"><h2 class="page-title">Reports & Analytics</h2>
           <div class="text-muted mt-1">
             {% if reports_data.period_info is defined %}
               {{ reports_data.period_info.description }}
@@ -165,36 +165,6 @@
           </div>
         </div>
       </div>
-    </div> {# This was the closing div for container-xl #}
-  </div> {# End page-body #}
-</div> {# End page-wrapper #}
-{% endblock %} {# End of content block #}
-
-{% block javascripts %}
-  {{ parent() }}
-  <!-- Flatpickr JS - same as orders page -->
-  <script src="/js/flatpickr.min.js"></script>
-  <script src="/js/flatpickr-l10n/id.js"></script>
-  <!-- Flatpickr plugins -->
-  <script src="/js/flatpickr-plugins/weekSelect.js?v={{ 'now'|date('U') }}"></script>
-  <script src="/js/flatpickr-plugins/monthSelect.js?v={{ 'now'|date('U') }}"></script>
-  <script src="/js/app/reports.js?v={{ 'now'|date('U') }}"></script>
-{% endblock %}
-  </div> {# End page-body #}
-</div> {# End page-wrapper #}
-{% endblock %} {# End of content block #}
-
-{% block javascripts %}
-  {{ parent() }}
-  <!-- Flatpickr JS - same as orders page -->
-  <script src="/js/flatpickr.min.js"></script>
-  <script src="/js/flatpickr-l10n/id.js"></script>
-  <!-- Flatpickr plugins -->
-  <script src="/js/flatpickr-plugins/weekSelect.js?v={{ 'now'|date('U') }}"></script>
-  <script src="/js/flatpickr-plugins/monthSelect.js?v={{ 'now'|date('U') }}"></script>
-  <script src="/js/app/reports.js?v={{ 'now'|date('U') }}"></script>
-{% endblock %}
-  </div>
 
   <div class="page-body">
     <div class="container-xl">
