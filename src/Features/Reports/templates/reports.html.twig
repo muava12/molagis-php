@@ -629,41 +629,81 @@
                                     <td>{{ loop.index }}</td>
                                     <td>
                                         <div class="fw-bold">{{ customer.customer_name }}</div>
-                                        {# Add phone or other primary customer identifier if available and desired #}
-                                        {# Example: <div class="text-muted small">{{ customer.customer_phone | default('') }}</div> #}
+                                        {# <div class="text-muted small">{{ customer.customer_id }}</div> #} {# ID is in data attribute, not displayed here #}
                                     </td>
                                     <td class="w-40 d-none d-md-table-cell p-0"> {# p-0 to remove padding for full-width nested table #}
-                                        {% if customer.paket_details is defined and customer.paket_details|length > 0 %}
-                                            <table class="table table-sm card-table table-borderless mb-0"> {# mb-0 to remove bottom margin, table-borderless for cleaner look #}
-                                                <thead class=""> {# Optional: can show a light header if many items, or keep d-none #}
+                                        {% if customer.rincian_paket is defined and customer.rincian_paket|length > 0 %}
+                                            <table class="table table-sm card-table table-borderless mb-0">
+                                                <thead>
                                                     <tr>
                                                         <th>Paket</th>
-                                                        <th class="text-center">Porsi</th>
-                                                        <th class="text-center">Jml. Hari</th>
-                                                        <th class="text-end">Hrg. Modal</th>
                                                         <th class="text-end">Hrg. Jual</th>
-                                                        <th class="text-end">Total Hrg.</th>
-                                                        <th class="text-end">Total Modal</th>
+                                                        <th class="text-end">Hrg. Modal</th>
+                                                        <th class="text-center">Porsi/Hari</th>
+                                                        <th class="text-center">Jml. Hari</th>
+                                                        <th class="text-center">Tot. Porsi</th>
+                                                        <th class="text-end">Tot. Hrg.</th>
+                                                        <th class="text-end">Tot. Modal</th>
                                                         <th class="text-end">Profit</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {% for paket_detail in customer.paket_details %}
+                                                    {% for paket_detail in customer.rincian_paket %}
                                                         <tr>
                                                             <td>{{ paket_detail.paket_name }}</td>
-                                                            <td class="text-center">{{ paket_detail.porsi }}</td>
-                                                            <td class="text-center">{{ paket_detail.jumlah_hari_pesanan }}</td>
-                                                            <td class="text-end">{{ paket_detail.paket_unit_modal | number_format(0, ',', '.') }}</td>
-                                                            <td class="text-end">{{ paket_detail.paket_unit_jual | number_format(0, ',', '.') }}</td>
-                                                            <td class="text-end">{{ paket_detail.total_harga_paket_porsi | number_format(0, ',', '.') }}</td>
-                                                            <td class="text-end">{{ paket_detail.total_modal_paket_porsi | number_format(0, ',', '.') }}</td>
-                                                            <td class="text-end">{{ paket_detail.profit_paket_porsi | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.harga_jual_unit | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.harga_modal_unit | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-center">{{ paket_detail.porsi_per_hari }}</td>
+                                                            <td class="text-center">{{ paket_detail.jumlah_hari }}</td>
+                                                            <td class="text-center">{{ paket_detail.total_porsi_akumulasi }}</td>
+                                                            <td class="text-end">{{ paket_detail.total_harga_akumulasi | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.total_modal_akumulasi | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.total_profit_akumulasi | number_format(0, ',', '.') }}</td>
                                                         </tr>
                                                     {% endfor %}
                                                 </tbody>
                                             </table>
                                         {% else %}
                                             <div class="text-muted p-2">Tidak ada rincian paket.</div>
+                                        {% endif %}
+
+                                        {# Visual separator and Sub-header for Item Tambahan #}
+                                        {% if (customer.rincian_paket is defined and customer.rincian_paket|length > 0) or
+                                              (customer.rincian_item_tambahan is defined and customer.rincian_item_tambahan|length > 0) %}
+                                            <hr class="my-1">
+                                        {% endif %}
+
+                                        {% if customer.rincian_item_tambahan is defined and customer.rincian_item_tambahan|length > 0 %}
+                                            <h6 class="text-muted px-2 pt-1 mb-1">Item Tambahan:</h6>
+                                            <table class="table table-sm card-table table-borderless mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Deskripsi</th>
+                                                        <th class="text-end">Hrg. Jual Harian</th>
+                                                        <th class="text-end">Hrg. Modal Harian</th>
+                                                        <th class="text-center">Jml. Hari</th>
+                                                        <th class="text-end">Tot. Hrg.</th>
+                                                        <th class="text-end">Tot. Modal</th>
+                                                        <th class="text-end">Profit</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for item_tambahan_detail in customer.rincian_item_tambahan %}
+                                                        <tr>
+                                                            <td>{{ item_tambahan_detail.deskripsi }}</td>
+                                                            <td class="text-end">{{ item_tambahan_detail.harga_jual_harian | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ item_tambahan_detail.harga_modal_harian | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-center">{{ item_tambahan_detail.jumlah_hari }}</td>
+                                                            <td class="text-end">{{ item_tambahan_detail.total_harga_akumulasi | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ item_tambahan_detail.total_modal_akumulasi | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ item_tambahan_detail.total_profit_akumulasi | number_format(0, ',', '.') }}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% elif (customer.rincian_paket is defined and customer.rincian_paket|length > 0) %}
+                                            {# Only show "Tidak ada rincian item tambahan" if rincian_paket was shown, to avoid double "no data" messages if both are empty #}
+                                            <div class="text-muted p-2">Tidak ada rincian item tambahan.</div>
                                         {% endif %}
                                     </td>
                                     <td class="text-end">{{ customer.overall_total_harga | number_format(0, ',', '.') }}</td>
