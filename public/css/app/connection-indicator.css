@@ -1,0 +1,54 @@
+/* Connection Indicator Styles */
+.connection-indicator {
+    position: fixed; /* Changed from 'absolute' to 'fixed' for viewport relativity */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px; /* Adjust height as needed */
+    z-index: 9999; /* Ensure it's above other content */
+    display: none; /* Hidden by default */
+    font-size: 14px; /* Added for potential text content */
+    color: white; /* Added for potential text content */
+    text-align: center; /* Added for potential text content */
+    padding: 2px 0; /* Added for potential text content */
+    box-sizing: border-box;
+}
+
+.connection-indicator.offline {
+    background-color: #ff9800; /* Orange */
+    animation: pulse-orange 1.5s infinite;
+    display: block; /* Show when offline */
+}
+
+.connection-indicator.online {
+    background-color: #4CAF50; /* Green */
+    display: block; /* Show when online */
+    animation: fade-out-green 3s forwards; /* Fade out over 3 seconds and stay hidden */
+}
+
+@keyframes pulse-orange {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 10px 15px rgba(255, 152, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
+    }
+}
+
+@keyframes fade-out-green {
+    0% {
+        opacity: 1;
+        height: 5px; /* Maintain height during fade */
+    }
+    80% { /* Start fading opacity a bit later, let green be visible */
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        height: 0; /* Collapse height after fade */
+        display: none; /* Ensure it's fully hidden and out of flow */
+    }
+}

@@ -41,6 +41,27 @@ class SupabaseService
         return $response['error'] ? null : $response['data'];
     }
 
+    public function getUserWithConnectionCheck(string $accessToken): array
+    {
+        $response = $this->supabaseClient->get('/auth/v1/user', [
+            'headers' => [
+                'Authorization' => "Bearer $accessToken",
+            ],
+        ]);
+
+        // Check if error is due to connection issues
+        $connectionError = $response['error'] && 
+            (str_contains($response['error'], 'Koneksi internet bermasalah') ||
+             str_contains($response['error'], 'connection') ||
+             str_contains($response['error'], 'timeout'));
+
+        return [
+            'user' => $response['error'] ? null : $response['data'],
+            'connection_error' => $connectionError,
+            'error' => $response['error']
+        ];
+    }
+
     /**
      * Mengambil daftar kur灣 aktif dari Supabase untuk dropdown di semua halaman.
      * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
