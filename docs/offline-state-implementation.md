@@ -38,7 +38,20 @@ Implementasi offline state untuk menangani koneksi internet yang terputus dengan
   - `GET /offline-template` - Template untuk AJAX
   - `HEAD|GET /api/ping` - Endpoint untuk cek koneksi
 
-### 5. Routes
+### 5. Auth Middleware Enhancement
+- **File**: `src/Shared/Middleware/AuthMiddleware.php`
+- **Perbaikan**:
+  - `getUserWithConnectionCheck()`: Deteksi connection error vs auth error
+  - `getUserFromToken()`: Fallback menggunakan JWT payload saat offline
+  - Mencegah logout otomatis saat koneksi Supabase bermasalah
+
+### 6. Supabase Service Enhancement
+- **File**: `src/Shared/SupabaseService.php`
+- **Perbaikan**:
+  - `getUserWithConnectionCheck()`: Method baru untuk membedakan connection error
+  - Return format yang lebih informatif dengan flag `connection_error`
+
+### 7. Routes
 Ditambahkan ke `public/index.php`:
 ```php
 ['GET', '/offline', [OfflineController::class, 'showOfflinePage'], []],
@@ -54,9 +67,10 @@ Ditambahkan ke `public/index.php`:
 3. **Navigation Trigger**: Offline state baru ditampilkan saat user mencoba navigasi/reload halaman
 4. **Navigation Blocking**: Semua navigasi, form submission, dan reload diblokir saat offline state aktif
 5. **Session Preservation**: User tetap login, tidak ada redirect ke halaman login
-6. **Retry Mechanism**: Tombol "Coba Lagi" melakukan connection check tanpa reload
-7. **Restore**: Saat koneksi kembali, konten asli dikembalikan dan event listeners dipulihkan
-8. **Fallback**: Jika endpoint tidak tersedia, menggunakan template fallback yang embedded
+6. **Auth Fallback**: AuthMiddleware menggunakan JWT token lokal saat koneksi Supabase bermasalah
+7. **Retry Mechanism**: Tombol "Coba Lagi" melakukan connection check tanpa reload
+8. **Restore**: Saat koneksi kembali, konten asli dikembalikan dan event listeners dipulihkan
+9. **Fallback**: Jika endpoint tidak tersedia, menggunakan template fallback yang embedded
 
 ## Penggunaan
 

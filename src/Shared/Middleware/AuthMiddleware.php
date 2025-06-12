@@ -35,14 +35,24 @@ class AuthMiddleware
             return $this->handleTokenRefresh($request, $next);
         }
 
-        // 3. Verifikasi token dengan Supabase
-        $user = $this->supabase->getUser($accessToken);
-        if (!$user) {
+        // 3. Verifikasi token dengan Supabase (dengan fallback untuk offline)
+        $userResult = $this->supabase->getUserWithConnectionCheck($accessToken);
+        
+        // Jika ada masalah koneksi, gunakan data dari token JWT
+        if ($userResult['connection_error']) {
+            $user = $this->getUserFromToken($accessToken);
+            if ($user) {
+                return $next($request->withAttribute('user', $user));
+            }
+        }
+        
+        // Jika tidak ada masalah koneksi tapi user null, coba refresh
+        if (!$userResult['user']) {
             return $this->handleTokenRefresh($request, $next);
         }
 
         // 4. Lampirkan data pengguna ke permintaan
-        return $next($request->withAttribute('user', $user));
+        return $next($request->withAttribute('user', $userResult['user']));
     }
 
     private function handleTokenRefresh(
@@ -128,6 +138,28 @@ class AuthMiddleware
         } catch (\Exception $e) {
             error_log('Error decoding JWT: ' . $e->getMessage());
             return true; // Asumsikan kadaluarsa jika tidak bisa dekode
+        }
+    }
+
+    private function getUserFromToken(string $token): ?array
+    {
+        try {
+            $decoded = JWT::decode($token, new Key($_ENV['SUPABASE_JWT_SECRET'], 'HS256'));
+            
+            // Extract user data from JWT payload
+            return [
+                'id' => $decoded->sub ?? null,
+                'email' => $decoded->email ?? null,
+                'role' => $decoded->role ?? null,
+                'aud' => $decoded->aud ?? null,
+                'exp' => $decoded->exp ?? null,
+                'iat' => $decoded->iat ?? null,
+                'iss' => $decoded->iss ?? null,
+                // Tambahkan field lain yang diperlukan dari JWT
+            ];
+        } catch (\Exception $e) {
+            error_log('Error extracting user from JWT: ' . $e->getMessage());
+            return null;
         }
     }
 
