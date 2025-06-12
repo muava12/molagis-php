@@ -30,6 +30,7 @@
     <link rel="icon" href="/images/fruit.png" type="image/png" />
     <link rel="stylesheet" href="/css/tabler.min.css" />
     <link rel="stylesheet" href="/css/app/tabler.custom.css">
+    <link rel="stylesheet" href="/css/app/connection-indicator.css?v={{ 'now'|date('U') }}">
     {% block stylesheets %}
       {# CSS spesifik untuk halaman ini #}
     {% endblock %}
@@ -41,6 +42,7 @@
   </head>
   <body>
     <div class="page">
+      <div id="connection-indicator" class="connection-indicator"></div>
       {% include 'header.html.twig' with { business_name: business_name, couriers: couriers } %}
       <div class="page-wrapper">
         {% block content %}

@@ -251,41 +251,26 @@
 		</div>
 	</div>
 
-	<script>
-	function showToast(message, type = 'success') {
-		const toastElement = document.getElementById('liveToast');
-		const toastTitleElement = document.getElementById('toastTitle');
-		const toastBodyElement = document.getElementById('toastBody');
-
-		if (!toastElement || !toastTitleElement || !toastBodyElement) {
-			console.error('Toast elements not found. Falling back to alert.');
-			alert(message); // Fallback if toast HTML is missing
-			return;
-		}
-
-		toastTitleElement.textContent = type === 'success' ? 'Berhasil' : 'Gagal';
-		toastBodyElement.textContent = message;
-
-		// Reset classes if you are changing backgrounds based on type
-		// For default Bootstrap styling, this might not be needed or might be handled differently.
-		// toastElement.classList.remove('bg-success', 'bg-danger', 'text-white');
-		// if (type === 'success') {
-		//     toastElement.classList.add('bg-success', 'text-white');
-		// } else if (type === 'error') {
-		//     toastElement.classList.add('bg-danger', 'text-white');
-		// }
-		// Note: Standard Bootstrap toasts don't typically color the whole toast background via these classes.
-		// Header color might be more common if customization is desired beyond default.
-
-		const toast = new bootstrap.Toast(toastElement);
-		toast.show();
-	}
+	<script type="module">
+	import { showToast } from '/js/app/utils.js?v={{ 'now'|date('U') }}';
 
 	document.getElementById('settings-form').addEventListener('submit', async (e) => {
 	    e.preventDefault();
 	    const form = e.target;
 	    const formData = new FormData(form);
-	    const data = Object.fromEntries(formData);
+	    // const data = Object.fromEntries(formData); // Replaced with more robust handling below
+
+		const data = {};
+		formData.forEach((value, key) => {
+			data[key] = value;
+		});
+
+		// Explicitly handle checkbox for public_profile_visible
+		if (formData.has('public_profile_visible')) {
+			data['public_profile_visible'] = 'true'; // Value when checked (can be 'on' or the actual value attribute)
+		} else {
+			data['public_profile_visible'] = 'false'; // Value when unchecked
+		}
 
 	    const saveButton = document.getElementById('save-settings-btn');
 	    const originalButtonText = saveButton.innerHTML;
@@ -304,13 +289,13 @@
 	        const result = await response.json();
 	
 	        if (result.success) {
-	            showToast('Pengaturan berhasil disimpan', 'success');
+	            showToast('Berhasil', 'Pengaturan berhasil disimpan', 'success');
 	        } else {
-	            showToast('Gagal menyimpan pengaturan: ' + (result.message || 'Tidak ada pesan error spesifik.'), 'error');
+	            showToast('Gagal', 'Gagal menyimpan pengaturan: ' + (result.message || 'Tidak ada pesan error spesifik.'), 'error');
 	        }
 	    } catch (error) {
 	        console.error('Error submitting settings:', error);
-	        showToast('Terjadi kesalahan saat menyimpan pengaturan. Silakan coba lagi.', 'error');
+	        showToast('Error', 'Terjadi kesalahan saat menyimpan pengaturan. Silakan coba lagi.', 'error');
 	    } finally {
 	        saveButton.disabled = false;
 	        saveButton.innerHTML = originalButtonText;
@@ -389,7 +374,7 @@
 				}
 			} catch (error) {
 				console.error('Error refreshing paket table:', error);
-				showToast(`Error memuat paket: ${error.message}`, 'error');
+				showToast('Error', `Error memuat paket: ${error.message}`, 'error');
 				displayPaketOpError(`Error memuat paket: ${error.message}`);
 			}
 		}
@@ -419,7 +404,7 @@
 				}
 			} catch (error) {
 				console.error('Error fetching paket for edit:', error);
-				showToast(`Error: ${error.message}`, 'error');
+				showToast('Error', `Error: ${error.message}`, 'error');
 			}
 		}
 
@@ -434,7 +419,7 @@
 				});
 				const result = await response.json();
 				if (result.success) {
-					showToast('Paket berhasil dihapus', 'success');
+					showToast('Berhasil', 'Paket berhasil dihapus', 'success');
 					if (rowElement) {
 						rowElement.remove();
 						if (paketTableBody.rows.length === 0) {
@@ -448,7 +433,7 @@
 				}
 			} catch (error) {
 				console.error('Error deleting paket:', error);
-				showToast(`Error: ${error.message}`, 'error');
+				showToast('Error', `Error: ${error.message}`, 'error');
 			}
 		}
 
@@ -502,7 +487,7 @@
 					const result = await response.json();
 					if (result.success) {
 						paketModal.hide();
-						showToast(result.message || (isEdit ? 'Paket berhasil diperbarui' : 'Paket berhasil ditambahkan'), 'success');
+						showToast('Berhasil', result.message || (isEdit ? 'Paket berhasil diperbarui' : 'Paket berhasil ditambahkan'), 'success');
 						// Check if the 'Paket' tab is active before refreshing
                         // This avoids unnecessary refreshes if another tab is active
                         // However, for simplicity and immediate feedback, always refresh if on settings page.

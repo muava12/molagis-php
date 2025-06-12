@@ -165,7 +165,35 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> {# This was the closing div for container-xl #}
+  </div> {# End page-body #}
+</div> {# End page-wrapper #}
+{% endblock %} {# End of content block #}
+
+{% block javascripts %}
+  {{ parent() }}
+  <!-- Flatpickr JS - same as orders page -->
+  <script src="/js/flatpickr.min.js"></script>
+  <script src="/js/flatpickr-l10n/id.js"></script>
+  <!-- Flatpickr plugins -->
+  <script src="/js/flatpickr-plugins/weekSelect.js?v={{ 'now'|date('U') }}"></script>
+  <script src="/js/flatpickr-plugins/monthSelect.js?v={{ 'now'|date('U') }}"></script>
+  <script src="/js/app/reports.js?v={{ 'now'|date('U') }}"></script>
+{% endblock %}
+  </div> {# End page-body #}
+</div> {# End page-wrapper #}
+{% endblock %} {# End of content block #}
+
+{% block javascripts %}
+  {{ parent() }}
+  <!-- Flatpickr JS - same as orders page -->
+  <script src="/js/flatpickr.min.js"></script>
+  <script src="/js/flatpickr-l10n/id.js"></script>
+  <!-- Flatpickr plugins -->
+  <script src="/js/flatpickr-plugins/weekSelect.js?v={{ 'now'|date('U') }}"></script>
+  <script src="/js/flatpickr-plugins/monthSelect.js?v={{ 'now'|date('U') }}"></script>
+  <script src="/js/app/reports.js?v={{ 'now'|date('U') }}"></script>
+{% endblock %}
   </div>
 
   <div class="page-body">
@@ -593,369 +621,113 @@
                 </svg>
                 Rincian Pesanan per Customer
               </h3>
-              <div class="card-actions">
-                <div class="dropdown">
-                  <button class="btn btn-outline dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                      <path d="M5.5 5.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
-                      <path d="M18.5 5.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
-                      <path d="M5.5 18.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
-                      <path d="M18.5 18.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
-                      <path d="M9 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
-                      <path d="M15 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
-                    </svg>
-                    Export
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" id="export-excel-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
-                        <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
-                        <path d="M10 12l4 5"/>
-                        <path d="M10 17l4 -5"/>
+              <div class="card-actions d-flex align-items-center">
+                <!-- <button class="btn btn-sm btn-outline-teal" id="save-report-btn">Save</button> -->
+                <div class="col-auto ms-auto d-print-none col-4 col-sm-3 col-lg-2"> <!-- Adjusted col size -->
+                  <div class="input-group">
+                    <input class="form-control form-control-sm" type="text" id="customer-detail-week-picker" placeholder="Pilih Minggu">
+                    <button class="btn btn-sm btn-primary" id="customer-detail-reload-btn" title="Reload Data">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ti ti-reload">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M19.933 13.041a8 8 0 1 1 -9.925 -8.788c3.899 -1 7.935 1.007 9.425 4.747"></path>
+                        <path d="M20 4v5h-5"></path>
                       </svg>
-                      Export Excel
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" id="export-pdf-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
-                        <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
-                        <path d="M9 9l1 0"/>
-                        <path d="M9 13l6 0"/>
-                        <path d="M9 17l6 0"/>
-                      </svg>
-                      Export PDF
-                    </a></li>
-                  </ul>
-                </div>
-                <button class="btn btn-sm me-2" id="refresh-customer-data-btn" title="Refresh Data">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
-                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
-                  </svg>
-                  <span class="d-sm-none d-lg-inline">Refresh</span>
-                </button>
-              </div>
-            </div>
-            <div class="card-body p-0">
-              <!-- Search and Filter Bar -->
-              <div class="p-3 border-bottom">
-                <div class="row g-2">
-                  <div class="col-md-4">
-                    <div class="input-icon">
-                      <input type="text" id="customer-search" class="form-control" placeholder="Cari nama customer...">
-                      <span class="input-icon-addon">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                          <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
-                          <path d="M21 21l-6 -6"/>
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <select class="form-select" id="customer-sort">
-                      <option value="name_asc">Nama A-Z</option>
-                      <option value="name_desc">Nama Z-A</option>
-                      <option value="total_desc" selected>Total Tertinggi</option>
-                      <option value="total_asc">Total Terendah</option>
-                      <option value="orders_desc">Pesanan Terbanyak</option>
-                      <option value="orders_asc">Pesanan Tersedikit</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3">
-                    <select class="form-select" id="customer-filter">
-                      <option value="all">Semua Customer</option>
-                      <option value="active">Customer Aktif</option>
-                      <option value="vip">Customer VIP (>10 pesanan)</option>
-                      <option value="new">Customer Baru</option>
-                    </select>
-                  </div>
-                  <div class="col-md-2">
-                    <button class="btn btn-outline w-100" id="clear-filters-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
-                        <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
-                      </svg>
-                      Reset
                     </button>
                   </div>
                 </div>
               </div>
-
-              <!-- Customer Details Table -->
+            </div>
+            <div class="card-body p-0">
+              <!-- New Table Structure -->
               <div class="table-responsive">
-                <table class="table table-vcenter" id="customer-orders-table">
-                  <thead>
-                    <tr>
-                      <th class="w-1">No</th>
-                      <th>Customer</th>
-                      <th class="text-center">Total Pesanan</th>
-                      <th class="text-end">Subtotal Produk</th>
-                      <th class="text-end">Total Ongkir</th>
-                      <th class="text-end">Total Modal</th>
-                      <th class="text-end">Total Bayar</th>
-                      <th class="text-end">Laba Bersih</th>
-                      <th class="text-center">Status</th>
-                      <th class="text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody id="customer-orders-tbody">
-                    <!-- Sample Data - Replace with dynamic data -->
-                    {% set sample_customers = [
-                      {
-                        id: 1,
-                        name: 'Ibu Sari Dewi',
-                        phone: '081234567890',
-                        address: 'Jl. Merdeka No. 123, Jakarta',
-                        total_orders: 15,
-                        subtotal_products: 4500000,
-                        total_shipping: 450000,
-                        total_cost: 2025000,
-                        total_paid: 4950000,
-                        net_profit: 2475000,
-                        status: 'vip',
-                        last_order: '2024-01-15',
-                        avg_order_value: 330000
-                      },
-                      {
-                        id: 2,
-                        name: 'Bapak Ahmad Rizki',
-                        phone: '081234567891',
-                        address: 'Jl. Sudirman No. 456, Bandung',
-                        total_orders: 8,
-                        subtotal_products: 2400000,
-                        total_shipping: 240000,
-                        total_cost: 1080000,
-                        total_paid: 2640000,
-                        net_profit: 1320000,
-                        status: 'active',
-                        last_order: '2024-01-14',
-                        avg_order_value: 330000
-                      },
-                      {
-                        id: 3,
-                        name: 'Ibu Maya Sari',
-                        phone: '081234567892',
-                        address: 'Jl. Gatot Subroto No. 789, Surabaya',
-                        total_orders: 3,
-                        subtotal_products: 900000,
-                        total_shipping: 90000,
-                        total_cost: 405000,
-                        total_paid: 990000,
-                        net_profit: 495000,
-                        status: 'new',
-                        last_order: '2024-01-13',
-                        avg_order_value: 330000
-                      },
-                      {
-                        id: 4,
-                        name: 'Bapak Dedi Kurniawan',
-                        phone: '081234567893',
-                        address: 'Jl. Thamrin No. 321, Medan',
-                        total_orders: 22,
-                        subtotal_products: 6600000,
-                        total_shipping: 660000,
-                        total_cost: 2970000,
-                        total_paid: 7260000,
-                        net_profit: 3630000,
-                        status: 'vip',
-                        last_order: '2024-01-16',
-                        avg_order_value: 330000
-                      },
-                      {
-                        id: 5,
-                        name: 'Ibu Rina Wati',
-                        phone: '081234567894',
-                        address: 'Jl. Diponegoro No. 654, Yogyakarta',
-                        total_orders: 6,
-                        subtotal_products: 1800000,
-                        total_shipping: 180000,
-                        total_cost: 810000,
-                        total_paid: 1980000,
-                        net_profit: 990000,
-                        status: 'active',
-                        last_order: '2024-01-12',
-                        avg_order_value: 330000
-                      }
-                    ] %}
-
-                    {% for customer in sample_customers %}
-                    <tr class="customer-row" data-customer-id="{{ customer.id }}" data-customer-name="{{ customer.name|lower }}" data-status="{{ customer.status }}">
-                      <td>{{ loop.index }}</td>
-                      <td>
-                        <div class="d-flex align-items-center">
-                          <span class="avatar bg-{{ customer.status == 'vip' ? 'purple' : (customer.status == 'new' ? 'green' : 'blue') }}-lt me-3">
-                            {% if customer.status == 'vip' %}
-                              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M12 6l4 6l5 -4l-2 10h-14l-2 -10l5 4z"/>
-                              </svg>
-                            {% elseif customer.status == 'new' %}
-                              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M12 5l0 14"/>
-                                <path d="M5 12l14 0"/>
-                              </svg>
-                            {% else %}
-                              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/>
-                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
-                              </svg>
-                            {% endif %}
-                          </span>
-                          <div>
-                            <div class="fw-bold">{{ customer.name }}</div>
-                            <div class="text-muted small">
-                              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/>
-                              </svg>
-                              {{ customer.phone }}
-                            </div>
-                            <div class="text-muted small">
-                              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
-                                <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
-                              </svg>
-                              {{ customer.address|slice(0, 30) }}{% if customer.address|length > 30 %}...{% endif %}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="text-center">
-                        <span class="badge bg-{{ customer.total_orders >= 20 ? 'purple' : (customer.total_orders >= 10 ? 'blue' : 'green') }}-lt fs-6">
-                          {{ customer.total_orders }} pesanan
-                        </span>
-                        <div class="text-muted small mt-1">
-                          Rata-rata: Rp {{ customer.avg_order_value | number_format(0, ',', '.') }}
-                        </div>
-                      </td>
-                      <td class="text-end">
-                        <div class="fw-bold text-success">Rp {{ customer.subtotal_products | number_format(0, ',', '.') }}</div>
-                        <div class="text-muted small">Subtotal produk</div>
-                      </td>
-                      <td class="text-end">
-                        <div class="fw-bold text-info">Rp {{ customer.total_shipping | number_format(0, ',', '.') }}</div>
-                        <div class="text-muted small">Biaya kirim</div>
-                      </td>
-                      <td class="text-end">
-                        <div class="fw-bold text-orange">Rp {{ customer.total_cost | number_format(0, ',', '.') }}</div>
-                        <div class="text-muted small">Modal produk</div>
-                      </td>
-                      <td class="text-end">
-                        <div class="fw-bold text-primary">Rp {{ customer.total_paid | number_format(0, ',', '.') }}</div>
-                        <div class="text-muted small">Total pembayaran</div>
-                      </td>
-                      <td class="text-end">
-                        <div class="fw-bold text-success">Rp {{ customer.net_profit | number_format(0, ',', '.') }}</div>
-                        <div class="text-muted small">
-                          Margin: {{ ((customer.net_profit / customer.total_paid) * 100) | number_format(1) }}%
-                        </div>
-                      </td>
-                      <td class="text-center">
-                        {% if customer.status == 'vip' %}
-                          <span class="badge bg-purple-lt">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                              <path d="M12 6l4 6l5 -4l-2 10h-14l-2 -10l5 4z"/>
-                            </svg>
-                            VIP
-                          </span>
-                        {% elseif customer.status == 'new' %}
-                          <span class="badge bg-green-lt">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                              <path d="M12 5l0 14"/>
-                              <path d="M5 12l14 0"/>
-                            </svg>
-                            Baru
-                          </span>
+                <table class="table table-selectable table-bordered card-table table-striped table-vcenter table-hover datatable" id="new-customer-details-table">
+                    <thead class="sticky-top">
+                        <tr>
+                            <th class="w-1">No</th>
+                            <th>Nama</th>
+                            <th class="w-40 d-none d-md-table-cell">Details</th>
+                            <th class="text-end">Tot. Harga</th>
+                            <th class="text-end">Modal</th>
+                            <th class="text-end">Gross</th>
+                            <th class="text-end">Ongkir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="new-customer-details-tbody">
+                        {% if detailed_customer_orders is defined and detailed_customer_orders|length > 0 %}
+                            {% for customer in detailed_customer_orders %}
+                                <tr class="customer-row" data-customer-id="{{ customer.customer_id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <div class="fw-bold">{{ customer.customer_name }}</div>
+                                        {# Add phone or other primary customer identifier if available and desired #}
+                                        {# Example: <div class="text-muted small">{{ customer.customer_phone | default('') }}</div> #}
+                                    </td>
+                                    <td class="w-40 d-none d-md-table-cell p-0"> {# p-0 to remove padding for full-width nested table #}
+                                        {% if customer.paket_details is defined and customer.paket_details|length > 0 %}
+                                            <table class="table table-sm card-table table-borderless mb-0"> {# mb-0 to remove bottom margin, table-borderless for cleaner look #}
+                                                <thead class="d-none"> {# Optional: can show a light header if many items, or keep d-none #}
+                                                    <tr>
+                                                        <th>Paket</th>
+                                                        <th class="text-center">Porsi</th>
+                                                        <th class="text-center">Jml. Hari</th>
+                                                        <th class="text-end">Hrg. Modal</th>
+                                                        <th class="text-end">Hrg. Jual</th>
+                                                        <th class="text-end">Total Hrg.</th>
+                                                        <th class="text-end">Total Modal</th>
+                                                        <th class="text-end">Profit</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for paket_detail in customer.paket_details %}
+                                                        <tr>
+                                                            <td>{{ paket_detail.paket_name }}</td>
+                                                            <td class="text-center">{{ paket_detail.porsi }}</td>
+                                                            <td class="text-center">{{ paket_detail.jumlah_hari_pesanan }}</td>
+                                                            <td class="text-end">{{ paket_detail.paket_unit_modal | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.paket_unit_jual | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.total_harga_paket_porsi | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.total_modal_paket_porsi | number_format(0, ',', '.') }}</td>
+                                                            <td class="text-end">{{ paket_detail.profit_paket_porsi | number_format(0, ',', '.') }}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% else %}
+                                            <div class="text-muted p-2">Tidak ada rincian paket.</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ customer.overall_total_harga | number_format(0, ',', '.') }}</td>
+                                    <td class="text-end">{{ customer.overall_total_modal | number_format(0, ',', '.') }}</td>
+                                    <td class="text-end">{{ customer.overall_gross_profit | number_format(0, ',', '.') }}</td>
+                                    <td class="text-end">{{ customer.overall_total_ongkir | number_format(0, ',', '.') }}</td>
+                                </tr>
+                            {% endfor %}
                         {% else %}
-                          <span class="badge bg-blue-lt">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                              <path d="M5 12l14 0"/>
-                            </svg>
-                            Aktif
-                          </span>
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="empty">
+                                        <div class="empty-icon mb-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-database-search" width="32" height="32" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 6c0 1.657 3.582 3 8 3s8 -1.343 8 -3s-3.582 -3 -8 -3s-8 1.343 -8 3" /><path d="M4 6v6c0 1.657 3.582 3 8 3m8 -3.5v-5.5" /><path d="M4 12v6c0 1.657 3.582 3 8 3m5.435 -2.005c.56 -.23 1.064 -.538 1.505 -.91" /><path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M20.2 20.2l1.8 1.8" /></svg>
+                                        </div>
+                                        <p class="empty-title h3">Data akan dimuat</p>
+                                        <p class="empty-subtitle text-secondary">
+                                            Pilih periode minggu menggunakan filter di atas untuk menampilkan data pelanggan.
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
                         {% endif %}
-                        <div class="text-muted small mt-1">
-                          Terakhir: {{ customer.last_order | date('d/m/Y') }}
-                        </div>
-                      </td>
-                      <td class="text-center">
-                        <div class="btn-group" role="group">
-                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerDetails({{ customer.id }})" title="Lihat Detail">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                              <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
-                              <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
-                            </svg>
-                          </button>
-                          <button type="button" class="btn btn-sm btn-outline-success" onclick="exportCustomerData({{ customer.id }})" title="Export Data">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                              <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
-                              <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
-                              <path d="M12 11v6"/>
-                              <path d="M9 14l3 3l3 -3"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
+                    </tbody>
                 </table>
               </div>
-
-              <!-- Summary Footer -->
-              <div class="p-3 border-top bg-light">
-                <div class="row text-center">
-                  <div class="col-md-2">
-                    <div class="fw-bold text-primary" id="total-customers">{{ sample_customers|length }}</div>
-                    <div class="text-muted small">Total Customer</div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="fw-bold text-success" id="total-orders">{{ sample_customers|map(c => c.total_orders)|reduce((a, b) => a + b) }}</div>
-                    <div class="text-muted small">Total Pesanan</div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="fw-bold text-success" id="total-revenue">Rp {{ sample_customers|map(c => c.subtotal_products)|reduce((a, b) => a + b) | number_format(0, ',', '.') }}</div>
-                    <div class="text-muted small">Total Revenue</div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="fw-bold text-info" id="total-shipping">Rp {{ sample_customers|map(c => c.total_shipping)|reduce((a, b) => a + b) | number_format(0, ',', '.') }}</div>
-                    <div class="text-muted small">Total Ongkir</div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="fw-bold text-orange" id="total-cost">Rp {{ sample_customers|map(c => c.total_cost)|reduce((a, b) => a + b) | number_format(0, ',', '.') }}</div>
-                    <div class="text-muted small">Total Modal</div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="fw-bold text-success" id="total-profit">Rp {{ sample_customers|map(c => c.net_profit)|reduce((a, b) => a + b) | number_format(0, ',', '.') }}</div>
-                    <div class="text-muted small">Total Laba</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-{% endblock %}
+            </div> {# End card-body p-0 #}
+          </div> {# End card #}
+        </div> {# End col-12 #}
+      </div> {# End row #}
+    </div> {# End container-xl #}
+  </div> {# End page-body #}
+</div> {# End page-wrapper #}
+{% endblock %} {# End of content block #}
 
 {% block javascripts %}
   {{ parent() }}

@@ -9,6 +9,7 @@ class OfflineHandler {
         this.connectionLost = false; // Track jika koneksi putus tapi belum show offline state
         this.originalContent = null;
         this.offlineTemplate = null;
+        this.indicatorElement = document.getElementById('connection-indicator');
         this.init();
     }
 
@@ -25,6 +26,7 @@ class OfflineHandler {
     }
 
     handleConnectionLost() {
+        if (this.indicatorElement) { this.indicatorElement.className = 'connection-indicator offline'; }
         this.connectionLost = true;
         console.log('Connection lost - waiting for navigation attempt');
     }
@@ -80,6 +82,16 @@ class OfflineHandler {
     }
 
     handleOnline() {
+        if (this.indicatorElement) {
+            this.indicatorElement.className = 'connection-indicator online';
+            // The CSS animation will handle fade-out and then set display:none
+            // However, to ensure it's properly reset for next time:
+            setTimeout(() => {
+                if (this.indicatorElement) { // Check again in case element is gone
+                    this.indicatorElement.className = 'connection-indicator'; // Reset classes, hide it
+                }
+            }, 3000); // Match CSS animation duration
+        }
         if (!this.isOffline && !this.connectionLost) return; // Sudah online
         
         this.isOffline = false;
@@ -122,46 +134,27 @@ class OfflineHandler {
         });
 
         // Override window.location methods
-        const originalReload = window.location.reload;
-        const originalAssign = window.location.assign;
-        const originalReplace = window.location.replace;
+        // const originalReload = window.location.reload; // Removed
+        // const originalAssign = window.location.assign; // Removed
+        // const originalReplace = window.location.replace; // Removed
 
-        window.location.reload = async () => {
-            if (this.connectionLost && !this.isOffline) {
-                console.log('Page reload attempt detected while offline - showing offline state');
-                await this.handleOffline();
-                return;
-            }
-            originalReload.call(window.location);
-        };
+        // window.location.reload override removed
+        // window.location.assign override removed
+        // window.location.replace override removed
 
-        window.location.assign = async (url) => {
+        // Intercept history navigation / page reload attempts
+        if (this.beforeUnloadHandler) { // Remove existing if any
+            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+        }
+        this.beforeUnloadHandler = async (e) => {
             if (this.connectionLost && !this.isOffline) {
-                console.log('Navigation attempt detected while offline - showing offline state');
-                await this.handleOffline();
-                return;
-            }
-            originalAssign.call(window.location, url);
-        };
-
-        window.location.replace = async (url) => {
-            if (this.connectionLost && !this.isOffline) {
-                console.log('Navigation attempt detected while offline - showing offline state');
-                await this.handleOffline();
-                return;
-            }
-            originalReplace.call(window.location, url);
-        };
-
-        // Intercept history navigation
-        window.addEventListener('beforeunload', async (e) => {
-            if (this.connectionLost && !this.isOffline) {
+                console.log('Page unload/reload attempt detected (beforeunload) while connectionLost - showing offline state');
                 e.preventDefault();
-                console.log('Page unload attempt detected while offline - showing offline state');
                 await this.handleOffline();
-                return false;
+                // e.returnValue = 'Changes you made may not be saved.'; // Example if prompt was needed
             }
-        });
+        };
+        window.addEventListener('beforeunload', this.beforeUnloadHandler);
     }
 
     async loadOfflineTemplate() {
@@ -231,11 +224,7 @@ class OfflineHandler {
         // Intercept form submissions
         document.addEventListener('submit', this.offlineSubmitHandler);
 
-        // Override window.location methods untuk offline state
-        window.location.reload = () => {
-            console.log('Page reload blocked - still offline');
-            this.checkConnection();
-        };
+        // window.location.reload override removed from here
     }
 
     getFallbackTemplate() {

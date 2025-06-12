@@ -116,7 +116,92 @@ function initializeReportsPage() {
     // Initialize copy markdown functionality
     initializeCopyMarkdown();
 
+    // Initialize customer detail week picker and reload button
+    initializeCustomerDetailControls();
+
     console.log('Reports page initialized successfully');
+}
+
+/**
+ * Initialize customer detail week picker and reload button
+ */
+function initializeCustomerDetailControls() {
+    const customerDetailWeekPickerEl = document.getElementById('customer-detail-week-picker');
+    if (customerDetailWeekPickerEl) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentCustomerWeek = urlParams.get('customer_week'); // e.g., "2024-W30"
+
+        // Attempt to format for Flatpickr's weekSelect plugin if it expects YYYY-MM-DD for defaultDate
+        // Or, if it directly supports "YYYY-Www", that's simpler.
+        // For weekSelect, it usually derives week from a specific date.
+        // Let's default to current date for the picker if no param, which weekSelect handles.
+        let defaultDateForPicker = new Date();
+        if (currentCustomerWeek) {
+            try {
+                const parts = currentCustomerWeek.match(/(\d{4})-W(\d{1,2})/);
+                if (parts && parts.length === 3) {
+                    const year = parseInt(parts[1], 10);
+                    const weekNum = parseInt(parts[2], 10);
+                    // Get the first day of that week (Monday)
+                    const d = new Date(year, 0, 1 + (weekNum - 1) * 7);
+                    const day = d.getDay();
+                    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust if day is Sunday
+                    defaultDateForPicker = new Date(d.setDate(diff));
+                }
+            } catch (e) {
+                console.warn("Could not parse 'customer_week' parameter for defaultDate:", currentCustomerWeek, e);
+            }
+        }
+
+        flatpickr(customerDetailWeekPickerEl, {
+            dateFormat: 'Y-W', // Format to match ISO week (Year-WWeekNumber)
+            weekNumbers: true,
+            locale: 'id',
+            defaultDate: defaultDateForPicker,
+            onChange: function(selectedDates, dateStr, instance) {
+                if (dateStr) {
+                    // dateStr from this format is YYYY-Www (e.g., "2024-W32")
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('customer_week', dateStr);
+                    // Remove other date params if they exist to avoid conflict
+                    newUrl.searchParams.delete('start_date');
+                    newUrl.searchParams.delete('end_date');
+                    newUrl.searchParams.delete('period');
+                    window.location.href = newUrl.toString();
+                }
+            }
+        });
+        console.log('Customer detail week picker initialized. Default date attempt:', defaultDateForPicker);
+    } else {
+        console.log('Customer detail week picker element not found.');
+    }
+
+    const customerDetailReloadBtn = document.getElementById('customer-detail-reload-btn');
+    if (customerDetailReloadBtn) {
+        customerDetailReloadBtn.addEventListener('click', function() {
+            const weekPickerValue = customerDetailWeekPickerEl ? customerDetailWeekPickerEl.value : null;
+            const newUrl = new URL(window.location.href);
+
+            if (weekPickerValue && weekPickerValue.match(/\d{4}-W\d{1,2}/)) {
+                newUrl.searchParams.set('customer_week', weekPickerValue);
+                 // Remove other date params if they exist to avoid conflict
+                newUrl.searchParams.delete('start_date');
+                newUrl.searchParams.delete('end_date');
+                newUrl.searchParams.delete('period');
+            } else {
+                // If picker is empty or invalid, maybe reload without this specific param
+                // or with default (current week), or do nothing.
+                // For simplicity, if it's invalid/empty, we might just reload current URL state
+                // or remove the param if it exists.
+                newUrl.searchParams.delete('customer_week');
+                console.log('Customer week picker value is empty or invalid, reloading without it or with existing params.');
+            }
+            window.location.href = newUrl.toString();
+        });
+        console.log('Customer detail reload button initialized.');
+    } else {
+        console.log('Customer detail reload button not found.');
+    }
 }
 
 /**

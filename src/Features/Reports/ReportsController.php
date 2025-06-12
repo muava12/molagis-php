@@ -73,6 +73,15 @@ class ReportsController
             $viewData['error'] = "Gagal memuat data reports.";
         }
 
+        // Get detailed customer order data
+        $customerOrderDetailsResult = $this->reportsService->getCustomerOrderDetailsReport($startDate, $endDate, $accessToken);
+        $viewData['detailed_customer_orders'] = $customerOrderDetailsResult['data'] ?? [];
+        if (!empty($customerOrderDetailsResult['error'])) {
+            $currentError = $viewData['error'] ?? '';
+            $viewData['error'] = ($currentError ? $currentError . '; ' : '') . $customerOrderDetailsResult['error'];
+            error_log("Error fetching customer order details: " . $customerOrderDetailsResult['error']);
+        }
+
         // Add filter information to view data
         $viewData['current_period'] = $period;
         $viewData['current_start_date'] = $startDate;

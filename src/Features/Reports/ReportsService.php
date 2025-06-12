@@ -114,6 +114,156 @@ class ReportsService
     }
 
     /**
+     * Mengambil detail pesanan per customer untuk periode tertentu.
+     *
+     * @param string|null $startDate Tanggal mulai (YYYY-MM-DD)
+     * @param string|null $endDate Tanggal akhir (YYYY-MM-DD)
+     * @param string|null $accessToken Token akses pengguna
+     * @return array Hasil yang berisi 'data' (detail pesanan) atau 'error'.
+     */
+    public function getCustomerOrderDetailsReport(?string $startDate, ?string $endDate, ?string $accessToken): array
+    {
+        try {
+            // Conceptual SQL Query:
+            // SELECT
+            //     o.id as order_id,
+            //     o.tanggal as order_date,
+            //     o.ongkir as order_ongkir,
+            //     c.id as customer_id,
+            //     c.nama as customer_name,
+            //     p.nama_paket as paket_name,
+            //     p.harga_modal as paket_unit_modal,
+            //     p.harga_jual as paket_unit_jual,
+            //     od.porsi,
+            //     od.subtotal_modal as item_total_modal,
+            //     od.subtotal_harga as item_total_harga
+            // FROM
+            //     orders o
+            // JOIN
+            //     customers c ON o.customer_id = c.id
+            // JOIN
+            //     orderdetails od ON o.id = od.order_id
+            // JOIN
+            //     paket p ON od.paket_id = p.id
+            // WHERE
+            //     o.tanggal >= $startDate AND o.tanggal <= $endDate
+            // ORDER BY
+            //     c.nama, o.tanggal, p.nama_paket;
+
+            // Simulate Supabase client call (conceptual)
+            // $rawResult = $this->client->db->from('orders')
+            //    ->select('*, customers(id, nama), orderdetails(*, paket(nama_paket, harga_modal, harga_jual))')
+            //    ->gte('tanggal', $startDate)
+            //    ->lte('tanggal', $endDate)
+            //    ->execute();
+            // if ($rawResult['error']) {
+            //    return ['data' => null, 'error' => 'Failed to fetch raw order details: ' . $rawResult['error']['message']];
+            // }
+            // $rows = $rawResult['data'];
+
+            // --- Simulated Raw Data ---
+            // This would typically come from the database query above.
+            // For now, using a simplified sample structure.
+            $rows = [
+                // Order 1 for Customer A
+                ['customer_id' => 1, 'customer_name' => 'Customer A', 'order_id' => 101, 'order_date' => '2023-01-05', 'order_ongkir' => 10000, 'paket_name' => 'Paket Hemat', 'porsi' => 2, 'item_total_modal' => 40000, 'item_total_harga' => 60000, 'paket_unit_modal' => 20000, 'paket_unit_jual' => 30000],
+                ['customer_id' => 1, 'customer_name' => 'Customer A', 'order_id' => 101, 'order_date' => '2023-01-05', 'order_ongkir' => 10000, 'paket_name' => 'Paket Komplit', 'porsi' => 1, 'item_total_modal' => 30000, 'item_total_harga' => 50000, 'paket_unit_modal' => 30000, 'paket_unit_jual' => 50000],
+                // Order 2 for Customer A
+                ['customer_id' => 1, 'customer_name' => 'Customer A', 'order_id' => 102, 'order_date' => '2023-01-06', 'order_ongkir' => 12000, 'paket_name' => 'Paket Hemat', 'porsi' => 3, 'item_total_modal' => 60000, 'item_total_harga' => 90000, 'paket_unit_modal' => 20000, 'paket_unit_jual' => 30000],
+                // Order 1 for Customer B
+                ['customer_id' => 2, 'customer_name' => 'Customer B', 'order_id' => 103, 'order_date' => '2023-01-05', 'order_ongkir' => 15000, 'paket_name' => 'Paket Spesial', 'porsi' => 2, 'item_total_modal' => 80000, 'item_total_harga' => 120000, 'paket_unit_modal' => 40000, 'paket_unit_jual' => 60000],
+            ];
+            // --- End Simulated Raw Data ---
+
+            $customerAggregates = [];
+
+            foreach ($rows as $row) {
+                $customerId = $row['customer_id'];
+                $customerName = $row['customer_name'];
+                $paketName = $row['paket_name'];
+                $porsi = (int)$row['porsi'];
+                $itemTotalModal = (float)($row['item_total_modal'] ?? 0);
+                $itemTotalHarga = (float)($row['item_total_harga'] ?? 0);
+                $paketUnitModal = (float)($row['paket_unit_modal'] ?? 0);
+                $paketUnitJual = (float)($row['paket_unit_jual'] ?? 0);
+                $orderOngkir = (float)($row['order_ongkir'] ?? 0);
+                $orderId = $row['order_id'];
+
+                if (!isset($customerAggregates[$customerId])) {
+                    $customerAggregates[$customerId] = [
+                        'customer_id' => $customerId,
+                        'customer_name' => $customerName,
+                        'overall_total_harga' => 0,
+                        'overall_total_modal' => 0,
+                        'overall_total_ongkir' => 0, // Sum of ongkir for all orders by this customer
+                        'overall_gross_profit' => 0,
+                        'total_orders_count' => 0,
+                        'paket_details' => [],
+                        'order_ids_processed_for_ongkir' => [] // To sum ongkir only once per order
+                    ];
+                }
+
+                // Aggregate overall totals
+                $customerAggregates[$customerId]['overall_total_harga'] += $itemTotalHarga;
+                $customerAggregates[$customerId]['overall_total_modal'] += $itemTotalModal;
+
+                if (!isset($customerAggregates[$customerId]['order_ids_processed_for_ongkir'][$orderId])) {
+                    $customerAggregates[$customerId]['overall_total_ongkir'] += $orderOngkir;
+                    $customerAggregates[$customerId]['order_ids_processed_for_ongkir'][$orderId] = true;
+                    $customerAggregates[$customerId]['total_orders_count']++;
+                }
+
+                // Aggregate per paket/porsi combination
+                $paketKey = $paketName . '_porsi_' . $porsi;
+                if (!isset($customerAggregates[$customerId]['paket_details'][$paketKey])) {
+                    $customerAggregates[$customerId]['paket_details'][$paketKey] = [
+                        'paket_name' => $paketName,
+                        'porsi' => $porsi,
+                        'jumlah_hari_pesanan' => 0, // Represents count of distinct orders/days for this paket/porsi
+                        'total_harga_paket_porsi' => 0,
+                        'total_modal_paket_porsi' => 0,
+                        'profit_paket_porsi' => 0,
+                        'paket_unit_modal' => $paketUnitModal, // Assuming this is constant for the paket
+                        'paket_unit_jual' => $paketUnitJual,   // Assuming this is constant for the paket
+                    ];
+                }
+                $customerAggregates[$customerId]['paket_details'][$paketKey]['jumlah_hari_pesanan']++; // Or count distinct order_id/order_date
+                $customerAggregates[$customerId]['paket_details'][$paketKey]['total_harga_paket_porsi'] += $itemTotalHarga;
+                $customerAggregates[$customerId]['paket_details'][$paketKey]['total_modal_paket_porsi'] += $itemTotalModal;
+            }
+
+            // Calculate profits and finalize structure
+            $processedData = [];
+            foreach ($customerAggregates as $customerId => $customerData) {
+                $customerData['overall_gross_profit'] = $customerData['overall_total_harga'] - $customerData['overall_total_modal'];
+                // Note: overall_gross_profit here does not include ongkir yet.
+                // Depending on business logic, ongkir might be revenue, cost, or pass-through.
+                // The current overall_total_ongkir is sum of ongkir charged to customer.
+
+                foreach ($customerData['paket_details'] as $paketKey => $paketDetail) {
+                    $customerData['paket_details'][$paketKey]['profit_paket_porsi'] =
+                        $paketDetail['total_harga_paket_porsi'] - $paketDetail['total_modal_paket_porsi'];
+                }
+                // Ensure paket_details is an array, not an associative map for JSON output if needed
+                $customerData['paket_details'] = array_values($customerData['paket_details']);
+                unset($customerData['order_ids_processed_for_ongkir']); // Remove temporary helper
+                $processedData[] = $customerData;
+            }
+
+            // Sort processedData by customer name for consistent output
+            usort($processedData, function($a, $b) {
+                return strcmp($a['customer_name'], $b['customer_name']);
+            });
+
+            return ['data' => $processedData, 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in getCustomerOrderDetailsReport: ' . $e->getMessage());
+            return ['data' => [], 'error' => 'Gagal mengambil detail pesanan customer: ' . $e->getMessage()];
+        }
+    }
+
+    /**
      * Mengambil overview statistics untuk dashboard reports.
      * Menggunakan data dari financial overview dan menambahkan statistik lainnya.
      *
