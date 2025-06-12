@@ -7,6 +7,7 @@ require "{$basePath}/vendor/autoload.php";
 use Molagis\Shared\ConfigSession;
 use Molagis\Shared\SupabaseClient;
 use Molagis\Shared\SupabaseService;
+use Molagis\Shared\OfflineController;
 use Molagis\Shared\Middleware\AuthMiddleware;
 use Molagis\Features\Auth\AuthController;
 use Molagis\Features\Dashboard\DashboardController;
@@ -46,6 +47,7 @@ $containerBuilder = new ContainerBuilder();
 $containerBuilder->addDefinitions([
     SupabaseClient::class => fn() => new SupabaseClient($_ENV['SUPABASE_URL'], $_ENV['SUPABASE_APIKEY']),
     SupabaseService::class => fn($c) => new SupabaseService($c->get(SupabaseClient::class)),
+    OfflineController::class => fn($c) => new OfflineController($c->get(Environment::class)),
     AuthMiddleware::class => fn($c) => new AuthMiddleware($c->get(SupabaseService::class)),
 
     // Paket Service definition (added)
@@ -151,6 +153,12 @@ $routes = [
     ['GET', '/', [AuthController::class, 'showLogin'], []],
     ['GET', '/login', [AuthController::class, 'showLogin'], []],
     ['POST', '/login', [AuthController::class, 'handleLogin'], []],
+    
+    // Offline routes (public - no auth needed)
+    ['GET', '/offline', [OfflineController::class, 'showOfflinePage'], []],
+    ['GET', '/offline-template', [OfflineController::class, 'getOfflineTemplate'], []],
+    ['HEAD', '/api/ping', [OfflineController::class, 'ping'], []],
+    ['GET', '/api/ping', [OfflineController::class, 'ping'], []],
     // Protected routes
     ['GET', '/dashboard', [DashboardController::class, 'showDashboard'], [AuthMiddleware::class]],
     ['GET', '/api/deliveries', [DashboardController::class, 'getDeliveries'], [AuthMiddleware::class]],
@@ -249,6 +257,9 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
             $handler = function(ServerRequestInterface $request) use ($controller, $method, $vars, $container) {
                 $params = match($method) {
                     'handleLogin' => [$request->getParsedBody()],
+                    'showOfflinePage' => [$request],
+                    'getOfflineTemplate' => [$request],
+                    'ping' => [$request],
                     'showDashboard' => [$request],
                     'getDeliveries' => [$request],
                     'getDeliveryDetails' => [$request],
