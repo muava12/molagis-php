@@ -1858,66 +1858,60 @@ function updateCustomerDetailsPeriodDisplayFromURL() {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    const toggleButton = document.getElementById('toggle-details-column');
+    const toggleButton = document.getElementById('toggle-details-column-external'); // New ID
     const table = document.getElementById('new-customer-details-table');
 
     if (toggleButton && table) {
-        // Function to check if we are on a mobile-like screen (Bootstrap's md breakpoint is 768px)
-        const isMobileView = () => window.innerWidth < 768;
+        const toggleButtonText = toggleButton.querySelector('.toggle-text'); // For button text
+        const detailHeader = table.querySelector('thead th.details-th'); // Target the 'details-th' class
 
-        // Set initial state based on viewport
-        let detailsVisible = !isMobileView(); // Visible on desktop, hidden on mobile
+        let detailsVisible;
 
-        // Update button text and column visibility
+        // Function to update view
         const updateDetailsView = () => {
             const detailCells = table.querySelectorAll('.details-cell');
-            const detailHeaders = table.querySelectorAll('th.w-40'); // Target the specific th
-
             if (detailsVisible) {
-                toggleButton.textContent = '[Sembunyikan]';
-                detailCells.forEach(cell => {
-                    cell.classList.remove('d-none'); // Make visible
-                    // Ensure it keeps d-md-table-cell for responsiveness if needed,
-                    // but direct visibility control is primary here.
-                    // For simplicity, direct d-none toggle is used.
-                    // If complex responsive classes are needed, this might need adjustment.
-                });
-                 detailHeaders.forEach(header => {
-                    header.classList.remove('d-none');
-                });
+                if (toggleButtonText) toggleButtonText.textContent = 'Sembunyikan Detail';
+                detailCells.forEach(cell => cell.classList.remove('d-none'));
+                if (detailHeader) detailHeader.classList.remove('d-none'); // Show header
             } else {
-                toggleButton.textContent = '[Tampilkan]';
-                detailCells.forEach(cell => {
-                    cell.classList.add('d-none'); // Make hidden
-                });
-                detailHeaders.forEach(header => {
-                    header.classList.add('d-none');
-                });
+                if (toggleButtonText) toggleButtonText.textContent = 'Tampilkan Detail';
+                detailCells.forEach(cell => cell.classList.add('d-none'));
+                if (detailHeader) detailHeader.classList.add('d-none'); // Hide header
             }
         };
 
-        // Initial setup
-        // The default classes `d-none d-md-table-cell` on the TH and TD handle the initial state.
-        // We adjust the button text based on this initial state.
-        // If the first details-cell is not displayed (mobile), then details are hidden.
-        const firstDetailCell = table.querySelector('.details-cell');
-        if (firstDetailCell && getComputedStyle(firstDetailCell).display === 'none') {
+        // Initial state detection:
+        // Check the computed style of the header. If it's 'none', details are initially hidden.
+        // This correctly accounts for Bootstrap's responsive classes like 'd-none d-md-table-cell'.
+        if (detailHeader && getComputedStyle(detailHeader).display === 'none') {
             detailsVisible = false;
-            toggleButton.textContent = '[Tampilkan]';
         } else {
-            detailsVisible = true;
-            toggleButton.textContent = '[Sembunyikan]';
+            // If header is not 'none', check if there are any detail cells.
+            // If there are no detail cells, it implies an empty state, but the column itself might be considered "visible".
+            // However, if the first cell IS present and display none, then it's hidden.
+            const firstDetailCell = table.querySelector('.details-cell');
+            if (firstDetailCell && getComputedStyle(firstDetailCell).display === 'none') {
+                 detailsVisible = false;
+            } else {
+                 detailsVisible = true; // Default to visible if header is visible, or no cells to check.
+            }
         }
 
+        updateDetailsView(); // Set initial button text and view based on detected state
 
         toggleButton.addEventListener('click', () => {
             detailsVisible = !detailsVisible;
             updateDetailsView();
         });
 
-        // Optional: Adjust on window resize if you want it to be fully dynamic
+        // Optional: Adjust on window resize if you want it to be fully dynamic.
         // window.addEventListener('resize', () => {
-        //     detailsVisible = !isMobileView(); // Or maintain current toggle state
+        //     if (detailHeader && getComputedStyle(detailHeader).display === 'none') {
+        //         detailsVisible = false;
+        //     } else {
+        //         detailsVisible = true;
+        //     }
         //     updateDetailsView();
         // });
     }
