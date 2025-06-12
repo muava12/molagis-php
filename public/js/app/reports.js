@@ -7,12 +7,13 @@
 // import { showToast } from './utils.js';
 
 // Fallback showToast function
+// This function is used if a more sophisticated showToast (e.g., from a UI library) is not defined.
 function showToast(title, message, type = 'success') {
-    console.log(`Toast [${type}]: ${title} - ${message}`);
-    // Simple alert fallback for testing
-    if (type === 'error') {
-        alert(`${title}: ${message}`);
-    }
+    const fullMessage = `${title}: ${message}`;
+    console.log(`Toast [${type}]: ${fullMessage}`);
+    // Use alert as a fallback for all types if a proper toast system isn't available.
+    // This ensures the user gets a visible notification.
+    alert(fullMessage);
 }
 
 // Constants for localStorage keys
@@ -1283,16 +1284,38 @@ function copyAsMarkdown() {
         const markdown = generateFinancialMarkdown(period, financialData);
 
         // Copy to clipboard
-        navigator.clipboard.writeText(markdown).then(() => {
-            showToast('Berhasil', 'Overview keuangan berhasil disalin sebagai Markdown!', 'success');
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            showToast('Error', 'Gagal menyalin ke clipboard', 'error');
-        });
-
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(markdown).then(() => {
+                // Success!
+                showToast('Berhasil', 'Laporan keuangan disalin ke clipboard!', 'success');
+            }).catch(err => {
+                // Error copying
+                console.error('Failed to copy markdown to clipboard:', err);
+                showToast('Gagal', 'Gagal menyalin laporan ke clipboard.', 'error');
+            });
+        } else {
+            // Fallback for older browsers if navigator.clipboard is not supported
+            console.warn('navigator.clipboard.writeText not supported.');
+            // Attempt to use a textarea fallback for copying (basic)
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = markdown;
+                textArea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Berhasil (Fallback)', 'Laporan keuangan disalin ke clipboard!', 'success');
+            } catch (fallbackErr) {
+                console.error('Fallback copy method failed:', fallbackErr);
+                showToast('Gagal', 'Copy to clipboard not supported by this browser and fallback failed.', 'error');
+            }
+        }
     } catch (error) {
         console.error('Error copying markdown:', error);
-        showToast('Error', 'Terjadi kesalahan saat menyalin data', 'error');
+        showToast('Error', 'Terjadi kesalahan saat menyalin data.', 'error');
     }
 }
 
@@ -1858,61 +1881,70 @@ function updateCustomerDetailsPeriodDisplayFromURL() {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    const toggleButton = document.getElementById('toggle-details-column-external'); // New ID
+    console.log('Initializing toggle details column script...');
+    const toggleButton = document.getElementById('toggle-details-column-external');
     const table = document.getElementById('new-customer-details-table');
 
+    console.log('Toggle button:', toggleButton);
+    console.log('Table:', table);
+
     if (toggleButton && table) {
-        const toggleButtonText = toggleButton.querySelector('.toggle-text'); // For button text
-        const detailHeader = table.querySelector('thead th.details-th'); // Target the 'details-th' class
+        const toggleButtonText = toggleButton.querySelector('.toggle-text');
+        const detailHeader = table.querySelector('thead th.details-th'); // Specific class for the Details TH
+
+        console.log('Toggle button text element:', toggleButtonText);
+        console.log('Detail header (th.details-th):', detailHeader);
+
+        if (!toggleButtonText) {
+            console.error('Span with class "toggle-text" not found inside the button.');
+        }
+        if (!detailHeader) {
+            console.error('Details column header (th.details-th) not found.');
+        }
 
         let detailsVisible;
 
         // Function to update view
         const updateDetailsView = () => {
+            console.log('updateDetailsView called. detailsVisible:', detailsVisible);
             const detailCells = table.querySelectorAll('.details-cell');
+            console.log('Found detailCells count:', detailCells.length);
+
             if (detailsVisible) {
                 if (toggleButtonText) toggleButtonText.textContent = 'Sembunyikan Detail';
                 detailCells.forEach(cell => cell.classList.remove('d-none'));
-                if (detailHeader) detailHeader.classList.remove('d-none'); // Show header
+                if (detailHeader) detailHeader.classList.remove('d-none');
             } else {
                 if (toggleButtonText) toggleButtonText.textContent = 'Tampilkan Detail';
                 detailCells.forEach(cell => cell.classList.add('d-none'));
-                if (detailHeader) detailHeader.classList.add('d-none'); // Hide header
+                if (detailHeader) detailHeader.classList.add('d-none');
             }
         };
 
-        // Initial state detection:
-        // Check the computed style of the header. If it's 'none', details are initially hidden.
-        // This correctly accounts for Bootstrap's responsive classes like 'd-none d-md-table-cell'.
+        // Initial state detection logic:
         if (detailHeader && getComputedStyle(detailHeader).display === 'none') {
+            console.log('Initial state: detailHeader is display:none.');
             detailsVisible = false;
+        } else if (!detailHeader) {
+            console.error("Details header 'th.details-th' not found during initial state check!");
+            detailsVisible = false; // Assume hidden if header is missing, though this is an error state
         } else {
-            // If header is not 'none', check if there are any detail cells.
-            // If there are no detail cells, it implies an empty state, but the column itself might be considered "visible".
-            // However, if the first cell IS present and display none, then it's hidden.
-            const firstDetailCell = table.querySelector('.details-cell');
-            if (firstDetailCell && getComputedStyle(firstDetailCell).display === 'none') {
-                 detailsVisible = false;
-            } else {
-                 detailsVisible = true; // Default to visible if header is visible, or no cells to check.
-            }
+            console.log('Initial state: detailHeader is visible or not found (error). Defaulting detailsVisible to true.');
+            detailsVisible = true; // Default to visible if header exists and is not display:none
         }
 
+        console.log('Initial detailsVisible state:', detailsVisible);
         updateDetailsView(); // Set initial button text and view based on detected state
 
         toggleButton.addEventListener('click', () => {
+            console.log('Toggle button clicked.');
             detailsVisible = !detailsVisible;
+            console.log('New detailsVisible state:', detailsVisible);
             updateDetailsView();
         });
 
-        // Optional: Adjust on window resize if you want it to be fully dynamic.
-        // window.addEventListener('resize', () => {
-        //     if (detailHeader && getComputedStyle(detailHeader).display === 'none') {
-        //         detailsVisible = false;
-        //     } else {
-        //         detailsVisible = true;
-        //     }
-        //     updateDetailsView();
-        // });
+        console.log('Toggle details column script fully initialized.');
+    } else {
+        console.error('Toggle button or table not found. Toggle script not fully initialized.');
     }
 });
