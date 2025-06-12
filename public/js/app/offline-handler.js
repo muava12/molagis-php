@@ -9,6 +9,7 @@ class OfflineHandler {
         this.connectionLost = false; // Track jika koneksi putus tapi belum show offline state
         this.originalContent = null;
         this.offlineTemplate = null;
+        this.indicatorElement = document.getElementById('connection-indicator');
         this.init();
     }
 
@@ -25,6 +26,7 @@ class OfflineHandler {
     }
 
     handleConnectionLost() {
+        if (this.indicatorElement) { this.indicatorElement.className = 'connection-indicator offline'; }
         this.connectionLost = true;
         console.log('Connection lost - waiting for navigation attempt');
     }
@@ -80,6 +82,16 @@ class OfflineHandler {
     }
 
     handleOnline() {
+        if (this.indicatorElement) {
+            this.indicatorElement.className = 'connection-indicator online';
+            // The CSS animation will handle fade-out and then set display:none
+            // However, to ensure it's properly reset for next time:
+            setTimeout(() => {
+                if (this.indicatorElement) { // Check again in case element is gone
+                    this.indicatorElement.className = 'connection-indicator'; // Reset classes, hide it
+                }
+            }, 3000); // Match CSS animation duration
+        }
         if (!this.isOffline && !this.connectionLost) return; // Sudah online
         
         this.isOffline = false;
