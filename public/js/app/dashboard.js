@@ -760,6 +760,164 @@ export function initDashboard() {
 function initialize() {
     initDashboard();
     initOrder();
+    initializeDashboardCharts(); // New function call for charts
+}
+
+// Function to initialize dashboard overview charts
+function initializeDashboardCharts() {
+    // Check if ApexCharts is available
+    if (typeof ApexCharts === 'undefined') {
+        console.error('ApexCharts library is not loaded.');
+        // Optionally, display a message in the chart divs
+        const chartDivs = ['chart-weekly-revenue', 'chart-weekly-profit', 'chart-weekly-customers'];
+        chartDivs.forEach(divId => {
+            const el = document.getElementById(divId);
+            if (el) {
+                el.innerHTML = '<p class="text-danger text-center small p-2">Charting library not loaded.</p>';
+            }
+        });
+        return;
+    }
+
+    // Check if chart data is passed from Twig
+    if (!window.dashboardOverviewChartData) {
+        console.warn('Dashboard overview chart data not found (window.dashboardOverviewChartData is undefined). Charts will not be rendered.');
+        // The Twig template itself handles showing "Data tidak tersedia" or error messages if the data object part is missing.
+        // So, no need to update the innerHTML of chart divs here if the main object is missing.
+        return;
+    }
+    console.log('Dashboard Overview Chart Data found:', window.dashboardOverviewChartData);
+
+
+    const commonChartOptions = {
+        chart: {
+            type: 'line',
+            height: 60, // Small height for in-card charts
+            sparkline: {
+                enabled: true
+            },
+            animations: {
+                enabled: true,
+                easing: 'easeinout',
+                speed: 800,
+            },
+            dropShadow: {
+                enabled: true,
+                top: 2,
+                left: 0,
+                blur: 3,
+                opacity: 0.2
+            }
+        },
+        stroke: {
+            width: 2,
+            curve: 'smooth'
+        },
+        markers: {
+            size: 0 // No markers for sparkline
+        },
+        grid: {
+            padding: { // Minimal padding
+                top: 5,
+                right: 5,
+                bottom: 5,
+                left: 5
+            }
+        },
+        tooltip: {
+            enabled: true,
+            x: {
+                show: true, // Show week label in tooltip
+            },
+            y: {
+                formatter: function (value) {
+                    // Basic formatter, can be enhanced if numbers are very large
+                    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                    if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
+                    return value;
+                },
+                title: {
+                    formatter: (seriesName) => '', // Hide series name in tooltip y section
+                }
+            },
+            theme: 'dark' // Use dark theme for tooltip for better contrast on light cards
+        },
+        // Colors will be set per chart
+    };
+
+    // Chart 1: Weekly Revenue
+    const revenueData = window.dashboardOverviewChartData.weeklyRevenue;
+    const revenueChartEl = document.getElementById('chart-weekly-revenue');
+    if (revenueChartEl && revenueData && !revenueData.error && revenueData.values && revenueData.values.length > 0) {
+        const revenueChartOptions = {
+            ...commonChartOptions,
+            series: [{
+                name: 'Revenue', // Used in tooltip
+                data: revenueData.values
+            }],
+            xaxis: {
+                categories: revenueData.labels,
+                tooltip: {
+                    enabled: true, // Ensures x-axis category appears in tooltip
+                }
+            },
+            colors: ['#206bc4'] // Tabler primary color (blue)
+        };
+        new ApexCharts(revenueChartEl, revenueChartOptions).render();
+        console.log('Weekly Revenue chart rendered.');
+    } else if (revenueChartEl) {
+        console.warn('Weekly Revenue chart not rendered due to missing data or error.', revenueData);
+        // Twig template should handle the placeholder text for error/no data
+    }
+
+
+    // Chart 2: Weekly Profit
+    const profitData = window.dashboardOverviewChartData.weeklyProfit;
+    const profitChartEl = document.getElementById('chart-weekly-profit');
+    if (profitChartEl && profitData && !profitData.error && profitData.values && profitData.values.length > 0) {
+        const profitChartOptions = {
+            ...commonChartOptions,
+            series: [{
+                name: 'Profit',
+                data: profitData.values
+            }],
+            xaxis: {
+                categories: profitData.labels,
+                tooltip: {
+                    enabled: true,
+                }
+            },
+            colors: ['#2fb344'] // Tabler success color (green)
+        };
+        new ApexCharts(profitChartEl, profitChartOptions).render();
+        console.log('Weekly Profit chart rendered.');
+    } else if (profitChartEl) {
+         console.warn('Weekly Profit chart not rendered due to missing data or error.', profitData);
+    }
+
+    // Chart 3: Weekly Active Customers
+    const customersData = window.dashboardOverviewChartData.weeklyCustomers;
+    const customersChartEl = document.getElementById('chart-weekly-customers');
+    if (customersChartEl && customersData && !customersData.error && customersData.values && customersData.values.length > 0) {
+        const customersChartOptions = {
+            ...commonChartOptions,
+            series: [{
+                name: 'Pelanggan Aktif',
+                data: customersData.values
+            }],
+            xaxis: {
+                categories: customersData.labels,
+                tooltip: {
+                    enabled: true,
+                }
+            },
+            colors: ['#fab005'] // Tabler warning color (yellow/orange)
+        };
+        new ApexCharts(customersChartEl, customersChartOptions).render();
+        console.log('Weekly Customers chart rendered.');
+    } else if (customersChartEl) {
+        console.warn('Weekly Active Customers chart not rendered due to missing data or error.', customersData);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initialize);

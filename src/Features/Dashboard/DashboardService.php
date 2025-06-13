@@ -451,27 +451,77 @@ class DashboardService
             $overallError = 'Terjadi kesalahan saat mengambil data revenue produk.';
         }
 
-        // Prepare data for the cards
+        // Fetch Weekly Metrics Data
+        $weeklyMetricsData = [
+            'revenue' => ['labels' => [], 'values' => [], 'error' => null],
+            'profit' => ['labels' => [], 'values' => [], 'error' => null],
+            'customers' => ['labels' => [], 'values' => [], 'error' => null],
+        ];
+        $weeklyMetricsError = null;
+
+        try {
+            $rpcWeeklyMetricsResponse = $this->client->rpc(
+                'get_weekly_metrics',
+                ['p_week_count' => 8], // Fetch data for the last 8 weeks
+                $accessToken ? ['headers' => ['Authorization' => "Bearer $accessToken"]] : []
+            );
+
+            if ($rpcWeeklyMetricsResponse['error']) {
+                error_log('Supabase RPC get_weekly_metrics error: ' . json_encode($rpcWeeklyMetricsResponse['error']));
+                $weeklyMetricsError = 'Gagal mengambil data metrik mingguan.';
+            } else {
+                $metrics = $rpcWeeklyMetricsResponse['data'] ?? [];
+                if (empty($metrics)) {
+                     $weeklyMetricsError = 'Tidak ada data metrik mingguan yang ditemukan.';
+                } else {
+                    foreach ($metrics as $metric_row) {
+                        $startDate = new \DateTime($metric_row['week_start_date']);
+                        $weekLabel = $startDate->format('d M'); // e.g., "27 Jul"
+
+                        $weeklyMetricsData['revenue']['labels'][] = $weekLabel;
+                        $weeklyMetricsData['revenue']['values'][] = (float) ($metric_row['total_revenue'] ?? 0);
+
+                        $weeklyMetricsData['profit']['labels'][] = $weekLabel;
+                        $weeklyMetricsData['profit']['values'][] = (float) ($metric_row['gross_profit'] ?? 0);
+
+                        $weeklyMetricsData['customers']['labels'][] = $weekLabel;
+                        $weeklyMetricsData['customers']['values'][] = (int) ($metric_row['active_customer_count'] ?? 0);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            error_log('Exception in getDashboardOverviewData (RPC get_weekly_metrics): ' . $e->getMessage());
+            $weeklyMetricsError = 'Terjadi kesalahan saat mengambil data metrik mingguan.';
+        }
+
+        if ($weeklyMetricsError) {
+            $weeklyMetricsData['revenue']['error'] = $weeklyMetricsError;
+            $weeklyMetricsData['profit']['error'] = $weeklyMetricsError;
+            $weeklyMetricsData['customers']['error'] = $weeklyMetricsError;
+        }
+
+        // Final structure for $overviewData
         $overviewData = [
-            'product_revenue' => [
+            'product_revenue' => [ // This is for the first card, "Dana Belum Diproses"
                 'value' => $productRevenue,
                 'label' => 'Dana Belum Diproses',
-                'error' => $overallError // Pass error specific to this card if any
+                'error' => $overallError // Error from get_total_revenue_from_date
             ],
-            'total_orders'    => [
-                'value' => 150, // Mock data
-                'label' => 'Orders (Pekan Ini)',
-                'error' => null
+            // New keys for chart data
+            'weekly_revenue_data' => [ // For "Total Revenue (8 Pekan)" card
+                'labels' => $weeklyMetricsData['revenue']['labels'],
+                'values' => $weeklyMetricsData['revenue']['values'],
+                'error'  => $weeklyMetricsData['revenue']['error']
             ],
-            'active_customers'=> [
-                'value' => 65,  // Mock data
-                'label' => 'Aktif (Pekan Ini)',
-                'error' => null
+            'weekly_profit_data' => [ // For "Gross Profit (8 Pekan)" card
+                'labels' => $weeklyMetricsData['profit']['labels'],
+                'values' => $weeklyMetricsData['profit']['values'],
+                'error'  => $weeklyMetricsData['profit']['error']
             ],
-            'average_order_value' => [
-                'value' => 125000, // Mock data
-                'label' => 'Avg. Order (Pekan Ini)',
-                'error' => null
+            'weekly_customers_data' => [ // For "Pelanggan Aktif (8 Pekan)" card
+                'labels' => $weeklyMetricsData['customers']['labels'],
+                'values' => $weeklyMetricsData['customers']['values'],
+                'error'  => $weeklyMetricsData['customers']['error']
             ]
         ];
 

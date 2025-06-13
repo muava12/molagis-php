@@ -83,7 +83,7 @@
 				<!-- Overview Cards START -->
 				{% if overview_cards_data is defined %}
 				<div class="row row-deck row-cards mb-4">
-					{# Card 1: Product Revenue (Real Data) #}
+					{# Card 1: Dana Belum Diproses (KPI - No Change in structure) #}
 					{% set card1 = overview_cards_data.product_revenue %}
 					<div class="col-md-3 col-sm-6">
 						<div class="card card-sm bg-azure-lt">
@@ -91,20 +91,13 @@
 								<div class="row align-items-center">
 									<div class="col-auto">
 										<span class="bg-primary text-white avatar">
-											<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-coins">
-												<path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-												<path d="M9 14c0 1.657 2.686 3 6 3s6 -1.343 6 -3s-2.686 -3 -6 -3s-6 1.343 -6 3z"></path>
-												<path d="M9 14v4c0 1.656 2.686 3 6 3s6 -1.344 6 -3v-4"></path>
-												<path d="M3 6c0 1.072 1.144 2.062 3 2.598s4.144 .536 6 0c1.856 -.536 3 -1.526 3 -2.598c0 -1.072 -1.144 -2.062 -3 -2.598s-4.144 -.536 -6 0c-1.856 .536 -3 1.526 -3 2.598z"></path>
-												<path d="M3 6v10c0 .888 .772 1.45 2 2"></path>
-												<path d="M3 11c0 .888 .772 1.45 2 2"></path>
-											</svg>
+											<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-coins"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 14c0 1.657 2.686 3 6 3s6 -1.343 6 -3s-2.686 -3 -6 -3s-6 1.343 -6 3z"></path><path d="M9 14v4c0 1.656 2.686 3 6 3s6 -1.344 6 -3v-4"></path><path d="M3 6c0 1.072 1.144 2.062 3 2.598s4.144 .536 6 0c1.856 -.536 3 -1.526 3 -2.598c0 -1.072 -1.144 -2.062 -3 -2.598s-4.144 -.536 -6 0c-1.856 .536 -3 1.526 -3 2.598z"></path><path d="M3 6v10c0 .888 .772 1.45 2 2"></path><path d="M3 11c0 .888 .772 1.45 2 2"></path></svg>
 										</span>
 									</div>
 									<div class="col">
-										<div class="d-inline-block font-weight-medium">{{ card1.label | default('Revenue Produk') }}</div>
+										<div class="d-inline-block font-weight-medium">{{ card1.label | default('Dana Belum Diproses') }}</div>
 										{% if card1.error %}
-											<div class="text-danger" title="{{ card1.error }}">Error</div>
+											<div class="text-danger" title="{{ card1.error }}"><small>Error memuat data</small></div>
 										{% else %}
 											<div class=""><strong id="total-revenue-card">Rp {{ card1.value | default(0) | number_format(0, ',', '.') }}</strong></div>
 										{% endif %}
@@ -114,71 +107,103 @@
 						</div>
 					</div>
 
-					{# Card 2: Total Orders (Mock Data) #}
-					{% set card2 = overview_cards_data.total_orders %}
+					{# Card 2: Total Revenue (8 Pekan) Chart #}
+					{% set chart_revenue_data = overview_cards_data.weekly_revenue_data %}
 					<div class="col-md-3 col-sm-6">
-						<div class="card card-sm bg-teal-lt">
+						<div class="card card-sm bg-teal-lt"> {# Changed color for variety #}
 							<div class="card-body">
-								<div class="row align-items-center">
+								<div class="d-flex align-items-center mb-1"> {# Reduced mb for tighter space #}
 									<div class="col-auto">
 										<span class="bg-teal text-white avatar">
-											<!-- Icon for Total Orders: icon-tabler-shopping-cart -->
-											<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-shopping-cart" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M17 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M17 17h-11v-14h-2" /><path d="M6 5l14 1l-1 7h-13" /></svg>
+											 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chart-line" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 19l0 -14" /><path d="M8 19l0 -10" /><path d="M12 19l0 -12" /><path d="M16 19l0 -8" /><path d="M20 19l0 -15" /></svg>
 										</span>
 									</div>
 									<div class="col">
-										<div class="d-inline-block font-weight-medium">{{ card2.label | default('Total Orders') }}</div>
-										<div class=""><strong id="total-orders-card">{{ card2.value | default(0) }}</strong></div>
+										<div class="d-inline-block font-weight-medium">Total Revenue (8 Pekan)</div>
+										{% if chart_revenue_data.error %}
+											 <div class="text-danger" title="{{ chart_revenue_data.error }}"><small>Error data chart</small></div>
+										{% endif %}
 									</div>
 								</div>
+								{% if not chart_revenue_data.error and chart_revenue_data.values is not empty %}
+									<div id="chart-weekly-revenue" style="min-height: 50px;"></div> {# Chart container #}
+								{% else %}
+									<div class="text-muted text-center" style="min-height: 50px; padding-top:10px;">{{ chart_revenue_data.error | default('Data tidak tersedia') }}</div>
+								{% endif %}
 							</div>
 						</div>
 					</div>
 
-					{# Card 3: Active Customers (Mock Data) #}
-					{% set card3 = overview_cards_data.active_customers %}
+					{# Card 3: Gross Profit (8 Pekan) Chart #}
+					{% set chart_profit_data = overview_cards_data.weekly_profit_data %}
 					<div class="col-md-3 col-sm-6">
 						<div class="card card-sm bg-green-lt">
 							<div class="card-body">
-								<div class="row align-items-center">
+								 <div class="d-flex align-items-center mb-1">
 									<div class="col-auto">
 										<span class="bg-green text-white avatar">
-											<!-- Icon for Active Customers: icon-tabler-users -->
-											<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-users" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
+											<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chart-arrows-vertical" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 21v-18" /><path d="M9 15l3 -3l3 3" /><path d="M15 12v9" /><path d="M6 21v-9" /><path d="M3 12l3 -3l3 3" /></svg>
 										</span>
 									</div>
 									<div class="col">
-										<div class="d-inline-block font-weight-medium">{{ card3.label | default('Pelanggan Aktif') }}</div>
-										<div class=""><strong id="active-customers-card">{{ card3.value | default(0) }}</strong></div>
+										<div class="d-inline-block font-weight-medium">Gross Profit (8 Pekan)</div>
+										{% if chart_profit_data.error %}
+											 <div class="text-danger" title="{{ chart_profit_data.error }}"><small>Error data chart</small></div>
+										{% endif %}
 									</div>
 								</div>
+								{% if not chart_profit_data.error and chart_profit_data.values is not empty %}
+									<div id="chart-weekly-profit" style="min-height: 50px;"></div>
+								{% else %}
+									<div class="text-muted text-center" style="min-height: 50px; padding-top:10px;">{{ chart_profit_data.error | default('Data tidak tersedia') }}</div>
+								{% endif %}
 							</div>
 						</div>
 					</div>
 
-					{# Card 4: Average Order Value (Mock Data) #}
-					{% set card4 = overview_cards_data.average_order_value %}
+					{# Card 4: Pelanggan Aktif (8 Pekan) Chart #}
+					{% set chart_customers_data = overview_cards_data.weekly_customers_data %}
 					<div class="col-md-3 col-sm-6">
 						<div class="card card-sm bg-orange-lt">
 							<div class="card-body">
-								<div class="row align-items-center">
+								<div class="d-flex align-items-center mb-1">
 									<div class="col-auto">
 										<span class="bg-orange text-white avatar">
-											<!-- Icon for Average Order Value: icon-tabler-receipt-2 -->
-											<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-receipt-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2" /><path d="M14 8h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2.5m2 0v1.5m0 -9v1.5" /></svg>
+										   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-users-group" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /><path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M17 10h2a2 2 0 0 1 2 2v1" /><path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg>
 										</span>
 									</div>
 									<div class="col">
-										<div class="d-inline-block font-weight-medium">{{ card4.label | default('Rata-rata Order') }}</div>
-										<div class=""><strong id="aov-card">Rp {{ card4.value | default(0) | number_format(0, ',', '.') }}</strong></div>
+										<div class="d-inline-block font-weight-medium">Pelanggan Aktif (8 Pekan)</div>
+										 {% if chart_customers_data.error %}
+											 <div class="text-danger" title="{{ chart_customers_data.error }}"><small>Error data chart</small></div>
+										{% endif %}
 									</div>
 								</div>
+								{% if not chart_customers_data.error and chart_customers_data.values is not empty %}
+									<div id="chart-weekly-customers" style="min-height: 50px;"></div>
+								{% else %}
+									 <div class="text-muted text-center" style="min-height: 50px; padding-top:10px;">{{ chart_customers_data.error | default('Data tidak tersedia') }}</div>
+								{% endif %}
 							</div>
 						</div>
 					</div>
 				</div>
 				{% endif %}
 				<!-- Overview Cards END -->
+
+				{# Script to pass data to JavaScript for ApexCharts #}
+				{% if overview_cards_data is defined %}
+				<script>
+				document.addEventListener('DOMContentLoaded', function () {
+					window.dashboardOverviewChartData = {
+						weeklyRevenue: {{ overview_cards_data.weekly_revenue_data | json_encode | raw }},
+						weeklyProfit: {{ overview_cards_data.weekly_profit_data | json_encode | raw }},
+						weeklyCustomers: {{ overview_cards_data.weekly_customers_data | json_encode | raw }}
+					};
+					// console.log('Dashboard Overview Chart Data:', window.dashboardOverviewChartData); // For debugging
+				});
+				</script>
+				{% endif %}
 				<div id="error-container">
 					{% if error %}
 						<div class="alert alert-danger alert-dismissible" role="alert">
