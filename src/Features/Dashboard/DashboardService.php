@@ -524,7 +524,7 @@ class DashboardService
         $overviewData = [
             'product_revenue' => [ // For "Dana Belum Diproses" card
                 'label' => 'Dana Belum Diproses', // Actual card title/subheader
-                'latest_value' => $productRevenue, // The single KPI value
+                'value' => $productRevenue, // The single KPI value
                 'values' => [], // Empty array for chart data, as it's a single KPI
                 'labels' => [], // Empty array for chart labels
                 'error'  => $overallError, // Error for fetching the KPI
