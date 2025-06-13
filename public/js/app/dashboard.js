@@ -801,7 +801,7 @@ function initializeDashboardCharts() {
             y: {
                 formatter: function (value) {
                     if (value === undefined || value === null) return 'N/A';
-                    if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                    if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'JT'; // Changed 'M' to 'JT'
                     if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'K';
                     return parseFloat(value).toFixed(0);
                 },

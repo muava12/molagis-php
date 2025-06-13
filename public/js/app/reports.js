@@ -437,7 +437,13 @@ function initDynamicPeriodPicker() {
         }
 
         // Set default dates based on type
-        setDefaultDatesForType(newType);
+        // ONLY if selectedDates is not already populated (e.g., from URL or localStorage)
+        if (!selectedDates || selectedDates.length === 0) {
+            console.log('changePeriodType: selectedDates not populated, calling setDefaultDatesForType for type:', newType);
+            setDefaultDatesForType(newType);
+        } else {
+            console.log('changePeriodType: selectedDates already populated, skipping setDefaultDatesForType. Current selectedDates:', selectedDates);
+        }
 
         // Initialize new Flatpickr based on type
         initializeFlatpickr(newType);
@@ -888,6 +894,7 @@ function initDynamicPeriodPicker() {
      * Update input display based on selected dates and type
      */
     function updateInputDisplay(dates, type) {
+        console.log('updateInputDisplay called. Type:', type, 'Dates:', dates ? dates.map(d => d.toISOString()) : 'No dates');
         if (!dates || dates.length === 0) {
             periodInput.value = '';
             if (periodInputMobile) periodInputMobile.value = '';

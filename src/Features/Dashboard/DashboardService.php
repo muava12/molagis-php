@@ -425,6 +425,7 @@ class DashboardService
         $firstMonday = clone $today;
         $firstMonday->modify('monday this week');
         $firstMondayFormatted = $firstMonday->format('Y-m-d');
+        error_log("DashboardService: Calculated firstMondayFormatted for Dana Belum Diproses: " . $firstMondayFormatted); // Log the date being passed
 
         $productRevenue = 0.0;
         $overallError = null;
@@ -436,19 +437,38 @@ class DashboardService
                 ['p_start_date' => $firstMondayFormatted],
                 $accessToken ? ['headers' => ['Authorization' => "Bearer $accessToken"]] : []
             );
+            error_log("DashboardService: RPC response for get_total_revenue_from_date: " . json_encode($rpcResponse)); // Log the full response
 
             if ($rpcResponse['error']) {
                 error_log('Supabase RPC get_total_revenue_from_date error: ' . json_encode($rpcResponse['error']));
                 $overallError = 'Gagal mengambil data revenue produk.';
-                // Keep $productRevenue as 0.0
             } else {
                 // Assuming the RPC function returns a single numeric value directly
-                // Adjust if it returns an object or array, e.g., $rpcResponse['data'][0]['total_revenue']
-                $productRevenue = (float) ($rpcResponse['data'] ?? 0.0);
+                // If it returns an array like [{"get_total_revenue_from_date": 12345}], access it accordingly
+                if (isset($rpcResponse['data']) && is_array($rpcResponse['data']) && isset($rpcResponse['data'][0])) {
+                     // Check if the function name is a key in the first element
+                    $functionNameKey = 'get_total_revenue_from_date'; // Or whatever the actual key is
+                    if (isset($rpcResponse['data'][0][$functionNameKey])) {
+                        $productRevenue = (float) ($rpcResponse['data'][0][$functionNameKey] ?? 0.0);
+                    } else {
+                        // Fallback: if data is just a plain array of values, and we expect one value
+                        // This depends on how Supabase formats RPC responses for functions returning single values/sets
+                        $productRevenue = (float) ($rpcResponse['data'][0] ?? 0.0);
+                    }
+                } elseif (isset($rpcResponse['data']) && is_numeric($rpcResponse['data'])) {
+                    // If data directly contains the numeric value
+                    $productRevenue = (float) $rpcResponse['data'];
+                } else {
+                     $productRevenue = 0.0; // Default if structure is not recognized
+                     error_log('DashboardService: productRevenue RPC response data structure not recognized or empty: ' . json_encode($rpcResponse['data']));
+                }
+                error_log("DashboardService: Parsed productRevenue: " . $productRevenue); // Log the parsed value
             }
         } catch (\Exception $e) {
-            error_log('Exception in getDashboardOverviewData (RPC call): ' . $e->getMessage());
+            error_log('Exception in getDashboardOverviewData (RPC call for productRevenue): ' . $e->getMessage());
             $overallError = 'Terjadi kesalahan saat mengambil data revenue produk.';
+            $productRevenue = 0.0; // Ensure it's 0 on exception
+            error_log("DashboardService: productRevenue set to 0 due to exception.");
         }
 
         // Fetch Weekly Metrics Data
@@ -537,6 +557,11 @@ class DashboardService
             ]
         ];
 
+        if (isset($overviewData['product_revenue'])) { // Check if key exists before logging
+            error_log("DashboardService: Final overviewData for product_revenue (Dana Belum Diproses): " . json_encode($overviewData['product_revenue']));
+        } else {
+            error_log("DashboardService: 'product_revenue' key missing in final overviewData.");
+        }
         return $overviewData;
     }
 }
