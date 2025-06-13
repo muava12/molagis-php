@@ -114,6 +114,50 @@ class ReportsService
     }
 
     /**
+     * Mengambil detail pesanan per customer untuk periode tertentu.
+     *
+     * @param string|null $startDate Tanggal mulai (YYYY-MM-DD)
+     * @param string|null $endDate Tanggal akhir (YYYY-MM-DD)
+     * @param string|null $accessToken Token akses pengguna
+     * @return array Hasil yang berisi 'data' (detail pesanan) atau 'error'.
+     */
+    public function getCustomerOrderDetailsReport(?string $startDate, ?string $endDate, ?string $accessToken): array
+    {
+        try {
+            $result = $this->callReportsRPC('get_customer_sales_report', [
+                'p_start_date' => $startDate,
+                'p_end_date' => $endDate,
+            ], $accessToken);
+
+            if (!empty($result['error'])) {
+                $errorMessage = 'Gagal mengambil data laporan detail pesanan customer dari RPC: ' . $result['error'];
+                error_log('Error from get_customer_sales_report RPC: ' . $result['error']);
+                return ['data' => [], 'error' => $errorMessage];
+            }
+
+            if (!isset($result['data']) || !is_array($result['data'])) {
+                $errorMessage = 'Format data tidak valid atau data kosong dari RPC get_customer_sales_report.';
+                // Log error jika data tidak ada atau bukan array, meskipun tidak ada error eksplisit dari RPC
+                error_log($errorMessage . ' Response: ' . json_encode($result['data']));
+                return ['data' => [], 'error' => $errorMessage];
+            }
+
+            // Jika data kosong (array kosong), kembalikan array kosong, bukan error.
+            // Ini sesuai dengan ekspektasi bahwa RPC mengembalikan array customer sales objects.
+            // Jika tidak ada penjualan, array kosong adalah respons yang valid.
+            if (empty($result['data'])) {
+                return ['data' => [], 'error' => null];
+            }
+
+            return ['data' => $result['data'], 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in getCustomerOrderDetailsReport: ' . $e->getMessage());
+            return ['data' => [], 'error' => 'Gagal mengambil detail pesanan customer: ' . $e->getMessage()];
+        }
+    }
+
+    /**
      * Mengambil overview statistics untuk dashboard reports.
      * Menggunakan data dari financial overview dan menambahkan statistik lainnya.
      *
