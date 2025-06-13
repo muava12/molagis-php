@@ -409,4 +409,134 @@ class DashboardService
 
         return array_values($groupedOrders);
     }
+
+    /**
+     * Mengambil data overview untuk kartu di dashboard.
+     * Termasuk total revenue produk dari tanggal tertentu dan data mock lainnya.
+     *
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Data untuk kartu overview.
+     */
+    public function getDashboardOverviewData(?string $accessToken = null): array
+    {
+        // Calculate the first Monday of the current week
+        $tz = new \DateTimeZone('Asia/Makassar'); // Assuming same timezone as other methods
+        $today = new \DateTime('now', $tz);
+        $firstMonday = clone $today;
+        $firstMonday->modify('monday this week');
+        $firstMondayFormatted = $firstMonday->format('Y-m-d');
+
+        $productRevenue = 0.0;
+        $overallError = null;
+
+        try {
+            // Call the RPC function get_total_revenue_from_date
+            $rpcResponse = $this->client->rpc(
+                'get_total_revenue_from_date',
+                ['p_start_date' => $firstMondayFormatted],
+                $accessToken ? ['headers' => ['Authorization' => "Bearer $accessToken"]] : []
+            );
+
+            if ($rpcResponse['error']) {
+                error_log('Supabase RPC get_total_revenue_from_date error: ' . json_encode($rpcResponse['error']));
+                $overallError = 'Gagal mengambil data revenue produk.';
+                // Keep $productRevenue as 0.0
+            } else {
+                // Assuming the RPC function returns a single numeric value directly
+                // Adjust if it returns an object or array, e.g., $rpcResponse['data'][0]['total_revenue']
+                $productRevenue = (float) ($rpcResponse['data'] ?? 0.0);
+            }
+        } catch (\Exception $e) {
+            error_log('Exception in getDashboardOverviewData (RPC call): ' . $e->getMessage());
+            $overallError = 'Terjadi kesalahan saat mengambil data revenue produk.';
+        }
+
+        // Fetch Weekly Metrics Data
+        $weeklyMetricsData = [
+            'revenue' => ['labels' => [], 'values' => [], 'error' => null],
+            'profit' => ['labels' => [], 'values' => [], 'error' => null],
+            'customers' => ['labels' => [], 'values' => [], 'error' => null],
+        ];
+        $weeklyMetricsError = null;
+
+        try {
+            $rpcWeeklyMetricsResponse = $this->client->rpc(
+                'get_weekly_metrics',
+                ['p_week_count' => 10], // Fetch data for the last 10 weeks
+                $accessToken ? ['headers' => ['Authorization' => "Bearer $accessToken"]] : []
+            );
+
+            if ($rpcWeeklyMetricsResponse['error']) {
+                error_log('Supabase RPC get_weekly_metrics error: ' . json_encode($rpcWeeklyMetricsResponse['error']));
+                $weeklyMetricsError = 'Gagal mengambil data metrik mingguan.';
+            } else {
+                $metrics = $rpcWeeklyMetricsResponse['data'] ?? [];
+                if (empty($metrics)) {
+                     $weeklyMetricsError = 'Tidak ada data metrik mingguan yang ditemukan.';
+                } else {
+                    foreach ($metrics as $metric_row) {
+                        $startDate = new \DateTime($metric_row['week_start_date']);
+                        $weekLabel = $startDate->format('d M'); // e.g., "27 Jul"
+
+                        $weeklyMetricsData['revenue']['labels'][] = $weekLabel;
+                        $weeklyMetricsData['revenue']['values'][] = (float) ($metric_row['total_revenue'] ?? 0);
+
+                        $weeklyMetricsData['profit']['labels'][] = $weekLabel;
+                        $weeklyMetricsData['profit']['values'][] = (float) ($metric_row['gross_profit'] ?? 0);
+
+                        $weeklyMetricsData['customers']['labels'][] = $weekLabel;
+                        $weeklyMetricsData['customers']['values'][] = (int) ($metric_row['active_customer_count'] ?? 0);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            error_log('Exception in getDashboardOverviewData (RPC get_weekly_metrics): ' . $e->getMessage());
+            $weeklyMetricsError = 'Terjadi kesalahan saat mengambil data metrik mingguan.';
+        }
+
+        if ($weeklyMetricsError) {
+            $weeklyMetricsData['revenue']['error'] = $weeklyMetricsError;
+            $weeklyMetricsData['profit']['error'] = $weeklyMetricsError;
+            $weeklyMetricsData['customers']['error'] = $weeklyMetricsError;
+        }
+
+        // Final structure for $overviewData
+        $overviewData = [
+            'product_revenue' => [ // For "Dana Belum Diproses" card
+                'label' => 'Dana Belum Diproses', // Actual card title/subheader
+                'latest_value' => $productRevenue, // The single KPI value
+                'values' => [], // Empty array for chart data, as it's a single KPI
+                'labels' => [], // Empty array for chart labels
+                'error'  => $overallError, // Error for fetching the KPI
+                'dummy_percentage_change' => '+0%', // Or some relevant dummy value
+                'dummy_trend' => 'neutral' // Or some relevant dummy value
+            ],
+            'weekly_revenue_data' => [
+                'labels' => $weeklyMetricsData['revenue']['labels'],
+                'values' => $weeklyMetricsData['revenue']['values'],
+                'error'  => $weeklyMetricsData['revenue']['error'],
+                'latest_value' => end($weeklyMetricsData['revenue']['values']) ?: 0,
+                'dummy_percentage_change' => '+5%',
+                'dummy_trend' => 'up'
+            ],
+            'weekly_profit_data' => [
+                'labels' => $weeklyMetricsData['profit']['labels'],
+                'values' => $weeklyMetricsData['profit']['values'],
+                'error'  => $weeklyMetricsData['profit']['error'],
+                'latest_value' => end($weeklyMetricsData['profit']['values']) ?: 0,
+                'dummy_percentage_change' => '-2%',
+                'dummy_trend' => 'down'
+            ],
+            'weekly_customers_data' => [
+                'labels' => $weeklyMetricsData['customers']['labels'],
+                'values' => $weeklyMetricsData['customers']['values'],
+                'error'  => $weeklyMetricsData['customers']['error'],
+                'latest_value' => end($weeklyMetricsData['customers']['values']) ?: 0,
+                'dummy_percentage_change' => '+1%',
+                'dummy_trend' => 'up'
+            ]
+        ];
+
+        return $overviewData;
+    }
 }

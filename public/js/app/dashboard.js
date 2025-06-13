@@ -760,6 +760,234 @@ export function initDashboard() {
 function initialize() {
     initDashboard();
     initOrder();
+    initializeDashboardCharts(); // New function call for charts
+}
+
+// Function to initialize dashboard overview charts
+function initializeDashboardCharts() {
+    // Check if ApexCharts is available
+    if (typeof ApexCharts === 'undefined') {
+        console.error('ApexCharts library is not loaded.');
+        const chartDivs = ['chart-weekly-revenue', 'chart-weekly-profit', 'chart-weekly-customers'];
+        chartDivs.forEach(divId => {
+            const el = document.getElementById(divId);
+            if (el) {
+                el.innerHTML = '<p class="text-danger text-center small p-2">Charting library not loaded.</p>';
+            }
+        });
+        return;
+    }
+
+    if (!window.dashboardOverviewChartData) {
+        console.warn('Dashboard overview chart data not found (window.dashboardOverviewChartData is undefined). Charts will not be rendered.');
+        return;
+    }
+    console.log('Dashboard Overview Chart Data found:', window.dashboardOverviewChartData);
+
+    const commonChartOptions = {
+        chart: {
+            type: "line",
+            fontFamily: 'inherit',
+            parentHeightOffset: 0,
+            toolbar: { show: false },
+            animations: { enabled: false },
+            zoom: { enabled: false }
+        },
+        stroke: { width: 2, lineCap: "round", curve: "straight" },
+        markers: { size: 3, hover: { size: 5 } },
+        tooltip: {
+            theme: 'dark',
+            x: { show: true },
+            y: {
+                formatter: function (value) {
+                    if (value === undefined || value === null) return 'N/A';
+                    if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                    if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'K';
+                    return parseFloat(value).toFixed(0);
+                },
+                title: { formatter: (seriesName) => seriesName ? seriesName + ':' : '', }
+            }
+        },
+        grid: {
+            padding: { top: -10, right: 0, left: -4, bottom: -4 },
+            strokeDashArray: 4,
+            position: 'back',
+            yaxis: { lines: { show: true } },
+            xaxis: { lines: { show: false } }
+        },
+        xaxis: {
+            labels: {
+                show: true,
+                padding: 0,
+                style: { fontSize: '10px', colors: '#adb5bd' },
+                formatter: function (value, timestamp, opts) { return value; },
+                hideOverlappingLabels: true,
+                trim: false,
+            },
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+            tooltip: { enabled: false },
+            type: 'category',
+            categories: []
+        },
+        yaxis: {
+            labels: {
+                show: true,
+                padding: 4,
+                style: { fontSize: '10px', colors: '#adb5bd' },
+                formatter: (value) => {
+                    if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(0) + 'M';
+                    if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'K';
+                    return value.toFixed(0);
+                }
+            },
+            axisBorder: { show: false },
+            min: function(min) { return min < 0 ? min * 1.1 : min * 0.9; },
+            max: function(max) { return max < 0 ? max * 0.9 : max * 1.1; },
+            tickAmount: 3
+        },
+        legend: {
+            show: true,
+            position: 'bottom',
+            offsetY: 12,
+            markers: { width: 10, height: 10, radius: 100 },
+            itemMargin: { horizontal: 8, vertical: 8 }
+        },
+        colors: [] // Will be set per chart
+    };
+
+    // Chart 1: Weekly Revenue
+    const revenueData = window.dashboardOverviewChartData.weeklyRevenue;
+    const revenueChartEl = document.getElementById('chart-weekly-revenue');
+
+    console.log('Attempting to render Weekly Revenue chart.');
+    console.log('Revenue Chart Element:', revenueChartEl);
+    console.log('Revenue Data Object:', revenueData);
+    if (revenueData && revenueData.values) {
+        console.log('Revenue Values (for series.data):', JSON.parse(JSON.stringify(revenueData.values)));
+    }
+    if (revenueData && revenueData.labels) {
+        console.log('Revenue Labels (for xaxis.categories):', JSON.parse(JSON.stringify(revenueData.labels)));
+    }
+
+    if (revenueChartEl && revenueData && !revenueData.error && revenueData.values && revenueData.values.length > 1) {
+        console.log('Using FULL commonOptions for Weekly Revenue chart.');
+        const revenueChartOptions = {
+            ...commonChartOptions,
+            series: [{
+                name: 'Revenue',
+                data: revenueData.values
+            }],
+            xaxis: {
+                ...commonChartOptions.xaxis,
+                categories: revenueData.labels
+            },
+            colors: ['#206bc4']
+        };
+        try {
+            new ApexCharts(revenueChartEl, revenueChartOptions).render();
+            console.log('Full revenue chart render CALLED.');
+        } catch (e) {
+            console.error('Error rendering full revenue chart:', e);
+        }
+    } else if (revenueChartEl) {
+        if (revenueData && revenueData.error) {
+            console.warn('Revenue chart not rendered due to error in data:', revenueData.error, revenueData);
+        } else if (revenueData && (!revenueData.values || revenueData.values.length <= 1)) {
+            console.warn('Revenue chart not rendered due to insufficient data points:', revenueData.values, revenueData);
+        } else {
+            console.warn('Revenue chart prerequisites not met for unknown reason.', revenueData);
+        }
+    }
+
+
+    // Chart 2: Weekly Profit
+    const profitData = window.dashboardOverviewChartData.weeklyProfit;
+    const profitChartEl = document.getElementById('chart-weekly-profit');
+
+    console.log('Attempting to render Weekly Profit chart.');
+    console.log('Profit Chart Element:', profitChartEl);
+    console.log('Profit Data Object:', profitData);
+    if (profitData && profitData.values) {
+        console.log('Profit Values (for series.data):', JSON.parse(JSON.stringify(profitData.values)));
+    }
+    if (profitData && profitData.labels) {
+        console.log('Profit Labels (for xaxis.categories):', JSON.parse(JSON.stringify(profitData.labels)));
+    }
+
+    if (profitChartEl && profitData && !profitData.error && profitData.values && profitData.values.length > 1) {
+        console.log('Using FULL commonOptions for Weekly Profit chart.');
+        const profitChartOptions = {
+            ...commonChartOptions,
+            series: [{
+                name: 'Profit',
+                data: profitData.values
+            }],
+            xaxis: {
+                ...commonChartOptions.xaxis,
+                categories: profitData.labels
+            },
+            colors: ['#2fb344']
+        };
+        try {
+            new ApexCharts(profitChartEl, profitChartOptions).render();
+            console.log('Full profit chart render CALLED.');
+        } catch (e) {
+            console.error('Error rendering full profit chart:', e);
+        }
+    } else if (profitChartEl) {
+        if (profitData && profitData.error) {
+            console.warn('Profit chart not rendered due to error in data:', profitData.error, profitData);
+        } else if (profitData && (!profitData.values || profitData.values.length <= 1)) {
+            console.warn('Profit chart not rendered due to insufficient data points:', profitData.values, profitData);
+        } else {
+            console.warn('Profit chart prerequisites not met for unknown reason.', profitData);
+        }
+    }
+
+    // Chart 3: Weekly Active Customers
+    const customersData = window.dashboardOverviewChartData.weeklyCustomers;
+    const customersChartEl = document.getElementById('chart-weekly-customers');
+
+    console.log('Attempting to render Weekly Active Customers chart.');
+    console.log('Customers Chart Element:', customersChartEl);
+    console.log('Customers Data Object:', customersData);
+    if (customersData && customersData.values) {
+        console.log('Customers Values (for series.data):', JSON.parse(JSON.stringify(customersData.values)));
+    }
+    if (customersData && customersData.labels) {
+        console.log('Customers Labels (for xaxis.categories):', JSON.parse(JSON.stringify(customersData.labels)));
+    }
+
+    if (customersChartEl && customersData && !customersData.error && customersData.values && customersData.values.length > 1) {
+        console.log('Using FULL commonOptions for Weekly Customers chart.');
+        const customersChartOptions = {
+            ...commonChartOptions,
+            series: [{
+                name: 'Pelanggan Aktif',
+                data: customersData.values
+            }],
+            xaxis: {
+                ...commonChartOptions.xaxis,
+                categories: customersData.labels
+            },
+            colors: ['#fab005']
+        };
+        try {
+            new ApexCharts(customersChartEl, customersChartOptions).render();
+            console.log('Full customers chart render CALLED.');
+        } catch (e) {
+            console.error('Error rendering full customers chart:', e);
+        }
+    } else if (customersChartEl) {
+        if (customersData && customersData.error) {
+            console.warn('Customers chart not rendered due to error in data:', customersData.error, customersData);
+        } else if (customersData && (!customersData.values || customersData.values.length <= 1)) {
+            console.warn('Customers chart not rendered due to insufficient data points:', customersData.values, customersData);
+        } else {
+            console.warn('Customers chart prerequisites not met for unknown reason.', customersData);
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initialize);
