@@ -787,35 +787,40 @@ function initializeDashboardCharts() {
     const commonChartOptions = {
         chart: {
             type: 'line',
-            height: 60,
-            sparkline: { enabled: false },
+            height: 70, // Explicit height, slightly more for testing
+            sparkline: { enabled: false }, // Ensure this is false
             animations: {
                 enabled: true,
                 easing: 'easeinout',
                 speed: 800,
-             },
+            },
             dropShadow: {
                 enabled: true,
                 top: 2,
                 left: 0,
                 blur: 3,
                 opacity: 0.2
-             },
+            },
             parentHeightOffset: 0,
             toolbar: { show: false }
         },
-        stroke: { width: 2, curve: 'smooth' },
-        markers: { size: 0 },
+        stroke: {
+            width: 2, // Ensure non-zero width
+            curve: 'smooth'
+        },
+        markers: {
+            size: 0
+        },
         grid: {
             show: false,
-            padding: { top: 5, right: 0, bottom: 0, left: 0 }
+            padding: { top: 10, right: 5, bottom: 5, left: 5 } // Increased top padding slightly
         },
         xaxis: {
-            categories: [],
+            categories: [], // Will be set per chart
             labels: { show: false },
             axisBorder: { show: false },
-            axisTicks: { show: false },
-            tooltip: { enabled: true }
+            axisTicks: { show:false },
+            tooltip: { enabled: true } // Keep this for interactivity
         },
         yaxis: {
             labels: { show: false },
@@ -823,6 +828,7 @@ function initializeDashboardCharts() {
             axisTicks: { show: false }
         },
         tooltip: {
+            enabled: true,
             theme: 'dark',
             x: { show: true },
             y: {
@@ -830,7 +836,7 @@ function initializeDashboardCharts() {
                     if (value === undefined || value === null) return 'N/A';
                     if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
                     if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'K';
-                    return value.toFixed(0);
+                    return parseFloat(value).toFixed(0); // Ensure it's a number and format
                 },
                 title: { formatter: (seriesName) => '' }
             }
@@ -840,30 +846,64 @@ function initializeDashboardCharts() {
     // Chart 1: Weekly Revenue
     const revenueData = window.dashboardOverviewChartData.weeklyRevenue;
     const revenueChartEl = document.getElementById('chart-weekly-revenue');
+
+    console.log('Attempting to render Weekly Revenue chart.');
+    console.log('Revenue Chart Element:', revenueChartEl);
+    console.log('Revenue Data Object:', revenueData);
+    if (revenueData && revenueData.values) {
+        console.log('Revenue Values (for series.data):', JSON.parse(JSON.stringify(revenueData.values)));
+    }
+    if (revenueData && revenueData.labels) {
+        console.log('Revenue Labels (for xaxis.categories):', JSON.parse(JSON.stringify(revenueData.labels)));
+    }
+
     if (revenueChartEl && revenueData && !revenueData.error && revenueData.values && revenueData.values.length > 1) {
+        console.log('Using FULL commonOptions for Weekly Revenue chart.'); // New log
         const revenueChartOptions = {
             ...commonChartOptions,
             series: [{
-                name: 'Revenue',
+                name: 'Revenue', // This name appears in the tooltip
                 data: revenueData.values
             }],
             xaxis: {
-                ...commonChartOptions.xaxis,
+                ...commonChartOptions.xaxis, // Spread common xaxis settings
                 categories: revenueData.labels
             },
-            colors: ['#206bc4']
+            colors: ['#206bc4'] // Tabler primary color
         };
-        new ApexCharts(revenueChartEl, revenueChartOptions).render();
-        console.log('Weekly Revenue chart rendered.');
+        try {
+            new ApexCharts(revenueChartEl, revenueChartOptions).render();
+            console.log('Full revenue chart render CALLED.');
+        } catch (e) {
+            console.error('Error rendering full revenue chart:', e);
+        }
     } else if (revenueChartEl) {
-         console.warn('Weekly Revenue chart not rendered. Data:', revenueData);
+        if (revenueData && revenueData.error) {
+            console.warn('Revenue chart not rendered due to error in data:', revenueData.error, revenueData);
+        } else if (revenueData && (!revenueData.values || revenueData.values.length <= 1)) {
+            console.warn('Revenue chart not rendered due to insufficient data points:', revenueData.values, revenueData);
+        } else {
+            console.warn('Revenue chart prerequisites not met for unknown reason.', revenueData);
+        }
     }
 
 
     // Chart 2: Weekly Profit
     const profitData = window.dashboardOverviewChartData.weeklyProfit;
     const profitChartEl = document.getElementById('chart-weekly-profit');
+
+    console.log('Attempting to render Weekly Profit chart.');
+    console.log('Profit Chart Element:', profitChartEl);
+    console.log('Profit Data Object:', profitData);
+    if (profitData && profitData.values) {
+        console.log('Profit Values (for series.data):', JSON.parse(JSON.stringify(profitData.values)));
+    }
+    if (profitData && profitData.labels) {
+        console.log('Profit Labels (for xaxis.categories):', JSON.parse(JSON.stringify(profitData.labels)));
+    }
+
     if (profitChartEl && profitData && !profitData.error && profitData.values && profitData.values.length > 1) {
+        console.log('Using FULL commonOptions for Weekly Profit chart.');
         const profitChartOptions = {
             ...commonChartOptions,
             series: [{
@@ -874,18 +914,40 @@ function initializeDashboardCharts() {
                 ...commonChartOptions.xaxis,
                 categories: profitData.labels
             },
-            colors: ['#2fb344']
+            colors: ['#2fb344'] // Tabler success color (green)
         };
-        new ApexCharts(profitChartEl, profitChartOptions).render();
-        console.log('Weekly Profit chart rendered.');
+        try {
+            new ApexCharts(profitChartEl, profitChartOptions).render();
+            console.log('Full profit chart render CALLED.');
+        } catch (e) {
+            console.error('Error rendering full profit chart:', e);
+        }
     } else if (profitChartEl) {
-         console.warn('Weekly Profit chart not rendered. Data:', profitData);
+        if (profitData && profitData.error) {
+            console.warn('Profit chart not rendered due to error in data:', profitData.error, profitData);
+        } else if (profitData && (!profitData.values || profitData.values.length <= 1)) {
+            console.warn('Profit chart not rendered due to insufficient data points:', profitData.values, profitData);
+        } else {
+            console.warn('Profit chart prerequisites not met for unknown reason.', profitData);
+        }
     }
 
     // Chart 3: Weekly Active Customers
     const customersData = window.dashboardOverviewChartData.weeklyCustomers;
     const customersChartEl = document.getElementById('chart-weekly-customers');
+
+    console.log('Attempting to render Weekly Active Customers chart.');
+    console.log('Customers Chart Element:', customersChartEl);
+    console.log('Customers Data Object:', customersData);
+    if (customersData && customersData.values) {
+        console.log('Customers Values (for series.data):', JSON.parse(JSON.stringify(customersData.values)));
+    }
+    if (customersData && customersData.labels) {
+        console.log('Customers Labels (for xaxis.categories):', JSON.parse(JSON.stringify(customersData.labels)));
+    }
+
     if (customersChartEl && customersData && !customersData.error && customersData.values && customersData.values.length > 1) {
+        console.log('Using FULL commonOptions for Weekly Customers chart.');
         const customersChartOptions = {
             ...commonChartOptions,
             series: [{
@@ -896,12 +958,22 @@ function initializeDashboardCharts() {
                 ...commonChartOptions.xaxis,
                 categories: customersData.labels
             },
-            colors: ['#fab005']
+            colors: ['#fab005'] // Tabler warning color (yellow/orange)
         };
-        new ApexCharts(customersChartEl, customersChartOptions).render();
-        console.log('Weekly Customers chart rendered.');
+        try {
+            new ApexCharts(customersChartEl, customersChartOptions).render();
+            console.log('Full customers chart render CALLED.');
+        } catch (e) {
+            console.error('Error rendering full customers chart:', e);
+        }
     } else if (customersChartEl) {
-        console.warn('Weekly Active Customers chart not rendered. Data:', customersData);
+        if (customersData && customersData.error) {
+            console.warn('Customers chart not rendered due to error in data:', customersData.error, customersData);
+        } else if (customersData && (!customersData.values || customersData.values.length <= 1)) {
+            console.warn('Customers chart not rendered due to insufficient data points:', customersData.values, customersData);
+        } else {
+            console.warn('Customers chart prerequisites not met for unknown reason.', customersData);
+        }
     }
 }
 
