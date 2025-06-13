@@ -462,7 +462,7 @@ class DashboardService
         try {
             $rpcWeeklyMetricsResponse = $this->client->rpc(
                 'get_weekly_metrics',
-                ['p_week_count' => 8], // Fetch data for the last 8 weeks
+                ['p_week_count' => 10], // Fetch data for the last 10 weeks
                 $accessToken ? ['headers' => ['Authorization' => "Bearer $accessToken"]] : []
             );
 
@@ -502,26 +502,34 @@ class DashboardService
 
         // Final structure for $overviewData
         $overviewData = [
-            'product_revenue' => [ // This is for the first card, "Dana Belum Diproses"
+            'product_revenue' => [
                 'value' => $productRevenue,
                 'label' => 'Dana Belum Diproses',
-                'error' => $overallError // Error from get_total_revenue_from_date
+                'error' => $overallError
             ],
-            // New keys for chart data
-            'weekly_revenue_data' => [ // For "Total Revenue (8 Pekan)" card
+            'weekly_revenue_data' => [
                 'labels' => $weeklyMetricsData['revenue']['labels'],
                 'values' => $weeklyMetricsData['revenue']['values'],
-                'error'  => $weeklyMetricsData['revenue']['error']
+                'error'  => $weeklyMetricsData['revenue']['error'],
+                'latest_value' => end($weeklyMetricsData['revenue']['values']) ?: 0,
+                'dummy_percentage_change' => '+5%',
+                'dummy_trend' => 'up'
             ],
-            'weekly_profit_data' => [ // For "Gross Profit (8 Pekan)" card
+            'weekly_profit_data' => [
                 'labels' => $weeklyMetricsData['profit']['labels'],
                 'values' => $weeklyMetricsData['profit']['values'],
-                'error'  => $weeklyMetricsData['profit']['error']
+                'error'  => $weeklyMetricsData['profit']['error'],
+                'latest_value' => end($weeklyMetricsData['profit']['values']) ?: 0,
+                'dummy_percentage_change' => '-2%',
+                'dummy_trend' => 'down'
             ],
-            'weekly_customers_data' => [ // For "Pelanggan Aktif (8 Pekan)" card
+            'weekly_customers_data' => [
                 'labels' => $weeklyMetricsData['customers']['labels'],
                 'values' => $weeklyMetricsData['customers']['values'],
-                'error'  => $weeklyMetricsData['customers']['error']
+                'error'  => $weeklyMetricsData['customers']['error'],
+                'latest_value' => end($weeklyMetricsData['customers']['values']) ?: 0,
+                'dummy_percentage_change' => '+1%',
+                'dummy_trend' => 'up'
             ]
         ];
 

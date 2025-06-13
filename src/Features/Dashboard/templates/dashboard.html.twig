@@ -83,8 +83,8 @@
 				<!-- Overview Cards START -->
 				{% if overview_cards_data is defined %}
 				<div class="row row-deck row-cards mb-4">
-					{# Card 1: Dana Belum Diproses (KPI - No Change in structure) #}
-					{% set card1 = overview_cards_data.product_revenue %}
+					{# Card 1: Dana Belum Diproses (KPI - Structure should remain as previously implemented) #}
+					{% set card1_data = overview_cards_data.product_revenue %}
 					<div class="col-md-3 col-sm-6">
 						<div class="card card-sm bg-azure-lt">
 							<div class="card-body">
@@ -95,11 +95,11 @@
 										</span>
 									</div>
 									<div class="col">
-										<div class="d-inline-block font-weight-medium">{{ card1.label | default('Dana Belum Diproses') }}</div>
-										{% if card1.error %}
-											<div class="text-danger" title="{{ card1.error }}"><small>Error memuat data</small></div>
+										<div class="d-inline-block font-weight-medium">{{ card1_data.label | default('Dana Belum Diproses') }}</div>
+										{% if card1_data.error %}
+											<div class="text-danger" title="{{ card1_data.error }}"><small>Error memuat data</small></div>
 										{% else %}
-											<div class=""><strong id="total-revenue-card">Rp {{ card1.value | default(0) | number_format(0, ',', '.') }}</strong></div>
+											<div class=""><strong id="dana-belum-diproses-card">Rp {{ card1_data.value | default(0) | number_format(0, ',', '.') }}</strong></div> {# Changed ID for uniqueness #}
 										{% endif %}
 									</div>
 								</div>
@@ -107,82 +107,131 @@
 						</div>
 					</div>
 
-					{# Card 2: Total Revenue (8 Pekan) Chart #}
-					{% set chart_revenue_data = overview_cards_data.weekly_revenue_data %}
+					{# Card 2: Total Revenue (10 Pekan) Chart #}
+					{% set card_data = overview_cards_data.weekly_revenue_data %}
+					{% set chart_id = 'chart-weekly-revenue' %}
+					{% set subheader_label = 'Total Revenue (10 Pekan)' %}
 					<div class="col-md-3 col-sm-6">
-						<div class="card card-sm bg-teal-lt"> {# Changed color for variety #}
+						<div class="card"> {# Standard card, no card-sm or bg-*-lt #}
 							<div class="card-body">
-								<div class="d-flex align-items-center mb-1"> {# Reduced mb for tighter space #}
-									<div class="col-auto">
-										<span class="bg-teal text-white avatar">
-											 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chart-line" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 19l0 -14" /><path d="M8 19l0 -10" /><path d="M12 19l0 -12" /><path d="M16 19l0 -8" /><path d="M20 19l0 -15" /></svg>
-										</span>
+								<div class="d-flex align-items-center">
+									<div class="subheader">{{ subheader_label }}</div>
+									{# Dropdown omitted as per feedback #}
+								</div>
+								<div class="d-flex align-items-baseline mt-3">
+									<div class="h1 mb-0 me-2">
+										Rp {{ card_data.latest_value | default(0) | number_format(0, ',', '.') }}
 									</div>
-									<div class="col">
-										<div class="d-inline-block font-weight-medium">Total Revenue (8 Pekan)</div>
-										{% if chart_revenue_data.error %}
-											 <div class="text-danger" title="{{ chart_revenue_data.error }}"><small>Error data chart</small></div>
+									<div class="me-auto">
+										{% if card_data.dummy_trend == "up" %}
+											<span class="text-green d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('+0%') }}
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M3 17l6 -6l4 4l8 -8"></path><path d="M14 7l7 0l0 7"></path></svg>
+											</span>
+										{% elseif card_data.dummy_trend == "down" %}
+											<span class="text-red d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('-0%') }}
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M3 7l6 6l4 -4l8 8"></path><path d="M14 17l7 0l0 -7"></path></svg>
+											</span>
+										{% else %}
+											 <span class="text-secondary d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('0%') }}
+											</span>
 										{% endif %}
 									</div>
 								</div>
-								{% if not chart_revenue_data.error and chart_revenue_data.values is not empty %}
-									<div id="chart-weekly-revenue" style="min-height: 50px;"></div> {# Chart container #}
+								{% if not card_data.error and card_data.values is defined and card_data.values is not empty and card_data.values|length > 1 %}
+									<div id="{{ chart_id }}" class="chart-sm mt-2" style="min-height: 40px;"></div>
 								{% else %}
-									<div class="text-muted text-center" style="min-height: 50px; padding-top:10px;">{{ chart_revenue_data.error | default('Data tidak tersedia') }}</div>
+									<div class="text-muted text-center mt-2" style="min-height: 40px; padding-top:10px;">
+										{{ card_data.error | default('Data tidak cukup untuk chart') }}
+									</div>
 								{% endif %}
 							</div>
 						</div>
 					</div>
 
-					{# Card 3: Gross Profit (8 Pekan) Chart #}
-					{% set chart_profit_data = overview_cards_data.weekly_profit_data %}
+					{# Card 3: Gross Profit (10 Pekan) Chart #}
+					{% set card_data = overview_cards_data.weekly_profit_data %}
+					{% set chart_id = 'chart-weekly-profit' %}
+					{% set subheader_label = 'Gross Profit (10 Pekan)' %}
 					<div class="col-md-3 col-sm-6">
-						<div class="card card-sm bg-green-lt">
+						<div class="card">
 							<div class="card-body">
-								 <div class="d-flex align-items-center mb-1">
-									<div class="col-auto">
-										<span class="bg-green text-white avatar">
-											<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chart-arrows-vertical" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 21v-18" /><path d="M9 15l3 -3l3 3" /><path d="M15 12v9" /><path d="M6 21v-9" /><path d="M3 12l3 -3l3 3" /></svg>
-										</span>
+								<div class="d-flex align-items-center">
+									<div class="subheader">{{ subheader_label }}</div>
+								</div>
+								<div class="d-flex align-items-baseline mt-3">
+									<div class="h1 mb-0 me-2">
+										Rp {{ card_data.latest_value | default(0) | number_format(0, ',', '.') }}
 									</div>
-									<div class="col">
-										<div class="d-inline-block font-weight-medium">Gross Profit (8 Pekan)</div>
-										{% if chart_profit_data.error %}
-											 <div class="text-danger" title="{{ chart_profit_data.error }}"><small>Error data chart</small></div>
+									<div class="me-auto">
+										 {% if card_data.dummy_trend == "up" %}
+											<span class="text-green d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('+0%') }}
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M3 17l6 -6l4 4l8 -8"></path><path d="M14 7l7 0l0 7"></path></svg>
+											</span>
+										{% elseif card_data.dummy_trend == "down" %}
+											<span class="text-red d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('-0%') }}
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M3 7l6 6l4 -4l8 8"></path><path d="M14 17l7 0l0 -7"></path></svg>
+											</span>
+										{% else %}
+											 <span class="text-secondary d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('0%') }}
+											</span>
 										{% endif %}
 									</div>
 								</div>
-								{% if not chart_profit_data.error and chart_profit_data.values is not empty %}
-									<div id="chart-weekly-profit" style="min-height: 50px;"></div>
+								{% if not card_data.error and card_data.values is defined and card_data.values is not empty and card_data.values|length > 1 %}
+									<div id="{{ chart_id }}" class="chart-sm mt-2" style="min-height: 40px;"></div>
 								{% else %}
-									<div class="text-muted text-center" style="min-height: 50px; padding-top:10px;">{{ chart_profit_data.error | default('Data tidak tersedia') }}</div>
+									<div class="text-muted text-center mt-2" style="min-height: 40px; padding-top:10px;">
+										 {{ card_data.error | default('Data tidak cukup untuk chart') }}
+									</div>
 								{% endif %}
 							</div>
 						</div>
 					</div>
 
-					{# Card 4: Pelanggan Aktif (8 Pekan) Chart #}
-					{% set chart_customers_data = overview_cards_data.weekly_customers_data %}
+					{# Card 4: Pelanggan Aktif (10 Pekan) Chart #}
+					{% set card_data = overview_cards_data.weekly_customers_data %}
+					{% set chart_id = 'chart-weekly-customers' %}
+					{% set subheader_label = 'Pelanggan Aktif (10 Pekan)' %}
 					<div class="col-md-3 col-sm-6">
-						<div class="card card-sm bg-orange-lt">
+						<div class="card">
 							<div class="card-body">
-								<div class="d-flex align-items-center mb-1">
-									<div class="col-auto">
-										<span class="bg-orange text-white avatar">
-										   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-users-group" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /><path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M17 10h2a2 2 0 0 1 2 2v1" /><path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg>
-										</span>
+								<div class="d-flex align-items-center">
+									<div class="subheader">{{ subheader_label }}</div>
+								</div>
+								<div class="d-flex align-items-baseline mt-3">
+									<div class="h1 mb-0 me-2">
+										{{ card_data.latest_value | default(0) | number_format(0, ',', '.') }}
 									</div>
-									<div class="col">
-										<div class="d-inline-block font-weight-medium">Pelanggan Aktif (8 Pekan)</div>
-										 {% if chart_customers_data.error %}
-											 <div class="text-danger" title="{{ chart_customers_data.error }}"><small>Error data chart</small></div>
+									<div class="me-auto">
+										{% if card_data.dummy_trend == "up" %}
+											<span class="text-green d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('+0%') }}
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M3 17l6 -6l4 4l8 -8"></path><path d="M14 7l7 0l0 7"></path></svg>
+											</span>
+										{% elseif card_data.dummy_trend == "down" %}
+											<span class="text-red d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('-0%') }}
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M3 7l6 6l4 -4l8 8"></path><path d="M14 17l7 0l0 -7"></path></svg>
+											</span>
+										{% else %}
+											 <span class="text-secondary d-inline-flex align-items-center lh-1">
+												{{ card_data.dummy_percentage_change | default('0%') }}
+											</span>
 										{% endif %}
 									</div>
 								</div>
-								{% if not chart_customers_data.error and chart_customers_data.values is not empty %}
-									<div id="chart-weekly-customers" style="min-height: 50px;"></div>
+								{% if not card_data.error and card_data.values is defined and card_data.values is not empty and card_data.values|length > 1 %}
+									<div id="{{ chart_id }}" class="chart-sm mt-2" style="min-height: 40px;"></div>
 								{% else %}
-									 <div class="text-muted text-center" style="min-height: 50px; padding-top:10px;">{{ chart_customers_data.error | default('Data tidak tersedia') }}</div>
+									<div class="text-muted text-center mt-2" style="min-height: 40px; padding-top:10px;">
+										{{ card_data.error | default('Data tidak cukup untuk chart') }}
+									</div>
 								{% endif %}
 							</div>
 						</div>
