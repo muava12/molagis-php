@@ -7,12 +7,15 @@
 // import { showToast } from './utils.js';
 
 // Fallback showToast function
-function showToast(title, message, type = 'success') {
-    console.log(`Toast [${type}]: ${title} - ${message}`);
-    // Simple alert fallback for testing
-    if (type === 'error') {
-        alert(`${title}: ${message}`);
-    }
+// This function is used if a more sophisticated showToast (e.g., from a UI library) is not defined.
+function showToast(title, message, type = 'info') { // Default type to 'info'
+    const fullMessage = message ? `${title}: ${message}` : title;
+    // Log to console as the primary fallback action
+    console.log(`Toast Notification (${type}) - Title: ${title}, Message: ${message || 'No message provided.'}`);
+
+    // No alert() calls here to reduce their usage as per feedback.
+    // If a real toast system is integrated later, it would replace this function
+    // or this function would call into it.
 }
 
 // Constants for localStorage keys
@@ -117,7 +120,10 @@ function initializeReportsPage() {
     initializeCopyMarkdown();
 
     // Initialize customer detail week picker and reload button
-    initializeCustomerDetailControls();
+    // initializeCustomerDetailControls(); // Old picker removed, functionality integrated with main filter
+
+    // Update customer details period display based on URL or main filter's default
+    updateCustomerDetailsPeriodDisplayFromURL();
 
     console.log('Reports page initialized successfully');
 }
@@ -126,82 +132,83 @@ function initializeReportsPage() {
  * Initialize customer detail week picker and reload button
  */
 function initializeCustomerDetailControls() {
-    const customerDetailWeekPickerEl = document.getElementById('customer-detail-week-picker');
-    if (customerDetailWeekPickerEl) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentCustomerWeek = urlParams.get('customer_week'); // e.g., "2024-W30"
+    // const customerDetailWeekPickerEl = document.getElementById('customer-detail-week-picker');
+    // if (customerDetailWeekPickerEl) {
+    //     const urlParams = new URLSearchParams(window.location.search);
+    //     const currentCustomerWeek = urlParams.get('customer_week'); // e.g., "2024-W30"
 
-        // Attempt to format for Flatpickr's weekSelect plugin if it expects YYYY-MM-DD for defaultDate
-        // Or, if it directly supports "YYYY-Www", that's simpler.
-        // For weekSelect, it usually derives week from a specific date.
-        // Let's default to current date for the picker if no param, which weekSelect handles.
-        let defaultDateForPicker = new Date();
-        if (currentCustomerWeek) {
-            try {
-                const parts = currentCustomerWeek.match(/(\d{4})-W(\d{1,2})/);
-                if (parts && parts.length === 3) {
-                    const year = parseInt(parts[1], 10);
-                    const weekNum = parseInt(parts[2], 10);
-                    // Get the first day of that week (Monday)
-                    const d = new Date(year, 0, 1 + (weekNum - 1) * 7);
-                    const day = d.getDay();
-                    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust if day is Sunday
-                    defaultDateForPicker = new Date(d.setDate(diff));
-                }
-            } catch (e) {
-                console.warn("Could not parse 'customer_week' parameter for defaultDate:", currentCustomerWeek, e);
-            }
-        }
+    //     // Attempt to format for Flatpickr's weekSelect plugin if it expects YYYY-MM-DD for defaultDate
+    //     // Or, if it directly supports "YYYY-Www", that's simpler.
+    //     // For weekSelect, it usually derives week from a specific date.
+    //     // Let's default to current date for the picker if no param, which weekSelect handles.
+    //     let defaultDateForPicker = new Date();
+    //     if (currentCustomerWeek) {
+    //         try {
+    //             const parts = currentCustomerWeek.match(/(\d{4})-W(\d{1,2})/);
+    //             if (parts && parts.length === 3) {
+    //                 const year = parseInt(parts[1], 10);
+    //                 const weekNum = parseInt(parts[2], 10);
+    //                 // Get the first day of that week (Monday)
+    //                 const d = new Date(year, 0, 1 + (weekNum - 1) * 7);
+    //                 const day = d.getDay();
+    //                 const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust if day is Sunday
+    //                 defaultDateForPicker = new Date(d.setDate(diff));
+    //             }
+    //         } catch (e) {
+    //             console.warn("Could not parse 'customer_week' parameter for defaultDate:", currentCustomerWeek, e);
+    //         }
+    //     }
 
-        flatpickr(customerDetailWeekPickerEl, {
-            dateFormat: 'Y-W', // Format to match ISO week (Year-WWeekNumber)
-            weekNumbers: true,
-            locale: 'id',
-            defaultDate: defaultDateForPicker,
-            onChange: function(selectedDates, dateStr, instance) {
-                if (dateStr) {
-                    // dateStr from this format is YYYY-Www (e.g., "2024-W32")
-                    const newUrl = new URL(window.location.href);
-                    newUrl.searchParams.set('customer_week', dateStr);
-                    // Remove other date params if they exist to avoid conflict
-                    newUrl.searchParams.delete('start_date');
-                    newUrl.searchParams.delete('end_date');
-                    newUrl.searchParams.delete('period');
-                    window.location.href = newUrl.toString();
-                }
-            }
-        });
-        console.log('Customer detail week picker initialized. Default date attempt:', defaultDateForPicker);
-    } else {
-        console.log('Customer detail week picker element not found.');
-    }
+    //     flatpickr(customerDetailWeekPickerEl, {
+    //         dateFormat: 'Y-W', // Format to match ISO week (Year-WWeekNumber)
+    //         weekNumbers: true,
+    //         locale: 'id',
+    //         defaultDate: defaultDateForPicker,
+    //         onChange: function(selectedDates, dateStr, instance) {
+    //             if (dateStr) {
+    //                 // dateStr from this format is YYYY-Www (e.g., "2024-W32")
+    //                 const newUrl = new URL(window.location.href);
+    //                 newUrl.searchParams.set('customer_week', dateStr);
+    //                 // Remove other date params if they exist to avoid conflict
+    //                 newUrl.searchParams.delete('start_date');
+    //                 newUrl.searchParams.delete('end_date');
+    //                 newUrl.searchParams.delete('period');
+    //                 window.location.href = newUrl.toString();
+    //             }
+    //         }
+    //     });
+    //     console.log('Customer detail week picker initialized. Default date attempt:', defaultDateForPicker);
+    // } else {
+    //     console.log('Customer detail week picker element not found.');
+    // }
 
-    const customerDetailReloadBtn = document.getElementById('customer-detail-reload-btn');
-    if (customerDetailReloadBtn) {
-        customerDetailReloadBtn.addEventListener('click', function() {
-            const weekPickerValue = customerDetailWeekPickerEl ? customerDetailWeekPickerEl.value : null;
-            const newUrl = new URL(window.location.href);
+    // const customerDetailReloadBtn = document.getElementById('customer-detail-reload-btn');
+    // if (customerDetailReloadBtn) {
+    //     customerDetailReloadBtn.addEventListener('click', function() {
+    //         const weekPickerValue = customerDetailWeekPickerEl ? customerDetailWeekPickerEl.value : null;
+    //         const newUrl = new URL(window.location.href);
 
-            if (weekPickerValue && weekPickerValue.match(/\d{4}-W\d{1,2}/)) {
-                newUrl.searchParams.set('customer_week', weekPickerValue);
-                 // Remove other date params if they exist to avoid conflict
-                newUrl.searchParams.delete('start_date');
-                newUrl.searchParams.delete('end_date');
-                newUrl.searchParams.delete('period');
-            } else {
-                // If picker is empty or invalid, maybe reload without this specific param
-                // or with default (current week), or do nothing.
-                // For simplicity, if it's invalid/empty, we might just reload current URL state
-                // or remove the param if it exists.
-                newUrl.searchParams.delete('customer_week');
-                console.log('Customer week picker value is empty or invalid, reloading without it or with existing params.');
-            }
-            window.location.href = newUrl.toString();
-        });
-        console.log('Customer detail reload button initialized.');
-    } else {
-        console.log('Customer detail reload button not found.');
-    }
+    //         if (weekPickerValue && weekPickerValue.match(/\d{4}-W\d{1,2}/)) {
+    //             newUrl.searchParams.set('customer_week', weekPickerValue);
+    //              // Remove other date params if they exist to avoid conflict
+    //             newUrl.searchParams.delete('start_date');
+    //             newUrl.searchParams.delete('end_date');
+    //             newUrl.searchParams.delete('period');
+    //         } else {
+    //             // If picker is empty or invalid, maybe reload without this specific param
+    //             // or with default (current week), or do nothing.
+    //             // For simplicity, if it's invalid/empty, we might just reload current URL state
+    //             // or remove the param if it exists.
+    //             newUrl.searchParams.delete('customer_week');
+    //             console.log('Customer week picker value is empty or invalid, reloading without it or with existing params.');
+    //         }
+    //         window.location.href = newUrl.toString();
+    //     });
+    //     console.log('Customer detail reload button initialized.');
+    // } else {
+    //     console.log('Customer detail reload button not found.');
+    // }
+    console.log('initializeCustomerDetailControls() is now disabled as the dedicated week picker was removed.');
 }
 
 /**
@@ -1279,16 +1286,38 @@ function copyAsMarkdown() {
         const markdown = generateFinancialMarkdown(period, financialData);
 
         // Copy to clipboard
-        navigator.clipboard.writeText(markdown).then(() => {
-            showToast('Berhasil', 'Overview keuangan berhasil disalin sebagai Markdown!', 'success');
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            showToast('Error', 'Gagal menyalin ke clipboard', 'error');
-        });
-
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(markdown).then(() => {
+                // Success!
+                showToast('Berhasil', 'Laporan keuangan disalin ke clipboard!', 'success');
+            }).catch(err => {
+                // Error copying
+                console.error('Failed to copy markdown to clipboard:', err);
+                showToast('Gagal', 'Gagal menyalin laporan ke clipboard.', 'error');
+            });
+        } else {
+            // Fallback for older browsers if navigator.clipboard is not supported
+            console.warn('navigator.clipboard.writeText not supported.');
+            // Attempt to use a textarea fallback for copying (basic)
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = markdown;
+                textArea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Berhasil (Fallback)', 'Laporan keuangan disalin ke clipboard!', 'success');
+            } catch (fallbackErr) {
+                console.error('Fallback copy method failed:', fallbackErr);
+                showToast('Gagal', 'Copy to clipboard not supported by this browser and fallback failed.', 'error');
+            }
+        }
     } catch (error) {
         console.error('Error copying markdown:', error);
-        showToast('Error', 'Terjadi kesalahan saat menyalin data', 'error');
+        showToast('Error', 'Terjadi kesalahan saat menyalin data.', 'error');
     }
 }
 
@@ -1783,3 +1812,150 @@ window.ReportsPage = {
 window.viewCustomerDetails = viewCustomerDetails;
 window.exportCustomerData = exportCustomerData;
 window.clearAllFilters = clearAllFilters;
+
+// Function to format the date range for display in "Rincian Pesanan per Customer"
+function formatDateRangeForDisplay(startDate, endDate) {
+    const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+    if (!endDate || startDate.getTime() === endDate.getTime()) { // Single date
+        // If it's a single day, or if flatpickr for monthly returns just one date
+        const periodTypeLabel = document.getElementById('period-type-label')?.textContent.trim().toLowerCase();
+        if (periodTypeLabel === 'monthly') {
+            return startDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+        }
+        return startDate.toLocaleDateString('id-ID', options);
+    }
+    // For weekly or custom range
+    return `${startDate.toLocaleDateString('id-ID', options)} - ${endDate.toLocaleDateString('id-ID', options)}`;
+}
+
+// Function to update the customer details period display based on URL parameters
+function updateCustomerDetailsPeriodDisplayFromURL() {
+    const customerPeriodDisplay = document.getElementById('customer-details-current-period');
+    if (!customerPeriodDisplay) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlStartDateStr = urlParams.get('start_date');
+    const urlEndDateStr = urlParams.get('end_date');
+
+    if (urlStartDateStr && urlEndDateStr) {
+        try {
+            const startDate = new Date(urlStartDateStr);
+            const endDate = new Date(urlEndDateStr);
+
+            // Adjust for time zone issues if necessary, assuming dates from URL are local
+            const adjustedStartDate = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+            const adjustedEndDate = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+
+            const formattedDateRange = formatDateRangeForDisplay(adjustedStartDate, adjustedEndDate);
+            customerPeriodDisplay.textContent = formattedDateRange;
+        } catch (e) {
+            console.error("Error parsing dates from URL for customer details display:", e);
+            customerPeriodDisplay.textContent = 'Rentang tidak valid';
+        }
+    } else {
+        // Fallback if no dates in URL - try to use main flatpickr's current selection if available
+        // This case should ideally be handled by the main filter defaulting and page reloading
+        const mainPeriodInput = document.getElementById('period-input');
+        if (mainPeriodInput && mainPeriodInput._flatpickr && mainPeriodInput._flatpickr.selectedDates.length > 0) {
+            let fpStartDate = mainPeriodInput._flatpickr.selectedDates[0];
+            let fpEndDate = mainPeriodInput._flatpickr.selectedDates.length > 1 ? mainPeriodInput._flatpickr.selectedDates[1] : fpStartDate;
+
+            const periodType = document.getElementById('period-type-label')?.textContent.trim().toLowerCase();
+            if (periodType === 'monthly') {
+                 // For monthly, Flatpickr might just select the first day. We want the full month.
+                fpStartDate = new Date(fpStartDate.getFullYear(), fpStartDate.getMonth(), 1);
+                fpEndDate = new Date(fpStartDate.getFullYear(), fpStartDate.getMonth() + 1, 0);
+            } else if (periodType === 'weekly' && mainPeriodInput._flatpickr.config.plugins.find(p => p.name === 'weekSelect')) {
+                // If weekSelect plugin is used, it might give only the start of the week.
+                // The getWeekRange function is defined inside initDynamicPeriodPicker, so not directly accessible here.
+                // This part might need refinement if weekSelect doesn't set selectedDates as a range.
+                // For now, assume selectedDates from weekSelect is already a range [start, end] or handled by updateInputDisplay.
+            }
+
+
+            const formattedDateRange = formatDateRangeForDisplay(fpStartDate, fpEndDate);
+            customerPeriodDisplay.textContent = formattedDateRange;
+        } else {
+            customerPeriodDisplay.textContent = 'Data Bulan Berjalan'; // Default text
+        }
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('Initializing toggle details column script...');
+    const toggleButton = document.getElementById('toggle-details-column-external');
+    const table = document.getElementById('new-customer-details-table');
+
+    console.log('Toggle button:', toggleButton);
+    console.log('Table:', table);
+
+    if (toggleButton && table) {
+        const toggleButtonText = toggleButton.querySelector('.toggle-text');
+        const detailHeader = table.querySelector('thead th.details-th'); // Specific class for the Details TH
+
+        console.log('Toggle button text element:', toggleButtonText);
+        console.log('Detail header (th.details-th):', detailHeader);
+
+        if (!toggleButtonText) {
+            console.error('Span with class "toggle-text" not found inside the button.');
+        }
+        if (!detailHeader) {
+            console.error('Details column header (th.details-th) not found.');
+        }
+
+        let detailsVisible;
+
+        // Function to update view
+        const updateDetailsView = () => {
+            console.log('updateDetailsView called. detailsVisible:', detailsVisible);
+            const detailCells = table.querySelectorAll('.details-cell');
+            const elementsToToggle = [];
+            if (detailHeader) {
+                elementsToToggle.push(detailHeader);
+            }
+            detailCells.forEach(cell => elementsToToggle.push(cell));
+            console.log('Found elementsToToggle count:', elementsToToggle.length);
+
+            if (detailsVisible) {
+                if (toggleButtonText) toggleButtonText.textContent = 'Sembunyikan Detail';
+                elementsToToggle.forEach(el => {
+                    el.classList.remove('d-none'); // Remove d-none first
+                    el.classList.add('d-md-table-cell'); // Ensure responsive class is there
+                });
+            } else {
+                if (toggleButtonText) toggleButtonText.textContent = 'Tampilkan Detail';
+                elementsToToggle.forEach(el => {
+                    el.classList.remove('d-md-table-cell'); // Remove responsive class
+                    el.classList.add('d-none'); // Then add d-none
+                });
+            }
+        };
+
+        // Initial state detection logic:
+        if (detailHeader && getComputedStyle(detailHeader).display === 'none') {
+            console.log('Initial state: detailHeader is display:none.');
+            detailsVisible = false;
+        } else if (!detailHeader) {
+            console.error("Details header 'th.details-th' not found during initial state check!");
+            detailsVisible = false; // Assume hidden if header is missing, though this is an error state
+        } else {
+            console.log('Initial state: detailHeader is visible or not found (error). Defaulting detailsVisible to true.');
+            detailsVisible = true; // Default to visible if header exists and is not display:none
+        }
+
+        console.log('Initial detailsVisible state:', detailsVisible);
+        updateDetailsView(); // Set initial button text and view based on detected state
+
+        toggleButton.addEventListener('click', () => {
+            console.log('Toggle button clicked.');
+            detailsVisible = !detailsVisible;
+            console.log('New detailsVisible state:', detailsVisible);
+            updateDetailsView();
+        });
+
+        console.log('Toggle details column script fully initialized.');
+    } else {
+        console.error('Toggle button or table not found. Toggle script not fully initialized.');
+    }
+});

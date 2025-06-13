@@ -128,6 +128,12 @@ class DashboardController
             $viewData['error'] = ($viewData['error'] ? $viewData['error'] . " | " : "") . "Gagal memuat data statistik.";
         }
 
+        // Fetch Dashboard Overview Cards Data
+        $overviewCardsDataResult = $this->dashboardService->getDashboardOverviewData($accessToken);
+        $viewData['overview_cards_data'] = $overviewCardsDataResult;
+        // The getDashboardOverviewData method bundles errors per card item,
+        // so a top-level error check might not be needed here unless the method's design changes.
+
         // Format delivery_date menggunakan IntlDateFormatter
         $formatter = new \IntlDateFormatter(
             'id_ID', // Lokalisasi Indonesia

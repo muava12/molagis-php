@@ -409,4 +409,72 @@ class DashboardService
 
         return array_values($groupedOrders);
     }
+
+    /**
+     * Mengambil data overview untuk kartu di dashboard.
+     * Termasuk total revenue produk dari tanggal tertentu dan data mock lainnya.
+     *
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Data untuk kartu overview.
+     */
+    public function getDashboardOverviewData(?string $accessToken = null): array
+    {
+        // Calculate the first Monday of the current week
+        $tz = new \DateTimeZone('Asia/Makassar'); // Assuming same timezone as other methods
+        $today = new \DateTime('now', $tz);
+        $firstMonday = clone $today;
+        $firstMonday->modify('monday this week');
+        $firstMondayFormatted = $firstMonday->format('Y-m-d');
+
+        $productRevenue = 0.0;
+        $overallError = null;
+
+        try {
+            // Call the RPC function get_total_revenue_from_date
+            $rpcResponse = $this->client->rpc(
+                'get_total_revenue_from_date',
+                ['p_start_date' => $firstMondayFormatted],
+                $accessToken ? ['headers' => ['Authorization' => "Bearer $accessToken"]] : []
+            );
+
+            if ($rpcResponse['error']) {
+                error_log('Supabase RPC get_total_revenue_from_date error: ' . json_encode($rpcResponse['error']));
+                $overallError = 'Gagal mengambil data revenue produk.';
+                // Keep $productRevenue as 0.0
+            } else {
+                // Assuming the RPC function returns a single numeric value directly
+                // Adjust if it returns an object or array, e.g., $rpcResponse['data'][0]['total_revenue']
+                $productRevenue = (float) ($rpcResponse['data'] ?? 0.0);
+            }
+        } catch (\Exception $e) {
+            error_log('Exception in getDashboardOverviewData (RPC call): ' . $e->getMessage());
+            $overallError = 'Terjadi kesalahan saat mengambil data revenue produk.';
+        }
+
+        // Prepare data for the cards
+        $overviewData = [
+            'product_revenue' => [
+                'value' => $productRevenue,
+                'label' => 'Revenue Produk (Mingguan)', // Label updated to reflect weekly
+                'error' => $overallError // Pass error specific to this card if any
+            ],
+            'total_orders'    => [
+                'value' => 150, // Mock data
+                'label' => 'Total Orders (Mingguan)',
+                'error' => null
+            ],
+            'active_customers'=> [
+                'value' => 65,  // Mock data
+                'label' => 'Pelanggan Aktif (Mingguan)',
+                'error' => null
+            ],
+            'average_order_value' => [
+                'value' => 125000, // Mock data
+                'label' => 'Rata-rata Order (Mingguan)',
+                'error' => null
+            ]
+        ];
+
+        return $overviewData;
+    }
 }
