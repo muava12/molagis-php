@@ -786,49 +786,16 @@ function initializeDashboardCharts() {
 
     const commonChartOptions = {
         chart: {
-            type: 'line',
-            height: 70, // Explicit height, slightly more for testing
-            sparkline: { enabled: false }, // Ensure this is false
-            animations: {
-                enabled: true,
-                easing: 'easeinout',
-                speed: 800,
-            },
-            dropShadow: {
-                enabled: true,
-                top: 2,
-                left: 0,
-                blur: 3,
-                opacity: 0.2
-            },
+            type: "line",
+            fontFamily: 'inherit',
             parentHeightOffset: 0,
-            toolbar: { show: false }
+            toolbar: { show: false },
+            animations: { enabled: false },
+            zoom: { enabled: false }
         },
-        stroke: {
-            width: 2, // Ensure non-zero width
-            curve: 'smooth'
-        },
-        markers: {
-            size: 0
-        },
-        grid: {
-            show: false,
-            padding: { top: 10, right: 5, bottom: 5, left: 5 } // Increased top padding slightly
-        },
-        xaxis: {
-            categories: [], // Will be set per chart
-            labels: { show: false },
-            axisBorder: { show: false },
-            axisTicks: { show:false },
-            tooltip: { enabled: true } // Keep this for interactivity
-        },
-        yaxis: {
-            labels: { show: false },
-            axisBorder: { show: false },
-            axisTicks: { show: false }
-        },
+        stroke: { width: 2, lineCap: "round", curve: "straight" },
+        markers: { size: 3, hover: { size: 5 } },
         tooltip: {
-            enabled: true,
             theme: 'dark',
             x: { show: true },
             y: {
@@ -836,11 +803,57 @@ function initializeDashboardCharts() {
                     if (value === undefined || value === null) return 'N/A';
                     if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
                     if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'K';
-                    return parseFloat(value).toFixed(0); // Ensure it's a number and format
+                    return parseFloat(value).toFixed(0);
                 },
-                title: { formatter: (seriesName) => '' }
+                title: { formatter: (seriesName) => seriesName ? seriesName + ':' : '', }
             }
-        }
+        },
+        grid: {
+            padding: { top: -10, right: 0, left: -4, bottom: -4 },
+            strokeDashArray: 4,
+            position: 'back',
+            yaxis: { lines: { show: true } },
+            xaxis: { lines: { show: false } }
+        },
+        xaxis: {
+            labels: {
+                show: true,
+                padding: 0,
+                style: { fontSize: '10px', colors: '#adb5bd' },
+                formatter: function (value, timestamp, opts) { return value; },
+                hideOverlappingLabels: true,
+                trim: false,
+            },
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+            tooltip: { enabled: false },
+            type: 'category',
+            categories: []
+        },
+        yaxis: {
+            labels: {
+                show: true,
+                padding: 4,
+                style: { fontSize: '10px', colors: '#adb5bd' },
+                formatter: (value) => {
+                    if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(0) + 'M';
+                    if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'K';
+                    return value.toFixed(0);
+                }
+            },
+            axisBorder: { show: false },
+            min: function(min) { return min < 0 ? min * 1.1 : min * 0.9; },
+            max: function(max) { return max < 0 ? max * 0.9 : max * 1.1; },
+            tickAmount: 3
+        },
+        legend: {
+            show: true,
+            position: 'bottom',
+            offsetY: 12,
+            markers: { width: 10, height: 10, radius: 100 },
+            itemMargin: { horizontal: 8, vertical: 8 }
+        },
+        colors: [] // Will be set per chart
     };
 
     // Chart 1: Weekly Revenue
@@ -858,18 +871,18 @@ function initializeDashboardCharts() {
     }
 
     if (revenueChartEl && revenueData && !revenueData.error && revenueData.values && revenueData.values.length > 1) {
-        console.log('Using FULL commonOptions for Weekly Revenue chart.'); // New log
+        console.log('Using FULL commonOptions for Weekly Revenue chart.');
         const revenueChartOptions = {
             ...commonChartOptions,
             series: [{
-                name: 'Revenue', // This name appears in the tooltip
+                name: 'Revenue',
                 data: revenueData.values
             }],
             xaxis: {
-                ...commonChartOptions.xaxis, // Spread common xaxis settings
+                ...commonChartOptions.xaxis,
                 categories: revenueData.labels
             },
-            colors: ['#206bc4'] // Tabler primary color
+            colors: ['#206bc4']
         };
         try {
             new ApexCharts(revenueChartEl, revenueChartOptions).render();
@@ -914,7 +927,7 @@ function initializeDashboardCharts() {
                 ...commonChartOptions.xaxis,
                 categories: profitData.labels
             },
-            colors: ['#2fb344'] // Tabler success color (green)
+            colors: ['#2fb344']
         };
         try {
             new ApexCharts(profitChartEl, profitChartOptions).render();
@@ -958,7 +971,7 @@ function initializeDashboardCharts() {
                 ...commonChartOptions.xaxis,
                 categories: customersData.labels
             },
-            colors: ['#fab005'] // Tabler warning color (yellow/orange)
+            colors: ['#fab005']
         };
         try {
             new ApexCharts(customersChartEl, customersChartOptions).render();

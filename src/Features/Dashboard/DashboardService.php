@@ -502,10 +502,14 @@ class DashboardService
 
         // Final structure for $overviewData
         $overviewData = [
-            'product_revenue' => [
-                'value' => $productRevenue,
-                'label' => 'Dana Belum Diproses',
-                'error' => $overallError
+            'product_revenue' => [ // For "Dana Belum Diproses" card
+                'label' => 'Dana Belum Diproses', // Actual card title/subheader
+                'latest_value' => $productRevenue, // The single KPI value
+                'values' => [], // Empty array for chart data, as it's a single KPI
+                'labels' => [], // Empty array for chart labels
+                'error'  => $overallError, // Error for fetching the KPI
+                'dummy_percentage_change' => '+0%', // Or some relevant dummy value
+                'dummy_trend' => 'neutral' // Or some relevant dummy value
             ],
             'weekly_revenue_data' => [
                 'labels' => $weeklyMetricsData['revenue']['labels'],
