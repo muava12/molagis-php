@@ -648,10 +648,10 @@
                                                     {% endfor %}
                                                     {% for item_tambahan_detail in customer.rincian_item_tambahan %}
                                                         <tr>
-                                                            <td>{{ item_tambahan_detail.deskripsi }}</td>
+                                                            <td>{{ item_tambahan_detail.deskripsi }} (+)</td>
                                                             <td class="text-end amount-cell fw-medium">{{ item_tambahan_detail.harga_jual_harian | number_format(0, ',', '.') }}</td>
                                                             <td class="text-end amount-cell fw-medium">{{ item_tambahan_detail.harga_modal_harian | number_format(0, ',', '.') }}</td>
-                                                            <td class="text-center">-</td> {# Porsi/Hari is blank for item_tambahan #}
+                                                            <td class="text-center"></td> {# Porsi/Hari is blank for item_tambahan #}
                                                             <td class="text-center">{{ item_tambahan_detail.jumlah_hari }}</td>
                                                             <td class="text-end amount-cell fw-medium">{{ item_tambahan_detail.total_harga_akumulasi | number_format(0, ',', '.') }}</td>
                                                             <td class="text-end amount-cell fw-medium">{{ item_tambahan_detail.total_modal_akumulasi | number_format(0, ',', '.') }}</td>

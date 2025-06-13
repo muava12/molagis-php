@@ -8,12 +8,14 @@
 
 // Fallback showToast function
 // This function is used if a more sophisticated showToast (e.g., from a UI library) is not defined.
-function showToast(title, message, type = 'success') {
-    const fullMessage = `${title}: ${message}`;
-    console.log(`Toast [${type}]: ${fullMessage}`);
-    // Use alert as a fallback for all types if a proper toast system isn't available.
-    // This ensures the user gets a visible notification.
-    alert(fullMessage);
+function showToast(title, message, type = 'info') { // Default type to 'info'
+    const fullMessage = message ? `${title}: ${message}` : title;
+    // Log to console as the primary fallback action
+    console.log(`Toast Notification (${type}) - Title: ${title}, Message: ${message || 'No message provided.'}`);
+
+    // No alert() calls here to reduce their usage as per feedback.
+    // If a real toast system is integrated later, it would replace this function
+    // or this function would call into it.
 }
 
 // Constants for localStorage keys
@@ -1845,10 +1847,10 @@ function updateCustomerDetailsPeriodDisplayFromURL() {
             const adjustedEndDate = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
 
             const formattedDateRange = formatDateRangeForDisplay(adjustedStartDate, adjustedEndDate);
-            customerPeriodDisplay.textContent = 'Periode: ' + formattedDateRange;
+            customerPeriodDisplay.textContent = formattedDateRange;
         } catch (e) {
             console.error("Error parsing dates from URL for customer details display:", e);
-            customerPeriodDisplay.textContent = 'Periode: Rentang tidak valid';
+            customerPeriodDisplay.textContent = 'Rentang tidak valid';
         }
     } else {
         // Fallback if no dates in URL - try to use main flatpickr's current selection if available
@@ -1872,9 +1874,9 @@ function updateCustomerDetailsPeriodDisplayFromURL() {
 
 
             const formattedDateRange = formatDateRangeForDisplay(fpStartDate, fpEndDate);
-            customerPeriodDisplay.textContent = 'Periode: ' + formattedDateRange;
+            customerPeriodDisplay.textContent = formattedDateRange;
         } else {
-            customerPeriodDisplay.textContent = 'Periode: Data Bulan Berjalan'; // Default text
+            customerPeriodDisplay.textContent = 'Data Bulan Berjalan'; // Default text
         }
     }
 }
@@ -1908,16 +1910,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const updateDetailsView = () => {
             console.log('updateDetailsView called. detailsVisible:', detailsVisible);
             const detailCells = table.querySelectorAll('.details-cell');
-            console.log('Found detailCells count:', detailCells.length);
+            const elementsToToggle = [];
+            if (detailHeader) {
+                elementsToToggle.push(detailHeader);
+            }
+            detailCells.forEach(cell => elementsToToggle.push(cell));
+            console.log('Found elementsToToggle count:', elementsToToggle.length);
 
             if (detailsVisible) {
                 if (toggleButtonText) toggleButtonText.textContent = 'Sembunyikan Detail';
-                detailCells.forEach(cell => cell.classList.remove('d-none'));
-                if (detailHeader) detailHeader.classList.remove('d-none');
+                elementsToToggle.forEach(el => {
+                    el.classList.remove('d-none'); // Remove d-none first
+                    el.classList.add('d-md-table-cell'); // Ensure responsive class is there
+                });
             } else {
                 if (toggleButtonText) toggleButtonText.textContent = 'Tampilkan Detail';
-                detailCells.forEach(cell => cell.classList.add('d-none'));
-                if (detailHeader) detailHeader.classList.add('d-none');
+                elementsToToggle.forEach(el => {
+                    el.classList.remove('d-md-table-cell'); // Remove responsive class
+                    el.classList.add('d-none'); // Then add d-none
+                });
             }
         };
 
