@@ -455,22 +455,22 @@ class DashboardService
         $overviewData = [
             'product_revenue' => [
                 'value' => $productRevenue,
-                'label' => 'Revenue Produk (Mingguan)', // Label updated to reflect weekly
+                'label' => 'Dana Belum Diproses',
                 'error' => $overallError // Pass error specific to this card if any
             ],
             'total_orders'    => [
                 'value' => 150, // Mock data
-                'label' => 'Total Orders (Mingguan)',
+                'label' => 'Orders (Pekan Ini)',
                 'error' => null
             ],
             'active_customers'=> [
                 'value' => 65,  // Mock data
-                'label' => 'Pelanggan Aktif (Mingguan)',
+                'label' => 'Aktif (Pekan Ini)',
                 'error' => null
             ],
             'average_order_value' => [
                 'value' => 125000, // Mock data
-                'label' => 'Rata-rata Order (Mingguan)',
+                'label' => 'Avg. Order (Pekan Ini)',
                 'error' => null
             ]
         ];
