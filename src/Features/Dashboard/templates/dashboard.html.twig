@@ -86,20 +86,24 @@
 					{# Card 1: Dana Belum Diproses (KPI - Structure should remain as previously implemented) #}
 					{% set card1_data = overview_cards_data.product_revenue %}
 					<div class="col-md-3 col-sm-6">
-						<div class="card card-sm bg-azure-lt">
+						<div class="card">
 							<div class="card-body">
-								<div class="row align-items-center">
-									<div class="col-auto">
-										<span class="bg-primary text-white avatar">
-											<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-coins"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 14c0 1.657 2.686 3 6 3s6 -1.343 6 -3s-2.686 -3 -6 -3s-6 1.343 -6 3z"></path><path d="M9 14v4c0 1.656 2.686 3 6 3s6 -1.344 6 -3v-4"></path><path d="M3 6c0 1.072 1.144 2.062 3 2.598s4.144 .536 6 0c1.856 -.536 3 -1.526 3 -2.598c0 -1.072 -1.144 -2.062 -3 -2.598s-4.144 -.536 -6 0c-1.856 .536 -3 1.526 -3 2.598z"></path><path d="M3 6v10c0 .888 .772 1.45 2 2"></path><path d="M3 11c0 .888 .772 1.45 2 2"></path></svg>
-										</span>
+								<div class="d-flex align-items-center">
+									<div class="subheader">{{ card1_data.label | default('Dana Belum Diproses') }}</div>
+								</div>
+								<div class="d-flex align-items-baseline mt-3">
+									<div class="h1 mb-0 me-2">
+										Rp {{ card1_data.value | default(0) | number_format(0, ',', '.') }}
 									</div>
-									<div class="col">
-										<div class="d-inline-block font-weight-medium">{{ card1_data.label | default('Dana Belum Diproses') }}</div>
+									<div class="me-auto">
 										{% if card1_data.error %}
-											<div class="text-danger" title="{{ card1_data.error }}"><small>Error memuat data</small></div>
+											<span class="text-danger d-inline-flex align-items-center lh-1">
+												Error memuat data
+											</span>
 										{% else %}
-											<div class=""><strong id="dana-belum-diproses-card">Rp {{ card1_data.value | default(0) | number_format(0, ',', '.') }}</strong></div> {# Changed ID for uniqueness #}
+											<span class="text-secondary d-inline-flex align-items-center lh-1">
+												{{ card1_data.dummy_percentage_change | default('0%') }}
+											</span>
 										{% endif %}
 									</div>
 								</div>
