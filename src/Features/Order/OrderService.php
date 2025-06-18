@@ -129,28 +129,27 @@ class OrderService
         // Nama fungsi RPC adalah 'save_order_transaction'
         // Parameter kedua untuk rpc adalah data itu sendiri, dibungkus dalam 'params' jika
         // fungsi RPC Anda didefinisikan untuk menerima satu argumen JSON bernama 'params'.
-        // Jika fungsi RPC Anda menerima argumen terpisah (misal: customer_id, order_data, dll.),
-        // Anda perlu menyesuaikan cara pemanggilan di SupabaseClient atau di sini.
-        // Berdasarkan JS dan RPC sebelumnya, kita asumsikan RPC menerima satu objek 'params'.
+        // Untuk 'submit_order', kita akan meneruskan $data yang dibungkus dalam 'params'.
         $response = $this->supabaseClient->rpc(
-            'save_order_transaction', // Nama fungsi RPC
-            ['params' => $data],       // Bungkus data dalam 'params'
-            [],                        // Opsi Guzzle tambahan (jika ada)
-            $accessToken               // Token akses
+            'submit_order', // Nama fungsi RPC baru
+            ['params' => $data], // Bungkus data dalam 'params'
+            [],             // Opsi Guzzle tambahan (jika ada)
+            $accessToken    // Token akses
         );
 
         // Penanganan Error RPC
         if ($response['error']) {
             // Log error detail dari Supabase jika memungkinkan
-            error_log('Supabase RPC save_order_transaction error: ' . print_r($response['error'], true));
+            error_log('Supabase RPC submit_order error: ' . print_r($response['error'], true));
             // Berikan pesan error yang lebih umum ke pengguna
-            throw new RuntimeException('Gagal menyimpan pesanan ke database. Error: ' . $response['error']);
+            throw new RuntimeException('Gagal mengirimkan pesanan ke database. Error: ' . $response['error']);
         }
 
         // Cek apakah data dan order_id ada dalam respons
+        // Respons dari submit_order diharapkan berbentuk {"order_id": 123}
         if (!isset($response['data']['order_id'])) {
-             error_log('Supabase RPC save_order_transaction success but missing order_id in response: ' . print_r($response['data'], true));
-            throw new RuntimeException('Gagal mendapatkan ID pesanan setelah menyimpan.');
+             error_log('Supabase RPC submit_order success but missing order_id in response: ' . print_r($response['data'], true));
+            throw new RuntimeException('Gagal mendapatkan ID pesanan setelah mengirimkan pesanan.');
         }
 
         // Kembalikan order_id jika berhasil
@@ -301,5 +300,91 @@ class OrderService
             error_log('Exception in getDeliveriesByCustomerId: ' . $e->getMessage());
             return ['data' => [], 'error' => 'Exception occurred while fetching customer deliveries: ' . $e->getMessage()];
         }
+    }
+
+    /**
+     * Updates a daily order using the update_daily_order RPC.
+     *
+     * @param int $deliveryId The ID of the delivery to update.
+     * @param array $updateData Data for the update. Keys should match RPC's request structure.
+     * @param string|null $accessToken User access token.
+     * @return void
+     * @throws RuntimeException If the RPC call fails.
+     */
+    public function updateDailyOrder(int $deliveryId, array $updateData, ?string $accessToken = null): void
+    {
+        $requestPayload = [];
+
+        if (isset($updateData['tanggal']) && $updateData['tanggal'] !== null) {
+            $requestPayload['tanggal'] = $updateData['tanggal'];
+        }
+        if (isset($updateData['kurir_id'])) { // kurir_id can be null
+            $requestPayload['kurir_id'] = $updateData['kurir_id'] === null ? null : (int)$updateData['kurir_id'];
+        }
+        if (isset($updateData['ongkir'])) { // ongkir can be null
+            $requestPayload['ongkir'] = $updateData['ongkir'] === null ? null : (float)$updateData['ongkir'];
+        }
+        if (isset($updateData['item_tambahan'])) { // item_tambahan can be null
+            $requestPayload['item_tambahan'] = $updateData['item_tambahan'];
+        }
+        if (isset($updateData['harga_tambahan'])) { // harga_tambahan can be null
+            $requestPayload['harga_tambahan'] = $updateData['harga_tambahan'] === null ? null : (float)$updateData['harga_tambahan'];
+        }
+        if (isset($updateData['harga_modal_tambahan'])) { // harga_modal_tambahan can be null
+            $requestPayload['harga_modal_tambahan'] = $updateData['harga_modal_tambahan'] === null ? null : (float)$updateData['harga_modal_tambahan'];
+        }
+
+        // Handle potential alternative keys for notes
+        if (isset($updateData['daily_kitchen_note'])) {
+            $requestPayload['daily_kitchen_note'] = $updateData['daily_kitchen_note'];
+        } elseif (isset($updateData['kitchen_note'])) {
+            $requestPayload['daily_kitchen_note'] = $updateData['kitchen_note'];
+        }
+
+        if (isset($updateData['daily_courier_note'])) {
+            $requestPayload['daily_courier_note'] = $updateData['daily_courier_note'];
+        } elseif (isset($updateData['courier_note'])) {
+            $requestPayload['daily_courier_note'] = $updateData['courier_note'];
+        }
+
+        if (isset($updateData['package_items']) && is_array($updateData['package_items'])) {
+            $requestPayload['package_items'] = array_map(function($item) {
+                $processedItem = [];
+                if (isset($item['order_detail_id'])) { // Can be null for new items
+                    $processedItem['order_detail_id'] = $item['order_detail_id'] === null ? null : (int)$item['order_detail_id'];
+                }
+                // paket_id and jumlah are mandatory for each item by RPC spec
+                if (isset($item['paket_id'])) {
+                    $processedItem['paket_id'] = (int)$item['paket_id'];
+                }
+                if (isset($item['jumlah'])) {
+                    $processedItem['jumlah'] = (int)$item['jumlah'];
+                }
+                if (isset($item['catatan_dapur'])) { // Can be null
+                    $processedItem['catatan_dapur'] = $item['catatan_dapur'];
+                }
+                if (isset($item['catatan_kurir'])) { // Can be null
+                    $processedItem['catatan_kurir'] = $item['catatan_kurir'];
+                }
+                return $processedItem;
+            }, $updateData['package_items']);
+        }
+
+        $response = $this->supabaseClient->rpc(
+            'update_daily_order',
+            [
+                'p_delivery_id' => $deliveryId,
+                'request' => $requestPayload
+            ],
+            [],
+            $accessToken
+        );
+
+        if ($response['error']) {
+            $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
+            error_log('Supabase RPC update_daily_order error: ' . $errorMessage);
+            throw new RuntimeException('Gagal update pesanan harian. Error: ' . $errorMessage);
+        }
+        // No explicit return, as the method is void
     }
 }

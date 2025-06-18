@@ -94,13 +94,31 @@ class OrderController
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
             }
 
-            $orderId = $this->orderService->saveOrder($data, $accessToken);
+            // Check if this is an update or a new order
+            if (isset($data['delivery_id_to_update']) && is_int($data['delivery_id_to_update'])) {
+                // This is an UPDATE path
+                $deliveryId = $data['delivery_id_to_update'];
 
-            $response->getBody()->write(json_encode([
-                'success' => true,
-                'message' => 'Pesanan berhasil disimpan.',
-                'order_id' => $orderId,
-            ]));
+                // Optional: Unset the ID if OrderService->updateDailyOrder does not expect it in $data.
+                // unset($data['delivery_id_to_update']);
+                // For now, assuming updateDailyOrder will correctly pick fields.
+
+                $this->orderService->updateDailyOrder($deliveryId, $data, $accessToken);
+
+                $response->getBody()->write(json_encode([
+                    'success' => true,
+                    'message' => 'Pesanan harian berhasil diupdate.',
+                ]));
+            } else {
+                // This is a CREATE path (existing logic)
+                $orderId = $this->orderService->saveOrder($data, $accessToken);
+
+                $response->getBody()->write(json_encode([
+                    'success' => true,
+                    'message' => 'Pesanan berhasil disimpan.',
+                    'order_id' => $orderId,
+                ]));
+            }
             return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
 
         } catch (InvalidArgumentException $e) {
@@ -111,10 +129,11 @@ class OrderController
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
 
         } catch (RuntimeException $e) {
-            error_log('Order save error: ' . $e->getMessage());
+            // Generalize error message slightly for both create and update
+            error_log('Order processing error: ' . $e->getMessage());
             $response->getBody()->write(json_encode([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat menyimpan pesanan. Silakan coba lagi nanti.',
+                'message' => 'Terjadi kesalahan saat memproses pesanan. Silakan coba lagi nanti.',
             ]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
 
