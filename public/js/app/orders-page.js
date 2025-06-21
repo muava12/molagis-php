@@ -2507,12 +2507,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } catch (error) {
                 console.error('Error submitting edit order form via PHP backend:', error);
+                // Directly use showToast for all errors, removing the old way.
+                showToast('Error', error.message, 'error');
+                
                 const errorDisplayElement = document.getElementById('edit-modal-error-display');
                 if (errorDisplayElement) {
-                    errorDisplayElement.textContent = error.message;
-                    errorDisplayElement.style.display = 'block';
-                } else {
-                    showToast('Error', error.message, 'error');
+                    // It's good practice to still hide it in case it was ever shown by other logic.
+                    errorDisplayElement.style.display = 'none';
                 }
             } finally {
                 submitButton.disabled = false;

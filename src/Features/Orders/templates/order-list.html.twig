@@ -380,8 +380,10 @@
   </script>
   <script type="module">
     import { initialize as initOrder, fetchCustomers, resetForm } from '/js/app/order.js';
+    import { initializeBatchDeleteToast } from '/js/app/batch-delete.js';
     document.addEventListener('DOMContentLoaded', () => {
       initOrder(); // Initialize the order form logic
+      initializeBatchDeleteToast(); // Initialize the batch delete toast logic
 
       const orderModal = document.getElementById('modal-add-order');
       if (orderModal) {
