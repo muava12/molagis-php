@@ -2455,11 +2455,6 @@ document.addEventListener('DOMContentLoaded', function () {
                  return;
             }
 
-            // const rpcPayload = { // This was for direct Supabase RPC
-            //     p_delivery_id: deliveryId,
-            //     request: formData
-            // };
-
             try {
                 // The new PHP endpoint will take deliveryId from the URL.
                 // The formData (which is the 'request' part of the RPC) will be the body.
@@ -2482,6 +2477,30 @@ document.addEventListener('DOMContentLoaded', function () {
                     const errorDisplayElement = document.getElementById('edit-modal-error-display');
                     if (errorDisplayElement) errorDisplayElement.style.display = 'none';
                     refreshOrdersView();
+
+                    // --- PEMBARUAN UI DINAMIS ---
+                    if (result.data && result.data.ringkasan_update) {
+                        const { order_id, ringkasan_update } = result.data;
+                        const { total_harga_final } = ringkasan_update;
+
+                        // Cari elemen total harga di tabel berdasarkan order_id
+                        const totalHargaElement = document.querySelector(`.order-total-harga[data-order-id="${order_id}"]`);
+                        
+                        if (totalHargaElement) {
+                            console.log(`Updating order ${order_id} total to ${total_harga_final}`);
+                            // Format ke format Rupiah
+                            const formattedTotal = new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(total_harga_final);
+
+                            // Update teks di UI, dengan mempertahankan teks "Total: "
+                            totalHargaElement.textContent = `Total: ${formattedTotal.replace('Rp', 'Rp ')}`;
+                        }
+                    }
+                    // --- AKHIR PEMBARUAN ---
                 } else {
                     // Error from our PHP backend (either non-ok status or result.success === false)
                     throw new Error(result.message || `Failed to update order. Status: ${response.status}`);

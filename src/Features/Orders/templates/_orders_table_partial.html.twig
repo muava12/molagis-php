@@ -32,7 +32,7 @@
                                     <div class="small">
                                         <span>Tgl Pesan: {{ order_item.tanggal_pesan | date("d M Y") }}</span>
                                         <span class="mx-2">|</span>
-                                        <span>Total: Rp {{ order_item.total_harga | number_format(0, ',', '.') }}</span>
+                                        <span class="order-total-harga" data-order-id="{{ order_item.id }}">Total: Rp {{ order_item.total_harga | number_format(0, ',', '.') }}</span>
                                     </div>
                                     {% if order_item.notes %}
                                         <div class="text-muted small mt-1">
