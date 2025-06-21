@@ -3,3 +3,5 @@
 **/.DS_Store
 vendor
 .DS_Store
+# Ignore mcp.json
+mcp.json
