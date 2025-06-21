@@ -17,12 +17,12 @@
     <!-- Tombol Toggle Theme dan Avatar -->
     <div class="navbar-nav ms-auto mx-2 flex-row order-md-last">
       <div class="nav-item">
-        <button id="theme-toggle" class="btn btn-icon btn-pill btn-ghost p-0 mx-2 border-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Toggle theme dark/light" aria-label="Toggle theme">
-          <svg id="theme-icon" class="icon icon-2 hide-theme-dark" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button id="theme-toggle" class="btn btn-icon btn-pill btn-ghost-secondary p-0 mx-2 border-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Toggle theme dark/light" aria-label="Toggle theme">
+          <svg id="theme-icon" class="icon hide-theme-dark" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
           </svg>
-          <svg id="theme-icon" class="icon icon-2 hide-theme-light" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg id="theme-icon" class="icon hide-theme-light" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path>
             <path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"></path>
           </svg>
@@ -40,6 +40,12 @@
           <a href="#" class="dropdown-item">Status</a>
           <a href="/profile" class="dropdown-item">Profile</a>
           <a href="#" class="dropdown-item">Feedback</a>
+          <div class="dropdown-item">
+            <label class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" id="blur-numbers-toggle">
+              <span class="form-check-label">Blur Angka</span>
+            </label>
+          </div>
           <div class="dropdown-divider"></div>
           <a href="/settings" class="dropdown-item">Settings</a>
           <a href="/logout" class="dropdown-item">Logout</a>
@@ -54,7 +60,7 @@
           <a class="nav-link" href="/dashboard" data-page="dashboard">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
               <!-- Replace with a suitable dashboard icon SVG -->
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12l2 -2l2 2l-2 2l-2 -2z" /><path d="M12 3l2 2l-2 2l-2 -2l2 -2z" /><path d="M12 21l2 -2l-2 -2l-2 2l2 2z" /><path d="M21 12l-2 2l-2 -2l2 -2l2 2z" /><line x1="12" y1="5" x2="12" y2="10" /><line x1="12" y1="14" x2="12" y2="19" /><line x1="5" y1="12" x2="10" y2="12" /><line x1="14" y1="12" x2="19" y2="12" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12l2 -2l2 2l-2 2l-2 -2z" /><path d="M12 3l2 2l-2 2l-2 -2l2 -2z" /><path d="M12 21l2 -2l-2 -2l2 -2l2 2z" /><path d="M21 12l-2 2l-2 -2l2 -2l2 2z" /><line x1="12" y1="5" x2="12" y2="10" /><line x1="12" y1="14" x2="12" y2="19" /><line x1="5" y1="12" x2="10" y2="12" /><line x1="14" y1="12" x2="19" y2="12" /></svg>
             </span>
             <span class="nav-link-title">Dashboard</span>
           </a>

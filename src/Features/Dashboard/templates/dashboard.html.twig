@@ -7,6 +7,14 @@
 	<link rel="stylesheet" href="/css/app/input-order.css?v={{ 'now'|date('U') }}">
 	<link rel="stylesheet" href="/css/app/custom.css?v={{ 'now'|date('U') }}">
 	<style>
+		.blurred-text {
+			filter: blur(4px);
+			cursor: pointer;
+			transition: filter 0.3s ease;
+		}
+		.blurred-text:hover {
+			filter: blur(0);
+		}
 		/* Pastikan tooltip responsif di dalam modal */
 		.tooltip {
 			pointer-events: none;
@@ -92,7 +100,7 @@
 									<div class="subheader">{{ card1_data.label | default('Dana Belum Diproses') }}</div>
 								</div>
 								<div class="d-flex align-items-baseline mt-3">
-									<div class="h1 mb-0 me-2">
+									<div class="h1 mb-0 me-2 blur-target">
 										Rp {{ card1_data.value | default(0) | number_format(0, ',', '.') }}
 									</div>
 									<div class="me-auto">
@@ -123,7 +131,7 @@
 									{# Dropdown omitted as per feedback #}
 								</div>
 								<div class="d-flex align-items-baseline mt-3">
-									<div class="h1 mb-0 me-2">
+									<div class="h1 mb-0 me-2 blur-target">
 										Rp {{ card_data.latest_value | default(0) | number_format(0, ',', '.') }}
 									</div>
 									<div class="me-auto">
@@ -166,7 +174,7 @@
 									<div class="subheader">{{ subheader_label }}</div>
 								</div>
 								<div class="d-flex align-items-baseline mt-3">
-									<div class="h1 mb-0 me-2">
+									<div class="h1 mb-0 me-2 blur-target">
 										Rp {{ card_data.latest_value | default(0) | number_format(0, ',', '.') }}
 									</div>
 									<div class="me-auto">
@@ -209,7 +217,7 @@
 									<div class="subheader">{{ subheader_label }}</div>
 								</div>
 								<div class="d-flex align-items-baseline mt-3">
-									<div class="h1 mb-0 me-2">
+									<div class="h1 mb-0 me-2 blur-target">
 										{{ card_data.latest_value | default(0) | number_format(0, ',', '.') }}
 									</div>
 									<div class="me-auto">
