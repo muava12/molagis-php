@@ -2189,6 +2189,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to open and fetch data for the Edit Order Modal
     async function openEditOrderModal(deliveryId) {
+        // console.log('[DEBUG] openEditOrderModal called with deliveryId:', deliveryId); // DEBUG
+
         const modalElement = document.getElementById('editOrderModal');
         if (!modalElement) {
             console.error('Edit Order Modal element #editOrderModal not found.');
@@ -2238,11 +2240,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (editButton) {
                 event.preventDefault();
                 const deliveryId = editButton.getAttribute('data-delivery-id');
-                if (deliveryId) {
+                // console.log('[DEBUG] Edit button clicked. data-delivery-id from attribute:', deliveryId); // DEBUG
+                if (deliveryId && deliveryId.trim() !== '') { // Check if deliveryId is not null, undefined, or empty string
                     openEditOrderModal(deliveryId);
                 } else {
-                    console.error('Edit button clicked but data-delivery-id attribute is missing or empty.');
-                    showToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
+                    console.error('Edit button clicked but data-delivery-id attribute is missing, empty, or invalid. Value:', deliveryId);
+                    showToast('Error', 'ID Pengiriman tidak valid atau tidak ditemukan untuk diedit.', 'error');
                 }
             }
         });
