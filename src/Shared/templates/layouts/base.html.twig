@@ -76,22 +76,16 @@
     </div>
     {% include 'partials/toast.html.twig' %}
     {% include 'partials/batch-delete-toast.html.twig' %}
-    <script src="/js/apexcharts.min.js"></script> {# ADDED LINE #}
-    <script src="/js/tabler.min.js"></script>
-    <script type="module" src="/js/app/utils.js?v={{ 'now'|date('U') }}"></script>
-    <script type="module" src="/js/app/index.js?v={{ 'now'|date('U') }}"></script>
-    <script type="module" src="/js/app/blur-numbers.js?v={{ 'now'|date('U') }}"></script>
-    <script src="/js/app/offline-handler.js?v={{ 'now'|date('U') }}"></script>
-    {% block javascripts %}
-      {# JavaScript spesifik untuk halaman ini #}
-    <script src="/js/app/batch-delete.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof initializeBatchDeleteToast === 'function') {
-                initializeBatchDeleteToast();
-            }
-        });
-    </script>
-    {% endblock %}
+
+    <script src="/js/tabler.min.js?v=1.2.0" defer></script>
+
+    <!-- App-wide Scripts -->
+    <script type="module" src="/js/app/theme.js"></script>
+    <script type="module" src="/js/app/header.js"></script>
+    <script src="/js/app/blur-numbers.js" type="module"></script>
+    <script src="/js/app/offline-handler.js?v={{ 'now'|date('U') }}" type="module"></script>
+    <script src="/js/app/batch-delete.js?v={{ 'now'|date('U') }}" type="module"></script>
+    
+    {% block javascripts %}{% endblock %}
   </body>
 </html>

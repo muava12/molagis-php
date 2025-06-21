@@ -450,6 +450,9 @@
 		{% include 'toast.html.twig' %}
 	</div>
 {% endblock %}
-{% block javascripts %} <script src="/js/awesomplete.min.js"></script>
-	 <script type="module" src="/js/app/dashboard.js?v={{ 'now'|date('U') }}"></script>
+{% block javascripts %}
+    {{ parent() }}
+    <script src="/js/apexcharts.min.js"></script>
+    <script type="module" src="/js/awesomplete.min.js"></script>
+    <script type="module" src="/js/app/dashboard.js?v={{ 'now'|date('U') }}"></script>
 {% endblock %}

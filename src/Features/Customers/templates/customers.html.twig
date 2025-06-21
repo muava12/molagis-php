@@ -170,6 +170,27 @@
     'confirmText': 'Hapus'
 } %}
 
+<!-- Modal Manage Labels -->
+<div class="modal modal-blur fade" id="manage-labels-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Kelola Label</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="manage-labels-modal-body">
+        <!-- Checkboxes will be rendered here by JavaScript -->
+      </div>
+       <div class="modal-footer">
+        <button type="button" class="btn" data-bs-dismiss="modal">Selesai</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'partials/add-customer-modal.html.twig' %}
+{% include 'partials/confirmation-modal.html.twig' %}
+{% include 'partials/toast.html.twig' %}
 {% endblock %}
 
 {% block javascripts %}

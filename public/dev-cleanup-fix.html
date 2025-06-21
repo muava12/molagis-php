@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev - Orphan Order Cleanup</title>
+    <link href="/css/tabler.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            padding: 2rem;
+        }
+        .table-responsive {
+            max-height: 80vh;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-xl">
+        <div class="page-header">
+            <h1 class="page-title">
+                Orphan Order Cleanup Tool
+            </h1>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted">
+                    Halaman ini menampilkan semua pesanan (orders) yang tidak memiliki item (orderdetails) atau jadwal pengiriman (deliverydates) yang terkait. Pesanan ini kemungkinan besar adalah data sisa dari proses input yang tidak selesai.
+                </p>
+                <p class="text-muted">
+                    Banyak dari data ini mungkin sudah ditandai <code>is_deleted: true</code> (soft delete), tetapi aman untuk dihapus secara permanen.
+                </p>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer Name</th>
+                            <th>Is Deleted?</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                        <!-- Data will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer" id="loading-state">
+                Loading data...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tableBody = document.getElementById('orders-table-body');
+            const loadingState = document.getElementById('loading-state');
+
+            function renderTable(orders) {
+                tableBody.innerHTML = '';
+                if (orders.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No orphan orders found.</td></tr>';
+                    return;
+                }
+
+                orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('id', `order-row-${order.id}`);
+                    row.innerHTML = `
+                        <td>${order.id}</td>
+                        <td>${order.customer_name}</td>
+                        <td><span class="badge ${order.is_deleted ? 'bg-red-lt' : 'bg-green-lt'}">${order.is_deleted}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="${order.id}">Delete</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            async function fetchOrphanOrders() {
+                try {
+                    const response = await fetch('/api/dev/orphan-orders');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    renderTable(data);
+                } catch (error) {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Failed to load data: ${error.message}</td></tr>`;
+                } finally {
+                    loadingState.style.display = 'none';
+                }
+            }
+            
+            async function deleteOrder(orderId) {
+                if (!confirm(`Are you sure you want to permanently delete Order ID: ${orderId}?`)) {
+                    return;
+                }
+
+                const button = document.querySelector(`.delete-btn[data-id="${orderId}"]`);
+                button.disabled = true;
+                button.textContent = 'Deleting...';
+
+                try {
+                    const response = await fetch(`/api/dev/orders/${orderId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to delete order.');
+                    }
+                    
+                    const row = document.getElementById(`order-row-${orderId}`);
+                    if(row) {
+                        row.remove();
+                    }
+
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                    button.disabled = false;
+                    button.textContent = 'Delete';
+                }
+            }
+
+            tableBody.addEventListener('click', function(event) {
+                if (event.target && event.target.classList.contains('delete-btn')) {
+                    const orderId = event.target.getAttribute('data-id');
+                    deleteOrder(orderId);
+                }
+            });
+
+            fetchOrphanOrders();
+        });
+    </script>
+</body>
+</html> 

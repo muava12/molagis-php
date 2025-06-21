@@ -21,7 +21,7 @@ class CustomersService
      */
     public function getAllCustomers(?string $accessToken = null): array
     {
-        return $this->client->get('/rest/v1/customers?select=*&order=nama', [], $accessToken);
+        return $this->client->get('/rest/v1/customers?select=*,labels(*)&order=nama', [], $accessToken);
     }
 
     /**
@@ -95,5 +95,40 @@ class CustomersService
     public function deleteCustomer(string $customerId, ?string $accessToken = null): array
     {
         return $this->client->delete("/rest/v1/customers?id=eq.{$customerId}", [], $accessToken);
+    }
+
+    /**
+     * Menambahkan label ke pelanggan.
+     * @param array $data ['customer_id' => int, 'label_id' => int]
+     * @param string|null $accessToken
+     * @return array
+     */
+    public function addLabelToCustomer(array $data, ?string $accessToken = null): array
+    {
+        if (empty($data['customer_id']) || empty($data['label_id'])) {
+            return ['error' => 'Customer ID dan Label ID diperlukan'];
+        }
+        return $this->client->post('/rest/v1/customer_labels', $data, [], $accessToken);
+    }
+
+    /**
+     * Menghapus label dari pelanggan.
+     * @param array $data ['customer_id' => int, 'label_id' => int]
+     * @param string|null $accessToken
+     * @return array
+     */
+    public function removeLabelFromCustomer(array $data, ?string $accessToken = null): array
+    {
+        if (empty($data['customer_id']) || empty($data['label_id'])) {
+            return ['error' => 'Customer ID dan Label ID diperlukan'];
+        }
+        $customerId = $data['customer_id'];
+        $labelId = $data['label_id'];
+        return $this->client->delete("/rest/v1/customer_labels?customer_id=eq.{$customerId}&label_id=eq.{$labelId}", [], $accessToken);
+    }
+
+    public function getAllLabels()
+    {
+        return $this->client->get('/rest/v1/labels?select=*&order=category,name', [], null);
     }
 }

@@ -1,4 +1,4 @@
-export function initThemeToggle() {
+function initThemeToggle() {
     const bootstrap = window.tabler?.bootstrap;
     const themeToggle = document.getElementById('theme-toggle');
     const htmlElement = document.documentElement;
@@ -21,3 +21,6 @@ export function initThemeToggle() {
         themeToggle.blur(); // Add this line to remove focus
     });
 }
+
+// Langsung panggil fungsi saat skrip dimuat
+initThemeToggle();

@@ -192,8 +192,5 @@ export function initializeBatchDeleteToast() {
     // window.batchDeleteToast.show(5);
 }
 
-// Initialize the toast logic when the DOM is ready,
-// or call this function from your main application script.
-// document.addEventListener('DOMContentLoaded', initializeBatchDeleteToast);
-// For now, we will assume this function will be called explicitly from another script
-// that also handles the inclusion of the toast HTML.
+// Initialize the toast logic automatically when the script loads.
+document.addEventListener('DOMContentLoaded', initializeBatchDeleteToast);

@@ -6,6 +6,7 @@
 // Variabel global
 let selectedCustomerId = null;
 let customers = [];
+let allLabels = []; // Menyimpan semua label yang tersedia
 let currentPage = 1;
 let itemsPerPage = 100;
 let fetchTimeout = null;
@@ -15,11 +16,13 @@ const refreshButton = document.getElementById('refresh-button');
 const filterInput = document.getElementById('filterInput');
 const itemsPerPageInput = document.getElementById('itemsPerPageInput');
 
-// Impor modul add-customer-modal
+// Impor modul
 import { initAddCustomerModal } from './add-customer-modal.js';
 import autosize from '../autosize.esm.js';
+import { showToast, showErrorToast } from './utils.js';
 
-// Fungsi utilitas
+// --- FUNGSI PENGAMBILAN DATA ---
+
 async function fetchCustomers() {
     const loadingDots = document.getElementById('loading-dots');
     loadingDots.classList.remove('d-none');
@@ -55,6 +58,21 @@ async function fetchCustomers() {
     }
 }
 
+async function fetchLabels() {
+    try {
+        const response = await fetch('/api/labels/all');
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        allLabels = result.labels;
+    } catch (error) {
+        console.error('Error fetching labels:', error);
+        showErrorToast('Error', 'Gagal mengambil daftar label.');
+    }
+}
+
+
+// --- FUNGSI RENDER ---
+
 function renderCustomers(customerData) {
     const customerList = document.getElementById('customer-list');
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -66,10 +84,19 @@ function renderCustomers(customerData) {
             const telepon = customer.telepon ? customer.telepon.replace(/^0/, '') : '';
             const teleponAlt = customer.telepon_alt ? customer.telepon_alt.replace(/^0/, '') : '';
             const teleponPemesan = customer.telepon_pemesan ? customer.telepon_pemesan.replace(/^0/, '') : '';
+
+            // Render labels
+            const labelsHtml = customer.labels.map(label =>
+                `<span class="badge bg-${label.color}-lt me-1">${label.name}</span>`
+            ).join('');
+
             return `
             <tr>
                 <td class="w-5">${customer.number}</td>
-                <td class="w-20">${customer.nama}</td>
+                <td class="w-20">
+                    <div>${customer.nama}</div>
+                    <div class="mt-1">${labelsHtml}</div>
+                </td>
                 <td class="w-55">${customer.alamat || ''}</td>
                 <td class="w-10">
                     <div class="tags-list">
@@ -101,7 +128,10 @@ function renderCustomers(customerData) {
                     </div>
                 </td>
                 <td class="w-10">
-                    <div class="btn-list">
+                    <div class="btn-list flex-nowrap">
+                         <button class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#manage-labels-modal" data-customer-id="${customer.id}">
+                           Labels
+                        </button>
                         <button type="button" class="btn btn-sm edit-btn" data-id="${customer.id}">Edit</button>
                         <button class="btn btn-sm btn-ghost-danger delete-btn" data-id="${customer.id}">Delete</button>
                     </div>
@@ -144,6 +174,110 @@ function updatePaginationControls(totalItems) {
             </a>
         </li>
     `;
+}
+
+function renderLabelsInModal(customerId) {
+    const modalBody = document.getElementById('manage-labels-modal-body');
+    const customer = customers.find(c => c.id == customerId);
+    if (!customer) {
+        modalBody.innerHTML = '<p>Pelanggan tidak ditemukan.</p>';
+        return;
+    }
+
+    const customerLabelIds = new Set(customer.labels.map(l => l.id));
+
+    // Group labels by category
+    const labelsByCategory = allLabels.reduce((acc, label) => {
+        if (!acc[label.category]) {
+            acc[label.category] = [];
+        }
+        acc[label.category].push(label);
+        return acc;
+    }, {});
+
+    // Build accordion HTML
+    const accordionId = `labels-accordion-${customerId}`;
+    let accordionHtml = `<div class="accordion" id="${accordionId}">`;
+
+    Object.keys(labelsByCategory).forEach((category, index) => {
+        const collapseId = `collapse-${category.replace(/\s+/g, '-')}-${index}`;
+        accordionHtml += `
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading-${index}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false">
+                        ${category}
+                    </button>
+                </h2>
+                <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#${accordionId}">
+                    <div class="accordion-body">
+                        ${labelsByCategory[category].map(label => `
+                            <div class="form-check">
+                                <input class="form-check-input label-checkbox" type="checkbox" value="${label.id}" id="label-${label.id}-${customerId}" data-customer-id="${customerId}" ${customerLabelIds.has(label.id) ? 'checked' : ''}>
+                                <label class="form-check-label" for="label-${label.id}-${customerId}">
+                                    ${label.name}
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    accordionHtml += '</div>';
+    modalBody.innerHTML = accordionHtml;
+}
+
+
+// --- FUNGSI HANDLER ---
+
+async function handleLabelChange(event) {
+    const checkbox = event.target;
+    const customerId = checkbox.dataset.customerId;
+    const labelId = checkbox.value;
+    const isChecked = checkbox.checked;
+
+    const endpoint = '/api/customers/labels';
+    const method = isChecked ? 'POST' : 'DELETE';
+    const body = JSON.stringify({
+        customer_id: customerId,
+        label_id: labelId
+    });
+
+    try {
+        const response = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body
+        });
+
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        // Update local customer data for instant UI feedback
+        const customerIndex = customers.findIndex(c => c.id == customerId);
+        if (customerIndex !== -1) {
+            if (isChecked) {
+                const labelToAdd = allLabels.find(l => l.id == labelId);
+                if (labelToAdd) {
+                    customers[customerIndex].labels.push(labelToAdd);
+                }
+            } else {
+                customers[customerIndex].labels = customers[customerIndex].labels.filter(l => l.id != labelId);
+            }
+        }
+        
+        // No full re-render, just show success
+        showToast('Sukses', `Label berhasil ${isChecked ? 'ditambahkan' : 'dihapus'}.`);
+
+    } catch (error) {
+        console.error('Error updating label:', error);
+        showErrorToast('Error', 'Gagal memperbarui label.');
+        // Revert checkbox state on error
+        checkbox.checked = !isChecked;
+    }
 }
 
 async function handleEditClick(event) {
@@ -356,74 +490,63 @@ function showConfirmation(title, message, onConfirm, confirmText = 'Konfirmasi')
     modal.show();
 }
 
-// Fungsi untuk menampilkan toast default
-function showToast(title, message) {
-    const toast = new bootstrap.Toast(document.getElementById('toast'));
-    document.getElementById('toast-title').textContent = title;
-    document.getElementById('toast-message').textContent = message;
-    toast.show();
+function addEventListenersToButtons() {
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', handleEditClick);
+    });
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', handleDeleteClick);
+    });
 }
 
-// Fungsi untuk menampilkan toast error
-function showErrorToast(title, message) {
-    const toast = new bootstrap.Toast(document.getElementById('toast-error'));
-    document.getElementById('toast-error-title').textContent = title;
-    document.getElementById('toast-error-message').textContent = message;
-    toast.show();
-}
-
-// Event listener dalam satu fungsi
 function setupEventListeners() {
     refreshButton.addEventListener('click', fetchCustomers);
     filterInput.addEventListener('input', filterTable);
     itemsPerPageInput.addEventListener('change', () => {
         itemsPerPage = parseInt(itemsPerPageInput.value, 10);
         currentPage = 1;
-        renderCustomers(customers);
+        renderCustomers(customers.filter(c => c.nama.toLowerCase().includes(filterInput.value.toLowerCase())));
     });
+    document.getElementById('edit-modal-form').addEventListener('submit', saveChanges);
 
-    document.addEventListener('click', (event) => {
-        if (event.target.classList.contains('page-link') && event.target.dataset.page) {
-            event.preventDefault();
-            const newPage = parseInt(event.target.dataset.page, 10);
-            if (!isNaN(newPage)) {
-                changePage(newPage);
-            }
+    const manageLabelsModal = document.getElementById('manage-labels-modal');
+    manageLabelsModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const customerId = button.getAttribute('data-customer-id');
+        renderLabelsInModal(customerId);
+    });
+    
+    manageLabelsModal.addEventListener('change', function(event) {
+        if (event.target.classList.contains('label-checkbox')) {
+            handleLabelChange(event);
         }
     });
-
-    // Inisialisasi modal tambah customer
-    initAddCustomerModal('add-modal', {
-        showToast,
-        showErrorToast,
-        onSuccess: fetchCustomers, // Refresh daftar pelanggan setelah sukses
+    
+     manageLabelsModal.addEventListener('hidden.bs.modal', function () {
+        // Re-render only the filtered customers to reflect label changes
+        filterTable();
     });
 
-    // Inisialisasi modal edit customer
-    const editForm = document.getElementById('edit-modal-form');
-    if (editForm) {
-        editForm.addEventListener('submit', saveChanges);
-    } else {
-        console.error('Edit modal form not found');
-    }
-}
-
-function addEventListenersToButtons() {
-    document.querySelectorAll('.edit-btn').forEach((button) => {
-        button.removeEventListener('click', handleEditClick);
-        button.addEventListener('click', handleEditClick);
-    });
-    document.querySelectorAll('.delete-btn').forEach((button) => {
-        button.removeEventListener('click', handleDeleteClick);
-        button.addEventListener('click', handleDeleteClick);
+    document.getElementById('pagination').addEventListener('click', event => {
+        event.preventDefault();
+        const page = event.target.closest('a')?.dataset.page;
+        if (page) {
+            changePage(parseInt(page));
+        }
     });
 }
 
 // Inisialisasi
 async function initialize() {
-    fetchCustomers();
+    await Promise.all([fetchCustomers(), fetchLabels()]);
     setupEventListeners();
-    autosize(document.querySelectorAll('textarea'));
+    
+    // Initialize the add customer modal
+    initAddCustomerModal('add-modal', {
+        showToast,
+        showErrorToast,
+        onSuccess: fetchCustomers // Refresh customer list on success
+    });
 }
 
-initialize();
+document.addEventListener('DOMContentLoaded', initialize);

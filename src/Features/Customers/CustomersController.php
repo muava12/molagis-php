@@ -37,7 +37,7 @@ class CustomersController
         ]);
     }
 
-    public function getCustomers(ServerRequestInterface $request): ResponseInterface
+    public function handleGetAllCustomers(ServerRequestInterface $request): ResponseInterface
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $queryParams = $request->getQueryParams();
@@ -57,7 +57,7 @@ class CustomersController
         ]);
     }
 
-    public function addCustomer(ServerRequestInterface $request): ResponseInterface
+    public function handleAddCustomer(ServerRequestInterface $request): ResponseInterface
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $data = $request->getParsedBody();
@@ -111,5 +111,36 @@ class CustomersController
             'success' => !$result['error'],
             'error' => $result['error'] ?? null,
         ], $result['error'] ? 400 : 200);
+    }
+
+    public function addLabelToCustomer(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+        $result = $this->customersService->addLabelToCustomer($data, $accessToken);
+
+        return new JsonResponse([
+            'success' => !$result['error'],
+            'error' => $result['error'] ?? null,
+        ], $result['error'] ? 400 : 200);
+    }
+
+    public function removeLabelFromCustomer(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+        $result = $this->customersService->removeLabelFromCustomer($data, $accessToken);
+
+        return new JsonResponse([
+            'success' => !$result['error'],
+            'error' => $result['error'] ?? null,
+        ], $result['error'] ? 400 : 200);
+    }
+
+    public function handleGetAllLabels(): ResponseInterface
+    {
+        $result = $this->customersService->getAllLabels();
+        
+        return new JsonResponse($result['data'] ?? [], $result['error'] ? 500 : 200, [], JSON_UNESCAPED_UNICODE);
     }
 }
