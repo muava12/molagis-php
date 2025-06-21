@@ -370,15 +370,15 @@
 								<div class="row g-3 mb-4 text-center">
 									<div class="col">
 										<div class="text-secondary">Total Pesanan</div>
-										<div class="h2 m-0 mt-1">{{ dashboard_statistics.total_orders_today|default(0) }}</div>
+										<div class="h2 m-0 mt-1 blur-target">{{ dashboard_statistics.total_orders_today|default(0) }}</div>
 									</div>
 									<div class="col">
 										<div class="text-secondary">Total Pendapatan</div>
-										<div class="h2 m-0 mt-1">Rp{{ dashboard_statistics.total_revenue_today|number_format(0, ',', '.') }}</div>
+										<div class="h2 m-0 mt-1 blur-target">Rp{{ dashboard_statistics.total_revenue_today|number_format(0, ',', '.') }}</div>
 									</div>
 									<div class="col">
 										<div class="text-secondary">Pengantaran Tertunda</div>
-										<div class="h2 m-0 mt-1">{{ dashboard_statistics.pending_deliveries_today|default(0) }}</div>
+										<div class="h2 m-0 mt-1 blur-target">{{ dashboard_statistics.pending_deliveries_today|default(0) }}</div>
 									</div>
 								</div>
 								{% else %}
@@ -402,7 +402,7 @@
 													</div>
 												</div>
 												<div class="col-auto">
-													<span class="badge bg-green-lt">Rp.{{ order.total_harga|number_format(0, ',', '.') }}</span>
+													<span class="badge bg-green-lt blur-target">Rp.{{ order.total_harga|number_format(0, ',', '.') }}</span>
 												</div>
 											</div>
 										</div>

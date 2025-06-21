@@ -30,9 +30,9 @@
       </div>
       <div class="nav-item dropdown d-flex">
         <a href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
-          <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/notionists-neutral/svg?seed={{ user_id|default('default-seed') }})"></span>
+          <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/notionists-neutral/svg?seed={{ user.id|default('default-seed') }})"></span>
           <div class="d-none d-xl-block ps-2">
-            <div>Admin</div>
+            <div>{{ user.email | split('@') | first | default('Admin') }}</div>
             <div class="mt-1 small text-secondary">Super Admin</div>
           </div>
         </a>
