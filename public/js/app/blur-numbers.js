@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const BLUR_STATE_KEY = 'numbersBlurred';
     const BLUR_CLASS = 'blurred-text';
     const TARGET_SELECTOR = '.blur-target';
+    const PRELOAD_STYLE_ID = 'blur-fix-style'; // ID of the inline style from base.html.twig
 
     const toggle = document.getElementById('blur-numbers-toggle');
 
@@ -49,6 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
         toggle.checked = savedState;
     }
     applyBlurState(savedState);
+
+    // Remove the pre-loader style tag so that future transitions work correctly
+    const preloadStyle = document.getElementById(PRELOAD_STYLE_ID);
+    if (preloadStyle) {
+        preloadStyle.remove();
+    }
 
     // Add event listener to the toggle
     if (toggle) {

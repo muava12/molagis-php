@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="/css/tabler.min.css" />
     <link rel="stylesheet" href="/css/app/tabler.custom.css">
     <link rel="stylesheet" href="/css/app/connection-indicator.css?v={{ 'now'|date('U') }}">
+    <link rel="stylesheet" href="/css/app/blur.css?v={{ 'now'|date('U') }}">
     {% block stylesheets %}
       {# CSS spesifik untuk halaman ini #}
     {% endblock %}
@@ -38,6 +39,28 @@
       // Set tema dari localStorage
       const savedTheme = localStorage.getItem('theme') || 'light';
       document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
+    <script>
+      // Inline script to prevent number flickering on load
+      (function() {
+        try {
+          if (localStorage.getItem('numbersBlurred') === 'true') {
+            const style = document.createElement('style');
+            style.id = 'blur-fix-style';
+            style.textContent = `
+              .blur-target {
+                filter: blur(4px) !important;
+                color: transparent !important;
+                user-select: none !important;
+                transition: none !important;
+              }
+            `;
+            document.head.appendChild(style);
+          }
+        } catch (e) {
+          console.error('Could not apply initial blur state', e);
+        }
+      })();
     </script>
   </head>
   <body>

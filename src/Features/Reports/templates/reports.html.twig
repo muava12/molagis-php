@@ -207,7 +207,7 @@
                   </div>
                 </div>
                 <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2">{{ reports_data.total_orders | default(0) }}</div>
+                  <div class="h1 mb-0 me-2 blur-target">{{ reports_data.total_orders | default(0) }}</div>
                   <div class="me-auto">
                     <span class="text-green d-inline-flex align-items-center lh-1">
                       8%
@@ -240,7 +240,7 @@
                   </div>
                 </div>
                 <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2">Rp {{ reports_data.total_revenue | default(0) | number_format(0, ',', '.') }}</div>
+                  <div class="h1 mb-0 me-2 blur-target">Rp {{ reports_data.total_revenue | default(0) | number_format(0, ',', '.') }}</div>
                   <div class="me-auto">
                     <span class="text-green d-inline-flex align-items-center lh-1">
                       12%
@@ -274,7 +274,7 @@
                 </div>
               </div>
               <div class="d-flex align-items-baseline">
-                <div class="h1 mb-0 me-2">{{ reports_data.active_customers | default(0) }}</div>
+                <div class="h1 mb-0 me-2 blur-target">{{ reports_data.active_customers | default(0) }}</div>
                 <div class="me-auto">
                   <span class="text-green d-inline-flex align-items-center lh-1">
                     5%
@@ -308,7 +308,7 @@
                   </div>
                 </div>
                 <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2">Rp {{ reports_data.average_order_value | default(0) | number_format(0, ',', '.') }}</div>
+                  <div class="h1 mb-0 me-2 blur-target">Rp {{ reports_data.average_order_value | default(0) | number_format(0, ',', '.') }}</div>
                   <div class="me-auto">
                     <span class="text-red d-inline-flex align-items-center lh-1">
                       -2%
