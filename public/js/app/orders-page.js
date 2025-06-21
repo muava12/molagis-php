@@ -1722,24 +1722,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Grouping select handler
     if (groupingSelect) {
-       groupingSelect.addEventListener('change', function() {
-           const selectedGrouping = this.value;
-           const currentUrl = new URL(window.location.href);
-           currentUrl.searchParams.set('grouping', selectedGrouping);
+        groupingSelect.addEventListener('change', function() {
+            const selectedGrouping = this.value;
+            const currentUrl = new URL(window.location.href); // Mulai dengan URL saat ini
 
-           // Grouping primarily applies to 'by_name' view.
-           // If current view is different, switch to 'by_name'.
-           currentUrl.searchParams.set('view', 'by_name');
-           currentUrl.searchParams.set('page', '1'); // Reset page to 1 when grouping changes.
+            // Dapatkan customer_id yang mungkin sudah ada dari input tersembunyi
+            const currentSelectedCustomerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
 
-           // If a customer_id is already in the URL for by_name view, it will be preserved.
-           // If no customer_id is present (e.g. user was on "by_order_id" and changed grouping),
-           // the page will show "by_name" view without a customer selected, prompting to select one.
-           // This is generally fine.
+            if (!currentSelectedCustomerId || currentSelectedCustomerId.trim() === '') {
+                // Tidak ada pelanggan yang dipilih, jangan lanjutkan dengan fetch
+                console.warn('Grouping changed but no customer selected. Aborting fetch.');
+                if (byNameContainer) {
+                    byNameContainer.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih pelanggan terlebih dahulu sebelum mengubah pengelompokan.</div>`;
+                }
+                // Kembalikan pilihan grouping ke nilai sebelumnya jika tidak ada pelanggan yang dipilih
+                // Ini mencegah UI menampilkan pilihan grouping yang tidak akan berlaku.
+                const previousGrouping = currentUrl.searchParams.get('grouping') || 'none';
+                this.value = previousGrouping;
+                return; // Hentikan eksekusi lebih lanjut
+            }
 
-           fetchAndUpdateOrdersView(currentUrl.toString());
-       });
-   }
+            // Jika ada customer_id, lanjutkan seperti biasa
+            currentUrl.searchParams.set('grouping', selectedGrouping);
+            currentUrl.searchParams.set('view', 'by_name'); // Grouping hanya relevan untuk view by_name
+            currentUrl.searchParams.set('page', '1'); // Reset page
+
+            // Pastikan customer_id dari input tersembunyi digunakan
+            currentUrl.searchParams.set('customer_id', currentSelectedCustomerId);
+
+            fetchAndUpdateOrdersView(currentUrl.toString());
+        });
+    }
 
     // Click listener for the external submit button to trigger form submission
     const externalSubmitBtn = document.getElementById('submit-btn');
