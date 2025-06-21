@@ -77,23 +77,25 @@ class OrderService
     public function getRecentOrders(int $limit = 5, ?string $accessToken = null): array
     {
         $query = sprintf(
-            '/rest/v1/orders?select=id,total_harga,customers!inner(id,nama)&order=tanggal_pesan.desc&limit=%d',
+            '/rest/v1/orders?select=id,total_harga,customers(nama)&order=tanggal_pesan.desc,id.desc&limit=%d',
             $limit
         );
         $response = $this->supabase->get($query, [], $accessToken);
         
-        if ($response['error']) {
-            error_log('Supabase getRecentOrders error: ' . $response['error']);
-            return [];
+        if (!empty($response['error'])) {
+            error_log('Supabase getRecentOrders error: ' . json_encode($response['error']));
+            return ['data' => [], 'error' => 'Gagal mengambil pesanan terbaru.'];
         }
 
-        return array_map(function ($order) {
+        $formattedOrders = array_map(function ($order) {
             return [
                 'order_id' => $order['id'],
                 'total_harga' => $order['total_harga'],
-                'customer_name' => $order['customers']['nama'] ?? 'N/A',
+                'customer_name' => $order['customers']['nama'] ?? 'Tanpa Nama',
             ];
         }, $response['data'] ?? []);
+
+        return ['data' => $formattedOrders, 'error' => null];
     }
 
     // Fungsi getHolidays tetap sama seperti sebelumnya
