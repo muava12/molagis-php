@@ -11,7 +11,6 @@ let currentPage = 1;
 let itemsPerPage = 100;
 let fetchTimeout = null;
 const bootstrap = window.tabler?.bootstrap;
-const TomSelect = window.TomSelect;
 
 const refreshButton = document.getElementById('refresh-button');
 const filterInput = document.getElementById('filterInput');
@@ -21,9 +20,6 @@ const itemsPerPageInput = document.getElementById('itemsPerPageInput');
 import { initAddCustomerModal } from './add-customer-modal.js';
 import autosize from '../autosize.esm.js';
 import { showToast, showErrorToast } from './utils.js';
-
-// Variabel global untuk menyimpan instance TomSelect agar bisa dihancurkan
-let tomSelectInstance = null;
 
 // --- FUNGSI PENGAMBILAN DATA ---
 
