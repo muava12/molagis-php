@@ -547,7 +547,7 @@ function initDynamicPeriodPicker() {
                             shorthand: false,
                             dateFormat: 'F Y',
                             altFormat: 'F Y',
-                            theme: 'light'
+                            theme: 'dark'
                         })],
                         defaultDate: selectedDates && selectedDates.length > 0 ? selectedDates[0] : new Date(),
                         placeholder: 'Pilih bulan',

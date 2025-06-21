@@ -137,10 +137,19 @@ class CustomersController
         ], $result['error'] ? 400 : 200);
     }
 
-    public function handleGetAllLabels(): ResponseInterface
+    public function handleGetAllLabels(ServerRequestInterface $request): ResponseInterface
     {
-        $result = $this->customersService->getAllLabels();
-        
-        return new JsonResponse($result['data'] ?? [], $result['error'] ? 500 : 200, [], JSON_UNESCAPED_UNICODE);
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'data' => [], 'error' => 'Unauthorized'], 401);
+        }
+
+        $result = $this->customersService->getAllLabels($accessToken);
+
+        if ($result['error']) {
+            return new JsonResponse(['success' => false, 'data' => [], 'error' => $result['error']], 500);
+        }
+
+        return new JsonResponse(['success' => true, 'data' => $result['data'] ?? []]);
     }
 }

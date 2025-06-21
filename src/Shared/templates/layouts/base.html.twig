@@ -36,8 +36,7 @@
       {# CSS spesifik untuk halaman ini #}
     {% endblock %}
     <script>
-      // Set tema dari localStorage
-      const savedTheme = localStorage.getItem('theme') || 'light';
+      const savedTheme = localStorage.getItem('theme') || 'dark';
       document.documentElement.setAttribute('data-bs-theme', savedTheme);
     </script>
     <script>

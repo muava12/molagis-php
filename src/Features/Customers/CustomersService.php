@@ -127,8 +127,13 @@ class CustomersService
         return $this->client->delete("/rest/v1/customer_labels?customer_id=eq.{$customerId}&label_id=eq.{$labelId}", [], $accessToken);
     }
 
-    public function getAllLabels()
+    /**
+     * Mengambil semua label dari Supabase.
+     * @param string|null $accessToken Token akses pengguna untuk autentikasi RLS
+     * @return array ['data' => array, 'error' => string|null]
+     */
+    public function getAllLabels(?string $accessToken = null): array
     {
-        return $this->client->get('/rest/v1/labels?select=*&order=category,name', [], null);
+        return $this->client->get('/rest/v1/labels?select=*&order=name', [], $accessToken);
     }
 }
