@@ -10,24 +10,11 @@
         <span class="icon d-none d-sm-inline">
           {{ business_name | default('Molagis') }}
         </span>
-        
       </a>
     </div>
 
     <!-- Tombol Toggle Theme dan Avatar -->
     <div class="navbar-nav ms-auto mx-2 flex-row order-md-last">
-      <div class="nav-item">
-        <button id="theme-toggle" class="btn btn-icon btn-pill btn-ghost-secondary p-0 mx-2 border-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Toggle theme dark/light" aria-label="Toggle theme">
-          <svg id="theme-icon" class="icon hide-theme-dark" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
-          </svg>
-          <svg id="theme-icon" class="icon hide-theme-light" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path>
-            <path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"></path>
-          </svg>
-        </button>
-      </div>
       <div class="nav-item dropdown d-flex">
         <a href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
           <span class="avatar avatar-sm" style="background-image: url(https://api.dicebear.com/9.x/notionists-neutral/svg?seed={{ user.id|default('default-seed') }})"></span>
@@ -40,6 +27,18 @@
           <a href="#" class="dropdown-item">Status</a>
           <a href="/profile" class="dropdown-item">Profile</a>
           <a href="#" class="dropdown-item">Feedback</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item" id="theme-toggle">
+            <span class="nav-link-icon d-inline-block me-2 hide-theme-dark">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>
+            </span>
+            <span class="nav-link-icon d-inline-block me-2 hide-theme-light">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"></path></svg>
+            </span>
+            <span class="nav-link-title">
+              Ganti Tema
+            </span>
+          </a>
           <div class="dropdown-item">
             <label class="form-check form-switch m-0">
               <input class="form-check-input" type="checkbox" id="blur-numbers-toggle">
