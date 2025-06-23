@@ -1,11 +1,11 @@
-export function initThemeToggle() {
+function initThemeToggle() {
     const bootstrap = window.tabler?.bootstrap;
     const themeToggle = document.getElementById('theme-toggle');
     const htmlElement = document.documentElement;
 
     if (!themeToggle) return;
 
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('theme') || 'dark';
     htmlElement.setAttribute('data-bs-theme', savedTheme);
 
     themeToggle.addEventListener('click', () => {
@@ -21,3 +21,6 @@ export function initThemeToggle() {
         themeToggle.blur(); // Add this line to remove focus
     });
 }
+
+// Langsung panggil fungsi saat skrip dimuat
+initThemeToggle();

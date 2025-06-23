@@ -6,6 +6,7 @@
 // Variabel global
 let selectedCustomerId = null;
 let customers = [];
+let allLabels = []; // Menyimpan semua label yang tersedia
 let currentPage = 1;
 let itemsPerPage = 100;
 let fetchTimeout = null;
@@ -15,11 +16,13 @@ const refreshButton = document.getElementById('refresh-button');
 const filterInput = document.getElementById('filterInput');
 const itemsPerPageInput = document.getElementById('itemsPerPageInput');
 
-// Impor modul add-customer-modal
+// Impor modul
 import { initAddCustomerModal } from './add-customer-modal.js';
 import autosize from '../autosize.esm.js';
+import { showToast, showErrorToast } from './utils.js';
 
-// Fungsi utilitas
+// --- FUNGSI PENGAMBILAN DATA ---
+
 async function fetchCustomers() {
     const loadingDots = document.getElementById('loading-dots');
     loadingDots.classList.remove('d-none');
@@ -55,6 +58,23 @@ async function fetchCustomers() {
     }
 }
 
+async function fetchLabels() {
+    try {
+        const response = await fetch('/api/labels/all');
+        const result = await response.json();
+        if (!result.success || result.error) {
+            throw new Error(result.error || 'Gagal memuat label.');
+        }
+        allLabels = result.data;
+    } catch (error) {
+        console.error('Error fetching labels:', error);
+        showErrorToast('Error', 'Gagal mengambil daftar label.');
+    }
+}
+
+
+// --- FUNGSI RENDER ---
+
 function renderCustomers(customerData) {
     const customerList = document.getElementById('customer-list');
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -66,10 +86,19 @@ function renderCustomers(customerData) {
             const telepon = customer.telepon ? customer.telepon.replace(/^0/, '') : '';
             const teleponAlt = customer.telepon_alt ? customer.telepon_alt.replace(/^0/, '') : '';
             const teleponPemesan = customer.telepon_pemesan ? customer.telepon_pemesan.replace(/^0/, '') : '';
+
+            // Render labels
+            const labelsHtml = customer.labels.map(label =>
+                `<span class="badge bg-${label.color}-lt me-1">${label.name}</span>`
+            ).join('');
+
             return `
             <tr>
                 <td class="w-5">${customer.number}</td>
-                <td class="w-20">${customer.nama}</td>
+                <td class="w-20">
+                    <div>${customer.nama}</div>
+                    <div class="mt-1">${labelsHtml}</div>
+                </td>
                 <td class="w-55">${customer.alamat || ''}</td>
                 <td class="w-10">
                     <div class="tags-list">
@@ -101,7 +130,10 @@ function renderCustomers(customerData) {
                     </div>
                 </td>
                 <td class="w-10">
-                    <div class="btn-list">
+                    <div class="btn-list flex-nowrap">
+                         <button class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#manage-labels-modal" data-customer-id="${customer.id}">
+                           Labels
+                        </button>
                         <button type="button" class="btn btn-sm edit-btn" data-id="${customer.id}">Edit</button>
                         <button class="btn btn-sm btn-ghost-danger delete-btn" data-id="${customer.id}">Delete</button>
                     </div>
@@ -144,6 +176,91 @@ function updatePaginationControls(totalItems) {
             </a>
         </li>
     `;
+}
+
+function renderLabelsInModal(customerId) {
+    const modalBody = document.getElementById('manage-labels-modal-body');
+    const customer = customers.find(c => c.id == customerId);
+    if (!customer) {
+        modalBody.innerHTML = '<p>Pelanggan tidak ditemukan.</p>';
+        return;
+    }
+
+    // Pelanggan hanya bisa punya satu label, jadi kita ambil yang pertama.
+    const currentLabelId = customer.labels.length > 0 ? customer.labels[0].id : '';
+
+    const optionsHtml = allLabels.map(label => `
+        <option value="${label.id}" ${currentLabelId == label.id ? 'selected' : ''}>
+            ${label.name}
+        </option>
+    `).join('');
+
+    modalBody.innerHTML = `
+        <div>
+            <label for="label-select" class="form-label">Pilih Label untuk Pelanggan</label>
+            <select class="form-select" id="label-select" data-original-label-id="${currentLabelId}">
+                <option value="">-- Tanpa Label --</option>
+                ${optionsHtml}
+            </select>
+        </div>
+    `;
+}
+
+
+// --- FUNGSI HANDLER ---
+
+async function handleLabelChange(customerId, newLabelId, oldLabelId) {
+    // Jika tidak ada perubahan, jangan lakukan apa-apa
+    if (newLabelId === oldLabelId) {
+        return;
+    }
+
+    try {
+        // Hapus label lama jika ada
+        if (oldLabelId) {
+            const deleteResponse = await fetch('/api/customers/labels', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer_id: customerId, label_id: oldLabelId })
+            });
+            const deleteResult = await deleteResponse.json();
+            if (deleteResult.error) throw new Error(deleteResult.error);
+        }
+
+        // Tambah label baru jika ada yang dipilih
+        if (newLabelId) {
+            const addResponse = await fetch('/api/customers/labels', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer_id: customerId, label_id: newLabelId })
+            });
+            const addResult = await addResponse.json();
+            if (addResult.error) throw new Error(addResult.error);
+        }
+
+        // Update data lokal untuk UI yang reaktif
+        const customerIndex = customers.findIndex(c => c.id == customerId);
+        if (customerIndex !== -1) {
+            if (newLabelId) {
+                const newLabel = allLabels.find(l => l.id == newLabelId);
+                customers[customerIndex].labels = [newLabel];
+            } else {
+                customers[customerIndex].labels = [];
+            }
+        }
+        
+        showToast('Sukses', 'Label pelanggan berhasil diperbarui.');
+        
+        // Tutup modal secara otomatis setelah berhasil
+        const modal = bootstrap.Modal.getInstance(document.getElementById('manage-labels-modal'));
+        modal.hide();
+
+    } catch (error) {
+        console.error('Error updating label:', error);
+        showErrorToast('Error', 'Gagal memperbarui label.');
+        // Render ulang modal untuk kembali ke state sebelum error
+        renderLabelsInModal(customerId);
+    }
 }
 
 async function handleEditClick(event) {
@@ -356,74 +473,73 @@ function showConfirmation(title, message, onConfirm, confirmText = 'Konfirmasi')
     modal.show();
 }
 
-// Fungsi untuk menampilkan toast default
-function showToast(title, message) {
-    const toast = new bootstrap.Toast(document.getElementById('toast'));
-    document.getElementById('toast-title').textContent = title;
-    document.getElementById('toast-message').textContent = message;
-    toast.show();
+function addEventListenersToButtons() {
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', handleEditClick);
+    });
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', handleDeleteClick);
+    });
 }
 
-// Fungsi untuk menampilkan toast error
-function showErrorToast(title, message) {
-    const toast = new bootstrap.Toast(document.getElementById('toast-error'));
-    document.getElementById('toast-error-title').textContent = title;
-    document.getElementById('toast-error-message').textContent = message;
-    toast.show();
-}
-
-// Event listener dalam satu fungsi
 function setupEventListeners() {
     refreshButton.addEventListener('click', fetchCustomers);
     filterInput.addEventListener('input', filterTable);
     itemsPerPageInput.addEventListener('change', () => {
         itemsPerPage = parseInt(itemsPerPageInput.value, 10);
         currentPage = 1;
-        renderCustomers(customers);
+        renderCustomers(customers.filter(c => c.nama.toLowerCase().includes(filterInput.value.toLowerCase())));
     });
+    document.getElementById('edit-modal-form').addEventListener('submit', saveChanges);
 
-    document.addEventListener('click', (event) => {
-        if (event.target.classList.contains('page-link') && event.target.dataset.page) {
-            event.preventDefault();
-            const newPage = parseInt(event.target.dataset.page, 10);
-            if (!isNaN(newPage)) {
-                changePage(newPage);
-            }
+    const manageLabelsModal = document.getElementById('manage-labels-modal');
+    manageLabelsModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const customerId = button.getAttribute('data-customer-id');
+        // Simpan customerId yang sedang aktif di modal
+        manageLabelsModal.dataset.activeCustomerId = customerId;
+        renderLabelsInModal(customerId);
+    });
+    
+    // Ganti event listener dari 'click' ke 'change' untuk dropdown
+    manageLabelsModal.addEventListener('change', function(event) {
+        if (event.target.id === 'label-select') {
+            const select = event.target;
+            const customerId = manageLabelsModal.dataset.activeCustomerId;
+            const newLabelId = select.value;
+            const oldLabelId = select.dataset.originalLabelId;
+            
+            handleLabelChange(customerId, newLabelId, oldLabelId);
         }
     });
-
-    // Inisialisasi modal tambah customer
-    initAddCustomerModal('add-modal', {
-        showToast,
-        showErrorToast,
-        onSuccess: fetchCustomers, // Refresh daftar pelanggan setelah sukses
+    
+    manageLabelsModal.addEventListener('hidden.bs.modal', function () {
+        // Hapus customerId saat modal ditutup
+        delete manageLabelsModal.dataset.activeCustomerId;
+        // Re-render only the filtered customers to reflect label changes
+        filterTable();
     });
 
-    // Inisialisasi modal edit customer
-    const editForm = document.getElementById('edit-modal-form');
-    if (editForm) {
-        editForm.addEventListener('submit', saveChanges);
-    } else {
-        console.error('Edit modal form not found');
-    }
-}
-
-function addEventListenersToButtons() {
-    document.querySelectorAll('.edit-btn').forEach((button) => {
-        button.removeEventListener('click', handleEditClick);
-        button.addEventListener('click', handleEditClick);
-    });
-    document.querySelectorAll('.delete-btn').forEach((button) => {
-        button.removeEventListener('click', handleDeleteClick);
-        button.addEventListener('click', handleDeleteClick);
+    document.getElementById('pagination').addEventListener('click', event => {
+        event.preventDefault();
+        const page = event.target.closest('a')?.dataset.page;
+        if (page) {
+            changePage(parseInt(page));
+        }
     });
 }
 
 // Inisialisasi
 async function initialize() {
-    fetchCustomers();
+    await Promise.all([fetchCustomers(), fetchLabels()]);
     setupEventListeners();
-    autosize(document.querySelectorAll('textarea'));
+    
+    // Initialize the add customer modal
+    initAddCustomerModal('add-modal', {
+        showToast,
+        showErrorToast,
+        onSuccess: fetchCustomers // Refresh customer list on success
+    });
 }
 
-initialize();
+document.addEventListener('DOMContentLoaded', initialize);

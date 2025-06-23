@@ -531,125 +531,89 @@ class OrdersService
      */
     public function updateDeliveryAndOrderDetails(int $deliveryId, array $data, ?string $accessToken = null): array
     {
-    try {
-        // 0. Fetch the order_id for the given deliveryId.
-        // This is needed for the final step of updating the parent order's total_harga.
-        // It's better to fetch it before the main RPC call in case the RPC modifies or deletes the delivery record in an unexpected way.
-        $orderIdQuery = sprintf('/rest/v1/deliverydates?id=eq.%d&select=order_id', $deliveryId);
-        $orderIdResponse = $this->supabaseClient->get($orderIdQuery, [], $accessToken);
+        try {
+            // Dapatkan order_id dari deliveryId untuk digunakan nanti di frontend.
+            $orderIdQuery = sprintf('/rest/v1/deliverydates?id=eq.%d&select=order_id', $deliveryId);
+            $orderIdResponse = $this->supabaseClient->get($orderIdQuery, [], $accessToken);
 
-        if (isset($orderIdResponse['error']) || empty($orderIdResponse['data'])) {
-            $errorMsg = 'Failed to fetch order_id for the given delivery_id before update. Error: ' . json_encode($orderIdResponse['error'] ?? 'Delivery record not found or no order_id.');
-            error_log($errorMsg);
-            return ['success' => false, 'error' => 'Internal error: Could not verify parent order.', 'status_code' => 404]; // Or 500
-        }
-        $orderId = $orderIdResponse['data'][0]['order_id'];
-
-        // 1. Prepare the 'request' JSONB payload for the RPC
-        $rpcRequestPayload = [
-            'tanggal' => $data['tanggal'] ?? null, // RPC casts to DATE
-            'kurir_id' => !empty($data['kurir_id']) ? (int)$data['kurir_id'] : null, // RPC casts to BIGINT
-            'ongkir' => isset($data['ongkir']) ? (float)$data['ongkir'] : 0, // RPC casts to INTEGER or NUMERIC
-            'item_tambahan' => $data['item_tambahan'] ?? null, // Send null if empty, don't convert to empty string
-            'harga_tambahan' => isset($data['harga_tambahan']) && $data['harga_tambahan'] !== null ? (float)$data['harga_tambahan'] : null, // RPC casts to NUMERIC
-            'harga_modal_tambahan' => isset($data['harga_modal_tambahan']) && $data['harga_modal_tambahan'] !== null ? (float)$data['harga_modal_tambahan'] : null, // RPC casts to NUMERIC
-            'daily_kitchen_note' => $data['daily_kitchen_note'] ?? null,
-            'daily_courier_note' => $data['daily_courier_note'] ?? null,
-            'package_items' => [], // Initialize to empty array
-        ];
-
-        // Populate package_items, ensuring correct structure
-        $submittedPackageItems = $data['package_items'] ?? [];
-        foreach ($submittedPackageItems as $item) {
-            // Basic validation for essential package item fields
-            if (empty($item['paket_id']) || !isset($item['jumlah']) || ((int)$item['jumlah'] <= 0)) {
-                // Optionally, throw an exception or collect errors if strict validation is needed here
-                // For now, consistent with previous logic, we might just log and skip,
-                // but RPC might be stricter. It's better if frontend ensures this.
-                error_log("Skipping invalid package item in RPC payload prep: " . json_encode($item));
-                continue;
+            if (isset($orderIdResponse['error']) || empty($orderIdResponse['data'])) {
+                $errorMsg = 'Failed to fetch order_id for the given delivery_id before update. Error: ' . json_encode($orderIdResponse['error'] ?? 'Delivery record not found or no order_id.');
+                error_log($errorMsg);
+                return ['success' => false, 'error' => 'Internal error: Could not verify parent order.', 'status_code' => 404];
             }
-            $rpcRequestPayload['package_items'][] = [
-                // order_detail_id is BIGINT in RPC, ensure it's null if not provided or empty
-                'order_detail_id' => !empty($item['order_detail_id']) ? (int)$item['order_detail_id'] : null,
-                'paket_id' => (int)$item['paket_id'], // RPC casts to BIGINT
-                'jumlah' => (int)$item['jumlah'],     // RPC casts to INTEGER
-                'catatan_dapur' => $item['catatan_dapur'] ?? null,
-                'catatan_kurir' => $item['catatan_kurir'] ?? null,
+            // Tidak perlu lagi, karena RPC sudah mengembalikan order_id
+            // $orderId = $orderIdResponse['data'][0]['order_id'];
+
+            // 1. Siapkan payload 'request' JSONB untuk RPC
+            $rpcRequestPayload = [
+                'tanggal' => $data['tanggal'] ?? null,
+                'kurir_id' => !empty($data['kurir_id']) ? (int)$data['kurir_id'] : null,
+                'ongkir' => isset($data['ongkir']) ? (float)$data['ongkir'] : 0,
+                'item_tambahan' => $data['item_tambahan'] ?? null,
+                'harga_tambahan' => isset($data['harga_tambahan']) && $data['harga_tambahan'] !== null ? (float)$data['harga_tambahan'] : null,
+                'harga_modal_tambahan' => isset($data['harga_modal_tambahan']) && $data['harga_modal_tambahan'] !== null ? (float)$data['harga_modal_tambahan'] : null,
+                'daily_kitchen_note' => $data['daily_kitchen_note'] ?? null,
+                'daily_courier_note' => $data['daily_courier_note'] ?? null,
+                'package_items' => [],
             ];
-        }
 
-        // 2. Call the 'update_daily_order' RPC function directly
-        $rpcParams = [
-            'p_delivery_id' => $deliveryId,
-            'request' => $rpcRequestPayload
-        ];
-        $rpcResult = $this->supabaseClient->rpc(
-            'update_daily_order',
-            $rpcParams,
-            [], // options
-            $accessToken
-        );
-
-        // 3. Handle Result from RPC call
-        if (!empty($rpcResult['error'])) {
-            $errorMessage = 'Supabase RPC update_daily_order failed.';
-            $supError = $rpcResult['error'];
-            $statusCode = (isset($rpcResult['status']) && is_int($rpcResult['status']) && $rpcResult['status'] >= 400) ? $rpcResult['status'] : 500;
-
-            if (is_array($supError) && isset($supError['message'])) {
-                $errorMessage .= ' Details: ' . $supError['message'];
-            } elseif (is_string($supError)) {
-                $errorMessage .= ' Details: ' . $supError;
+            $submittedPackageItems = $data['package_items'] ?? [];
+            foreach ($submittedPackageItems as $item) {
+                if (empty($item['paket_id']) || !isset($item['jumlah']) || ((int)$item['jumlah'] <= 0)) {
+                    error_log("Skipping invalid package item in RPC payload prep: " . json_encode($item));
+                    continue;
+                }
+                $rpcRequestPayload['package_items'][] = [
+                    'order_detail_id' => !empty($item['order_detail_id']) ? (int)$item['order_detail_id'] : null,
+                    'paket_id' => (int)$item['paket_id'],
+                    'jumlah' => (int)$item['jumlah'],
+                    'catatan_dapur' => $item['catatan_dapur'] ?? null,
+                    'catatan_kurir' => $item['catatan_kurir'] ?? null,
+                ];
             }
-            error_log('Supabase RPC update_daily_order error for delivery_id ' . $deliveryId . ': ' . json_encode($supError));
-            // Directly return the structured error. The controller will handle this.
-            return ['success' => false, 'error' => $errorMessage, 'status_code' => $statusCode];
-        }
-        
-        // If RPC is successful (no error), proceed. $rpcResult['data'] might be null for VOID functions.
-        // The success message for the overall operation.
-        $overallSuccessMessage = 'Order updated successfully via service.'; // Default message from old updateDailyOrderRpc
 
-        // 4. Update the parent orders.total_harga (if RPC was successful)
-        // This logic remains similar to before, relying on triggers having updated deliverydates.total_harga_perhari
-        if ($orderId) {
-            $allDeliveriesForOrderQuery = sprintf(
-                '/rest/v1/deliverydates?order_id=eq.%d&select=total_harga_perhari',
-                $orderId
+            // 2. Panggil RPC 'update_daily_order'
+            $rpcParams = [
+                'p_delivery_id' => $deliveryId,
+                'request' => $rpcRequestPayload
+            ];
+            $rpcResult = $this->supabaseClient->rpc(
+                'update_daily_order',
+                $rpcParams,
+                [],
+                $accessToken
             );
-            $allDeliveriesResponse = $this->supabaseClient->get($allDeliveriesForOrderQuery, [], $accessToken);
 
-            if (isset($allDeliveriesResponse['error'])) {
-                // Log this error but don't fail the entire operation if the main RPC succeeded.
-                // The order total might become out of sync. This might need a more robust solution later.
-                error_log("Failed to fetch all delivery dates for order ID {$orderId} to update order total after RPC: " . json_encode($allDeliveriesResponse['error']));
-            } else {
-                $newOrderTotalHarga = 0;
-                foreach ($allDeliveriesResponse['data'] as $d) {
-                    $newOrderTotalHarga += ($d['total_harga_perhari'] ?? 0);
+            // 3. Tangani hasil dari RPC
+            if (!empty($rpcResult['error'])) {
+                $errorMessage = 'Supabase RPC update_daily_order failed.';
+                $supError = $rpcResult['error'];
+                $statusCode = (isset($rpcResult['status']) && is_int($rpcResult['status']) && $rpcResult['status'] >= 400) ? $rpcResult['status'] : 500;
+
+                if (is_array($supError) && isset($supError['message'])) {
+                    $errorMessage .= ' Details: ' . $supError['message'];
+                } elseif (is_string($supError)) {
+                    $errorMessage .= ' Details: ' . $supError;
                 }
-                $updateOrderQuery = '/rest/v1/orders?id=eq.' . $orderId;
-                // Corrected to use update() method, and pass empty array for options
-                $orderUpdateResponse = $this->supabaseClient->update($updateOrderQuery, ['total_harga' => $newOrderTotalHarga], [], $accessToken);
-                if (isset($orderUpdateResponse['error'])) {
-                    error_log("Failed to update total_harga for order ID {$orderId} after RPC: " . json_encode($orderUpdateResponse['error']));
-                    // Don't throw an exception here to ensure the main success message is returned.
-                }
+                error_log('Supabase RPC update_daily_order error for delivery_id ' . $deliveryId . ': ' . json_encode($supError));
+                return ['success' => false, 'error' => $errorMessage, 'status_code' => $statusCode];
             }
-        } else {
-            error_log("No order_id found for delivery_id {$deliveryId}, cannot update parent order total.");
-        }
-        
-        return ['success' => true, 'message' => $overallSuccessMessage];
 
-    } catch (\Exception $e) {
-        // This catch block now handles errors from pre-RPC (order_id fetch), direct RPC call, or post-RPC logic (order total update)
-        error_log("Exception in updateDeliveryAndOrderDetails for delivery ID {$deliveryId}: " . $e->getMessage() . " - Trace: " . $e->getTraceAsString());
-        return ['success' => false, 'error' => 'Service error: ' . $e->getMessage(), 'status_code' => 500];
+            // Jika RPC berhasil, $rpcResult['data'] akan berisi response dari fungsi
+            // seperti { "status": "success", "pesan": "...", "ringkasan_update": { ... } }
+            // Tidak perlu lagi kalkulasi manual di PHP.
+
+            return [
+                'success' => true,
+                'message' => $rpcResult['data']['pesan'] ?? 'Pesanan berhasil diperbarui.',
+                'data' => $rpcResult['data'] // Teruskan semua data dari RPC
+            ];
+
+        } catch (\Exception $e) {
+            error_log("Exception in updateDeliveryAndOrderDetails for delivery ID {$deliveryId}: " . $e->getMessage() . " - Trace: " . $e->getTraceAsString());
+            return ['success' => false, 'error' => 'Service error: ' . $e->getMessage(), 'status_code' => 500];
+        }
     }
-    }
-    // The updateDailyOrderRpc method was here and is now removed.
 
     public function getGroupedDeliveriesByCustomerId(int $customerId, ?string $accessToken = null, int $limit = 100, int $offset = 0): array
     {

@@ -37,7 +37,7 @@ class CustomersController
         ]);
     }
 
-    public function getCustomers(ServerRequestInterface $request): ResponseInterface
+    public function handleGetAllCustomers(ServerRequestInterface $request): ResponseInterface
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $queryParams = $request->getQueryParams();
@@ -57,7 +57,7 @@ class CustomersController
         ]);
     }
 
-    public function addCustomer(ServerRequestInterface $request): ResponseInterface
+    public function handleAddCustomer(ServerRequestInterface $request): ResponseInterface
     {
         $accessToken = $_SESSION['user_token'] ?? null;
         $data = $request->getParsedBody();
@@ -111,5 +111,45 @@ class CustomersController
             'success' => !$result['error'],
             'error' => $result['error'] ?? null,
         ], $result['error'] ? 400 : 200);
+    }
+
+    public function addLabelToCustomer(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+        $result = $this->customersService->addLabelToCustomer($data, $accessToken);
+
+        return new JsonResponse([
+            'success' => !$result['error'],
+            'error' => $result['error'] ?? null,
+        ], $result['error'] ? 400 : 200);
+    }
+
+    public function removeLabelFromCustomer(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+        $result = $this->customersService->removeLabelFromCustomer($data, $accessToken);
+
+        return new JsonResponse([
+            'success' => !$result['error'],
+            'error' => $result['error'] ?? null,
+        ], $result['error'] ? 400 : 200);
+    }
+
+    public function handleGetAllLabels(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        if (!$accessToken) {
+            return new JsonResponse(['success' => false, 'data' => [], 'error' => 'Unauthorized'], 401);
+        }
+
+        $result = $this->customersService->getAllLabels($accessToken);
+
+        if ($result['error']) {
+            return new JsonResponse(['success' => false, 'data' => [], 'error' => $result['error']], 500);
+        }
+
+        return new JsonResponse(['success' => true, 'data' => $result['data'] ?? []]);
     }
 }

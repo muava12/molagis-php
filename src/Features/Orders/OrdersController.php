@@ -472,7 +472,8 @@ class OrdersController
             if ($serviceResult['success']) {
                 return new Response\JsonResponse([
                     'success' => true,
-                    'message' => $serviceResult['message'] ?? 'Pesanan berhasil diperbarui.'
+                    'message' => $serviceResult['message'] ?? 'Pesanan berhasil diperbarui.',
+                    'data' => $serviceResult['data'] ?? null // Teruskan data dari service ke frontend
                 ]); // HTTP 200 OK implicitly
             } else {
                 // Log controller-level context. The service method should have already logged specifics.

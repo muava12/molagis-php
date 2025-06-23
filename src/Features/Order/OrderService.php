@@ -6,11 +6,12 @@ namespace Molagis\Features\Order;
 use Molagis\Shared\SupabaseClient;
 use InvalidArgumentException;
 use RuntimeException;
+use GuzzleHttp\Client as GuzzleClient;
 
 class OrderService
 {
     public function __construct(
-        private SupabaseClient $supabaseClient
+        private SupabaseClient $supabase
     ) {}
 
     /**
@@ -20,8 +21,7 @@ class OrderService
      */
     public function getCustomers(?string $accessToken = null): array
     {
-        // Ambil juga ongkir default untuk potensi penggunaan di frontend
-        $response = $this->supabaseClient->get('/rest/v1/customers?select=id,nama,ongkir,alamat', [], $accessToken);
+        $response = $this->supabase->get('/rest/v1/customers?select=id,nama,ongkir,alamat', [], $accessToken);
         return $response['data'] ?? [];
     }
 
@@ -32,8 +32,7 @@ class OrderService
      */
     public function getPackages(?string $accessToken = null): array
     {
-        // Ambil harga jual dan modal untuk perhitungan di frontend
-        $response = $this->supabaseClient->get('/rest/v1/paket?select=id,nama,harga_jual,harga_modal', [], $accessToken);
+        $response = $this->supabase->get('/rest/v1/paket?select=id,nama,harga_jual,harga_modal&order=urutan.asc', [], $accessToken);
         return $response['data'] ?? [];
     }
 
@@ -49,110 +48,22 @@ class OrderService
      */
     public function saveOrder(array $data, ?string $accessToken = null): int
     {
-        // --- Validasi Server-Side Struktur Data Input ---
+        // Validasi
         if (!isset($data['customer_id']) || !is_int($data['customer_id'])) {
             throw new InvalidArgumentException('customer_id tidak valid atau hilang.');
-        }
-        // new_ongkir bersifat opsional di RPC, tapi kita pastikan tipenya jika ada
-        if (isset($data['new_ongkir']) && !is_numeric($data['new_ongkir']) && $data['new_ongkir'] !== null) {
-             throw new InvalidArgumentException('Format new_ongkir tidak valid.');
         }
         if (!isset($data['order_data']) || !is_array($data['order_data'])) {
             throw new InvalidArgumentException('order_data tidak valid atau hilang.');
         }
-        if (!isset($data['delivery_dates']) || !is_array($data['delivery_dates'])) {
-            // Membolehkan array kosong jika logika bisnis mengizinkan,
-            // tapi RPC mungkin memerlukan setidaknya satu. Sesuaikan jika perlu.
-             throw new InvalidArgumentException('delivery_dates tidak valid atau hilang.');
-        }
-         if (!isset($data['order_details']) || !is_array($data['order_details'])) {
-             // Membolehkan array kosong jika logika bisnis mengizinkan.
-             throw new InvalidArgumentException('order_details tidak valid atau hilang.');
-         }
 
-        // Validasi isi order_data (contoh)
-        $orderData = $data['order_data'];
-        if (empty($orderData['customer_id']) || $orderData['customer_id'] !== $data['customer_id']) {
-             throw new InvalidArgumentException('customer_id dalam order_data tidak konsisten.');
-        }
-        if (empty($orderData['tanggal_pesan']) /*|| !validasi_format_tanggal($orderData['tanggal_pesan'])*/) {
-             throw new InvalidArgumentException('tanggal_pesan dalam order_data tidak valid.');
-        }
-        if (!isset($orderData['total_harga']) || !is_numeric($orderData['total_harga'])) {
-             throw new InvalidArgumentException('total_harga dalam order_data tidak valid.');
-        }
-        // Tambahkan validasi lain untuk order_data jika perlu (notes, metode_pembayaran)
-
-        // Validasi isi delivery_dates (contoh untuk elemen pertama)
-        if (!empty($data['delivery_dates'])) {
-            foreach ($data['delivery_dates'] as $index => $dd) {
-                 if (empty($dd['tanggal']) /*|| !validasi_format_tanggal($dd['tanggal'])*/) {
-                      throw new InvalidArgumentException("tanggal tidak valid untuk delivery_dates index {$index}.");
-                 }
-                 if (!isset($dd['ongkir']) || !is_numeric($dd['ongkir'])) {
-                      throw new InvalidArgumentException("ongkir tidak valid untuk delivery_dates index {$index}.");
-                 }
-                  // Pastikan kurir_id adalah integer atau null
-                 if (isset($dd['kurir_id']) && !is_int($dd['kurir_id']) && $dd['kurir_id'] !== null) {
-                     throw new InvalidArgumentException("kurir_id tidak valid untuk delivery_dates index {$index}.");
-                 }
-                 // Tambahkan validasi lain untuk delivery_dates (status, item_tambahan, dll.)
-            }
-        } else {
-             // Jika delivery_dates kosong, order_details juga harus kosong (asumsi)
-             if (!empty($data['order_details'])) {
-                 throw new InvalidArgumentException('order_details harus kosong jika delivery_dates kosong.');
-             }
+        // Panggil RPC
+        $response = $this->supabase->rpc('submit_order', ['params' => $data], [], $accessToken);
+        
+        if ($response['error'] || !isset($response['data']['order_id'])) {
+            error_log('Supabase RPC submit_order error: ' . ($response['error'] ?? 'No order_id returned'));
+            throw new RuntimeException('Gagal mengirimkan pesanan ke database.');
         }
 
-
-        // Validasi isi order_details (contoh untuk elemen pertama)
-         if (!empty($data['order_details'])) {
-             foreach ($data['order_details'] as $index => $od) {
-                 if (!isset($od['delivery_index']) || !is_int($od['delivery_index'])) {
-                     throw new InvalidArgumentException("delivery_index tidak valid untuk order_details index {$index}.");
-                 }
-                 if (empty($od['paket_id']) || !is_int($od['paket_id'])) {
-                     throw new InvalidArgumentException("paket_id tidak valid untuk order_details index {$index}.");
-                 }
-                 if (!isset($od['jumlah']) || !is_int($od['jumlah']) || $od['jumlah'] <= 0) {
-                      throw new InvalidArgumentException("jumlah tidak valid untuk order_details index {$index}.");
-                 }
-                  // Tambahkan validasi lain untuk order_details (subtotal_harga, catatan, dll.)
-             }
-         }
-
-        // Data dianggap valid dan memiliki struktur yang benar sesuai frontend
-        // Langsung teruskan ke RPC
-
-        // Panggil fungsi transaksi di Supabase dengan data yang sudah divalidasi
-        // Nama fungsi RPC adalah 'save_order_transaction'
-        // Parameter kedua untuk rpc adalah data itu sendiri, dibungkus dalam 'params' jika
-        // fungsi RPC Anda didefinisikan untuk menerima satu argumen JSON bernama 'params'.
-        // Untuk 'submit_order', kita akan meneruskan $data yang dibungkus dalam 'params'.
-        $response = $this->supabaseClient->rpc(
-            'submit_order', // Nama fungsi RPC baru
-            ['params' => $data], // Bungkus data dalam 'params'
-            [],             // Opsi Guzzle tambahan (jika ada)
-            $accessToken    // Token akses
-        );
-
-        // Penanganan Error RPC
-        if ($response['error']) {
-            // Log error detail dari Supabase jika memungkinkan
-            error_log('Supabase RPC submit_order error: ' . print_r($response['error'], true));
-            // Berikan pesan error yang lebih umum ke pengguna
-            throw new RuntimeException('Gagal mengirimkan pesanan ke database. Error: ' . $response['error']);
-        }
-
-        // Cek apakah data dan order_id ada dalam respons
-        // Respons dari submit_order diharapkan berbentuk {"order_id": 123}
-        if (!isset($response['data']['order_id'])) {
-             error_log('Supabase RPC submit_order success but missing order_id in response: ' . print_r($response['data'], true));
-            throw new RuntimeException('Gagal mendapatkan ID pesanan setelah mengirimkan pesanan.');
-        }
-
-        // Kembalikan order_id jika berhasil
         return (int) $response['data']['order_id'];
     }
 
@@ -166,40 +77,32 @@ class OrderService
     public function getRecentOrders(int $limit = 5, ?string $accessToken = null): array
     {
         $query = sprintf(
-            '/rest/v1/orders?select=id,total_harga,customers!inner(id,nama)&order=tanggal_pesan.desc&limit=%d',
+            '/rest/v1/orders?select=id,total_harga,customers(nama)&order=tanggal_pesan.desc,id.desc&limit=%d',
             $limit
         );
-
-        try {
-            $response = $this->supabaseClient->get($query, [], $accessToken);
-
-            if (isset($response['error'])) {
-                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
-                error_log('Supabase getRecentOrders error: ' . $errorMessage);
-                return ['data' => [], 'error' => $errorMessage];
-            }
-
-            $fetchedData = $response['data'] ?? [];
-            $processedData = array_map(function ($order) {
-                return [
-                    'order_id' => $order['id'],
-                    'total_harga' => $order['total_harga'],
-                    'customer_name' => $order['customers']['nama'] ?? 'N/A', // Handle if customer somehow is null despite inner join
-                ];
-            }, $fetchedData);
-
-            return ['data' => $processedData, 'error' => null];
-        } catch (\Exception $e) {
-            error_log('Exception in getRecentOrders: ' . $e->getMessage());
-            return ['data' => [], 'error' => 'Exception occurred while fetching recent orders: ' . $e->getMessage()];
+        $response = $this->supabase->get($query, [], $accessToken);
+        
+        if (!empty($response['error'])) {
+            error_log('Supabase getRecentOrders error: ' . json_encode($response['error']));
+            return ['data' => [], 'error' => 'Gagal mengambil pesanan terbaru.'];
         }
+
+        $formattedOrders = array_map(function ($order) {
+            return [
+                'order_id' => $order['id'],
+                'total_harga' => $order['total_harga'],
+                'customer_name' => $order['customers']['nama'] ?? 'Tanpa Nama',
+            ];
+        }, $response['data'] ?? []);
+
+        return ['data' => $formattedOrders, 'error' => null];
     }
 
     // Fungsi getHolidays tetap sama seperti sebelumnya
     public function getHolidays(int $year): array
     {
         try {
-            $client = new \GuzzleHttp\Client();
+            $client = new GuzzleClient();
             $response = $client->get("https://date.nager.at/api/v3/PublicHolidays/{$year}/ID");
             return json_decode((string) $response->getBody(), true);
         } catch (\Exception $e) {
@@ -223,21 +126,8 @@ class OrderService
             $limit,
             $offset
         );
-
-        try {
-            $response = $this->supabaseClient->get($query, [], $accessToken);
-
-            if (isset($response['error'])) {
-                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
-                error_log('Supabase getOrderList error: ' . $errorMessage);
-                return ['data' => [], 'error' => $errorMessage];
-            }
-
-            return ['data' => $response['data'] ?? [], 'error' => null];
-        } catch (\Exception $e) {
-            error_log('Exception in getOrderList: ' . $e->getMessage());
-            return ['data' => [], 'error' => 'Exception occurred while fetching orders: ' . $e->getMessage()];
-        }
+        $response = $this->supabase->get($query, [], $accessToken);
+        return ['data' => $response['data'] ?? [], 'error' => $response['error']];
     }
 
     /**
@@ -253,53 +143,41 @@ class OrderService
             '/rest/v1/orders?customer_id=eq.%d&select=id,tanggal_pesan,metode_pembayaran,notes,customers(nama),deliverydates(id,tanggal,status,ongkir,item_tambahan,harga_tambahan,total_harga_perhari,couriers(nama,color),orderdetails(id,jumlah,subtotal_harga,catatan_dapur,catatan_kurir,paket(nama)))&order=tanggal_pesan.desc',
             $customerId
         );
+        $response = $this->supabase->get($query, [], $accessToken);
 
-        try {
-            $response = $this->supabaseClient->get($query, [], $accessToken);
+        if ($response['error']) {
+            return ['data' => [], 'error' => $response['error']];
+        }
 
-            if (isset($response['error'])) {
-                $errorMessage = is_array($response['error']) ? json_encode($response['error']) : $response['error'];
-                error_log('Supabase getDeliveriesByCustomerId error: ' . $errorMessage);
-                return ['data' => [], 'error' => $errorMessage];
-            }
-
-            $allDeliveries = [];
-            if (!empty($response['data'])) {
-                foreach ($response['data'] as $order) {
-                    $customerName = $order['customers']['nama'] ?? 'N/A';
-                    if (isset($order['deliverydates']) && is_array($order['deliverydates'])) {
-                        foreach ($order['deliverydates'] as $delivery) {
-                            $allDeliveries[] = [
-                                'delivery_id' => $delivery['id'],
-                                'delivery_tanggal' => $delivery['tanggal'],
-                                'delivery_status' => $delivery['status'] ?? 'N/A',
-                                'delivery_ongkir' => $delivery['ongkir'] ?? 0,
-                                'item_tambahan' => $delivery['item_tambahan'] ?? '',
-                                'harga_tambahan' => $delivery['harga_tambahan'] ?? 0,
-                                'total_harga_perhari' => $delivery['total_harga_perhari'] ?? 0,
-                                'courier_nama' => $delivery['couriers']['nama'] ?? 'N/A',
-                                'courier_color' => $delivery['couriers']['color'] ?? 'blue',
-                                'order_id' => $order['id'],
-                                'order_tanggal_pesan' => $order['tanggal_pesan'],
-                                'order_metode_pembayaran' => $order['metode_pembayaran'] ?? 'N/A',
-                                'order_notes' => $order['notes'] ?? '',
-                                'customer_nama' => $customerName,
-                                'details' => $delivery['orderdetails'] ?? []
-                            ];
-                        }
+        $allDeliveries = [];
+        if (!empty($response['data'])) {
+            foreach ($response['data'] as $order) {
+                $customerName = $order['customers']['nama'] ?? 'N/A';
+                if (isset($order['deliverydates']) && is_array($order['deliverydates'])) {
+                    foreach ($order['deliverydates'] as $delivery) {
+                        $allDeliveries[] = [
+                            'delivery_id' => $delivery['id'],
+                            'delivery_tanggal' => $delivery['tanggal'],
+                            'delivery_status' => $delivery['status'] ?? 'N/A',
+                            'delivery_ongkir' => $delivery['ongkir'] ?? 0,
+                            'item_tambahan' => $delivery['item_tambahan'] ?? '',
+                            'harga_tambahan' => $delivery['harga_tambahan'] ?? 0,
+                            'total_harga_perhari' => $delivery['total_harga_perhari'] ?? 0,
+                            'courier_nama' => $delivery['couriers']['nama'] ?? 'N/A',
+                            'courier_color' => $delivery['couriers']['color'] ?? 'blue',
+                            'order_id' => $order['id'],
+                            'order_tanggal_pesan' => $order['tanggal_pesan'],
+                            'order_metode_pembayaran' => $order['metode_pembayaran'] ?? 'N/A',
+                            'order_notes' => $order['notes'] ?? '',
+                            'customer_nama' => $customerName,
+                            'details' => $delivery['orderdetails'] ?? []
+                        ];
                     }
                 }
-                // Sort all deliveries by delivery_tanggal ascending
-                usort($allDeliveries, function($a, $b) {
-                    return strcmp($a['delivery_tanggal'], $b['delivery_tanggal']);
-                });
             }
-            return ['data' => $allDeliveries, 'error' => null];
-
-        } catch (\Exception $e) {
-            error_log('Exception in getDeliveriesByCustomerId: ' . $e->getMessage());
-            return ['data' => [], 'error' => 'Exception occurred while fetching customer deliveries: ' . $e->getMessage()];
+            usort($allDeliveries, fn($a, $b) => strcmp($a['delivery_tanggal'], $b['delivery_tanggal']));
         }
+        return ['data' => $allDeliveries, 'error' => null];
     }
 
     /**
@@ -313,78 +191,20 @@ class OrderService
      */
     public function updateDailyOrder(int $deliveryId, array $updateData, ?string $accessToken = null): void
     {
-        $requestPayload = [];
-
-        if (isset($updateData['tanggal']) && $updateData['tanggal'] !== null) {
-            $requestPayload['tanggal'] = $updateData['tanggal'];
-        }
-        if (isset($updateData['kurir_id'])) { // kurir_id can be null
-            $requestPayload['kurir_id'] = $updateData['kurir_id'] === null ? null : (int)$updateData['kurir_id'];
-        }
-        if (isset($updateData['ongkir'])) { // ongkir can be null
-            $requestPayload['ongkir'] = $updateData['ongkir'] === null ? null : (float)$updateData['ongkir'];
-        }
-        if (isset($updateData['item_tambahan'])) { // item_tambahan can be null
-            $requestPayload['item_tambahan'] = $updateData['item_tambahan'];
-        }
-        if (isset($updateData['harga_tambahan'])) { // harga_tambahan can be null
-            $requestPayload['harga_tambahan'] = $updateData['harga_tambahan'] === null ? null : (float)$updateData['harga_tambahan'];
-        }
-        if (isset($updateData['harga_modal_tambahan'])) { // harga_modal_tambahan can be null
-            $requestPayload['harga_modal_tambahan'] = $updateData['harga_modal_tambahan'] === null ? null : (float)$updateData['harga_modal_tambahan'];
-        }
-
-        // Handle potential alternative keys for notes
-        if (isset($updateData['daily_kitchen_note'])) {
-            $requestPayload['daily_kitchen_note'] = $updateData['daily_kitchen_note'];
-        } elseif (isset($updateData['kitchen_note'])) {
-            $requestPayload['daily_kitchen_note'] = $updateData['kitchen_note'];
-        }
-
-        if (isset($updateData['daily_courier_note'])) {
-            $requestPayload['daily_courier_note'] = $updateData['daily_courier_note'];
-        } elseif (isset($updateData['courier_note'])) {
-            $requestPayload['daily_courier_note'] = $updateData['courier_note'];
-        }
-
-        if (isset($updateData['package_items']) && is_array($updateData['package_items'])) {
-            $requestPayload['package_items'] = array_map(function($item) {
-                $processedItem = [];
-                if (isset($item['order_detail_id'])) { // Can be null for new items
-                    $processedItem['order_detail_id'] = $item['order_detail_id'] === null ? null : (int)$item['order_detail_id'];
-                }
-                // paket_id and jumlah are mandatory for each item by RPC spec
-                if (isset($item['paket_id'])) {
-                    $processedItem['paket_id'] = (int)$item['paket_id'];
-                }
-                if (isset($item['jumlah'])) {
-                    $processedItem['jumlah'] = (int)$item['jumlah'];
-                }
-                if (isset($item['catatan_dapur'])) { // Can be null
-                    $processedItem['catatan_dapur'] = $item['catatan_dapur'];
-                }
-                if (isset($item['catatan_kurir'])) { // Can be null
-                    $processedItem['catatan_kurir'] = $item['catatan_kurir'];
-                }
-                return $processedItem;
-            }, $updateData['package_items']);
-        }
-
-        $response = $this->supabaseClient->rpc(
+        // Logic di sini butuh RPC
+        $response = $this->supabase->rpc(
             'update_daily_order',
             [
                 'p_delivery_id' => $deliveryId,
-                'request' => $requestPayload
+                'request' => $updateData
             ],
             [],
             $accessToken
         );
 
         if ($response['error']) {
-            $errorMessage = is_array($response['error']) ? json_encode($response['error']) : (string) $response['error'];
-            error_log('Supabase RPC update_daily_order error: ' . $errorMessage);
-            throw new RuntimeException('Gagal update pesanan harian. Error: ' . $errorMessage);
+            error_log('Supabase RPC update_daily_order error: ' . $response['error']);
+            throw new RuntimeException('Gagal update pesanan harian.');
         }
-        // No explicit return, as the method is void
     }
 }

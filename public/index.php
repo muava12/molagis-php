@@ -23,6 +23,8 @@ use Molagis\Features\Reports\ReportsController;
 use Molagis\Features\Reports\ReportsService;
 use Molagis\Features\Finance\FinanceController;
 use Molagis\Features\Finance\FinanceService;
+use Molagis\Features\Dev\DevController;
+use Molagis\Features\Dev\DevService;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Dotenv\Dotenv;
@@ -106,6 +108,9 @@ $containerBuilder->addDefinitions([
         $c->get(Environment::class),
         $c->get(SupabaseService::class)
     ),
+    // Dev feature
+    DevService::class => fn($c) => new DevService($c->get(SupabaseClient::class)),
+    DevController::class => fn($c) => new DevController($c->get(DevService::class)),
     Environment::class => fn() => new Environment(
         new FilesystemLoader([
             "{$basePath}/src/Shared/templates",
@@ -167,11 +172,14 @@ $routes = [
     ['POST', '/api/update-delivery-status', [DashboardController::class, 'updateDeliveryStatus'], [AuthMiddleware::class]],
     ['GET', '/logout', [AuthController::class, 'logout'], [AuthMiddleware::class]],
     ['GET', '/customers', [CustomersController::class, 'showCustomers'], [AuthMiddleware::class]],
-    ['GET', '/api/customers/all', [CustomersController::class, 'getCustomers'], [AuthMiddleware::class]],
+    ['GET', '/api/customers/all', [CustomersController::class, 'handleGetAllCustomers'], [AuthMiddleware::class]],
     ['GET', '/api/customers', [OrderController::class, 'getCustomers'], [AuthMiddleware::class]],
-    ['POST', '/api/customers/add', [CustomersController::class, 'addCustomer'], [AuthMiddleware::class]],
+    ['POST', '/api/customers/add', [CustomersController::class, 'handleAddCustomer'], [AuthMiddleware::class]],
     ['POST', '/api/customers/update', [CustomersController::class, 'updateCustomer'], [AuthMiddleware::class]],
     ['POST', '/api/customers/delete', [CustomersController::class, 'deleteCustomer'], [AuthMiddleware::class]],
+    ['GET', '/api/labels/all', [CustomersController::class, 'handleGetAllLabels'], [AuthMiddleware::class]],
+    ['POST', '/api/customers/labels', [CustomersController::class, 'handleAddLabelToCustomer'], [AuthMiddleware::class]],
+    ['DELETE', '/api/customers/labels', [CustomersController::class, 'handleRemoveLabelFromCustomer'], [AuthMiddleware::class]],
     ['GET', '/input-order', [OrderController::class, 'showOrder'], [AuthMiddleware::class]], // Singular for input form
     ['GET', '/orders', [\Molagis\Features\Orders\OrdersController::class, 'showOrdersPage'], [AuthMiddleware::class]], // Plural for list page
     ['POST', '/api/order', [OrderController::class, 'handleOrder'], [AuthMiddleware::class]], // Singular for submitting new order
@@ -204,6 +212,10 @@ $routes = [
     ['POST', '/api/finance/records', [FinanceController::class, 'addFinancialRecord'], [AuthMiddleware::class]],
     ['PUT', '/api/finance/records/{id:\d+}', [FinanceController::class, 'updateFinancialRecord'], [AuthMiddleware::class]],
     ['DELETE', '/api/finance/records/{id:\d+}', [FinanceController::class, 'deleteFinancialRecord'], [AuthMiddleware::class]],
+
+    // Dev routes - no auth middleware for easy access in development
+    ['GET', '/api/dev/orphan-orders', [DevController::class, 'getOrphanOrdersApi'], []],
+    ['DELETE', '/api/dev/orders/{id:\d+}', [DevController::class, 'deleteOrderApi'], []],
 ];
 
 // Create FastRoute dispatcher
@@ -249,8 +261,6 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
             $vars = $routeInfo[2];
             [$controllerClass, $method] = $routeData[2];
             $middlewareClasses = $routeData[3] ?? [];
-
-            // Resolve controller from container
             $controller = $container->get($controllerClass);
 
             // Create the final handler
@@ -265,8 +275,8 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'getDeliveryDetails' => [$request],
                     'updateDeliveryStatus' => [$request],
                     'showCustomers' => [$request->withAttribute('id', $vars['id'] ?? null)],
-                    'getCustomers' => [$request->withAttribute('id', $vars['id'] ?? null)],
-                    'addCustomer' => [$request],
+                    'handleGetAllCustomers' => [$request],
+                    'handleAddCustomer' => [$request],
                     'updateCustomer' => [$request],
                     'deleteCustomer' => [$request],
                     'handleOrder' => [$request],
@@ -275,29 +285,31 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'showOrdersPage' => [$request],
                     'searchOrderByIdApi' => [$request],
                     'getDeliveriesByDateApi' => [$request],
-                    'deleteDeliveryDateApi' => [$request, $vars], // Added case, passing $vars
+                    'deleteDeliveryDateApi' => [$request, $vars],
                     'batchDeleteDeliveriesApi' => [$request],
                     'getDeliveryDetailsForEdit' => [$request, $vars],
-                    // 'updateDeliveryDetailsApi' => [$request, $vars], // Old method name
-                    'updateDailyOrder' => [$request, $vars], // New method name
+                    'updateDailyOrder' => [$request, $vars],
                     'showSettings' => [$request],
                     'updateSettings' => [$request],
-                    // Paket methods in SettingsController
                     'listPakets' => [$request],
                     'getPaket' => [$request, $vars],
                     'addPaket' => [$request],
                     'updatePaket' => [$request, $vars],
                     'deletePaket' => [$request, $vars],
                     'updatePaketOrder' => [$request],
-                    // Reports methods
+                    'getCustomers' => [$request],
                     'showReports' => [$request],
-                    // Finance methods
                     'showFinance' => [$request],
                     'getExpenseCategories' => [$request],
                     'getFinancialRecords' => [$request],
                     'addFinancialRecord' => [$request],
                     'updateFinancialRecord' => [$request->withAttribute('id', $vars['id'] ?? null)],
                     'deleteFinancialRecord' => [$request->withAttribute('id', $vars['id'] ?? null)],
+                    'handleGetAllLabels' => [$request],
+                    'handleAddLabelToCustomer' => [$request],
+                    'handleRemoveLabelFromCustomer' => [$request],
+                    'getOrphanOrdersApi' => [$request],
+                    'deleteOrderApi' => [$request, $vars],
                     default => []
                 };
 

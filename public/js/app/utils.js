@@ -54,6 +54,10 @@ export function showToast(title, message, type = 'success') {
     }
 };
 
+export function showErrorToast(title, message) {
+    showToast(title, message, 'error');
+}
+
 export function formatPhoneNumber(phoneNumber) {
     if (!phoneNumber) {
         return '';

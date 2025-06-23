@@ -1722,24 +1722,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Grouping select handler
     if (groupingSelect) {
-       groupingSelect.addEventListener('change', function() {
-           const selectedGrouping = this.value;
-           const currentUrl = new URL(window.location.href);
-           currentUrl.searchParams.set('grouping', selectedGrouping);
+        groupingSelect.addEventListener('change', function() {
+            const selectedGrouping = this.value;
+            const currentUrl = new URL(window.location.href); // Mulai dengan URL saat ini
 
-           // Grouping primarily applies to 'by_name' view.
-           // If current view is different, switch to 'by_name'.
-           currentUrl.searchParams.set('view', 'by_name');
-           currentUrl.searchParams.set('page', '1'); // Reset page to 1 when grouping changes.
+            // Dapatkan customer_id yang mungkin sudah ada dari input tersembunyi
+            const currentSelectedCustomerId = selectedCustomerIdHidden ? selectedCustomerIdHidden.value : null;
 
-           // If a customer_id is already in the URL for by_name view, it will be preserved.
-           // If no customer_id is present (e.g. user was on "by_order_id" and changed grouping),
-           // the page will show "by_name" view without a customer selected, prompting to select one.
-           // This is generally fine.
+            if (!currentSelectedCustomerId || currentSelectedCustomerId.trim() === '') {
+                // Tidak ada pelanggan yang dipilih, jangan lanjutkan dengan fetch
+                console.warn('Grouping changed but no customer selected. Aborting fetch.');
+                if (byNameContainer) {
+                    byNameContainer.innerHTML = `<div class="alert alert-info" role="alert">Silakan pilih pelanggan terlebih dahulu sebelum mengubah pengelompokan.</div>`;
+                }
+                // Kembalikan pilihan grouping ke nilai sebelumnya jika tidak ada pelanggan yang dipilih
+                // Ini mencegah UI menampilkan pilihan grouping yang tidak akan berlaku.
+                const previousGrouping = currentUrl.searchParams.get('grouping') || 'none';
+                this.value = previousGrouping;
+                return; // Hentikan eksekusi lebih lanjut
+            }
 
-           fetchAndUpdateOrdersView(currentUrl.toString());
-       });
-   }
+            // Jika ada customer_id, lanjutkan seperti biasa
+            currentUrl.searchParams.set('grouping', selectedGrouping);
+            currentUrl.searchParams.set('view', 'by_name'); // Grouping hanya relevan untuk view by_name
+            currentUrl.searchParams.set('page', '1'); // Reset page
+
+            // Pastikan customer_id dari input tersembunyi digunakan
+            currentUrl.searchParams.set('customer_id', currentSelectedCustomerId);
+
+            fetchAndUpdateOrdersView(currentUrl.toString());
+        });
+    }
 
     // Click listener for the external submit button to trigger form submission
     const externalSubmitBtn = document.getElementById('submit-btn');
@@ -2189,6 +2202,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to open and fetch data for the Edit Order Modal
     async function openEditOrderModal(deliveryId) {
+        // console.log('[DEBUG] openEditOrderModal called with deliveryId:', deliveryId); // DEBUG
+
         const modalElement = document.getElementById('editOrderModal');
         if (!modalElement) {
             console.error('Edit Order Modal element #editOrderModal not found.');
@@ -2238,11 +2253,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (editButton) {
                 event.preventDefault();
                 const deliveryId = editButton.getAttribute('data-delivery-id');
-                if (deliveryId) {
+                // console.log('[DEBUG] Edit button clicked. data-delivery-id from attribute:', deliveryId); // DEBUG
+                if (deliveryId && deliveryId.trim() !== '') { // Check if deliveryId is not null, undefined, or empty string
                     openEditOrderModal(deliveryId);
                 } else {
-                    console.error('Edit button clicked but data-delivery-id attribute is missing or empty.');
-                    showToast('Error', 'ID Pengiriman tidak ditemukan untuk diedit.', 'error');
+                    console.error('Edit button clicked but data-delivery-id attribute is missing, empty, or invalid. Value:', deliveryId);
+                    showToast('Error', 'ID Pengiriman tidak valid atau tidak ditemukan untuk diedit.', 'error');
                 }
             }
         });
@@ -2439,11 +2455,6 @@ document.addEventListener('DOMContentLoaded', function () {
                  return;
             }
 
-            // const rpcPayload = { // This was for direct Supabase RPC
-            //     p_delivery_id: deliveryId,
-            //     request: formData
-            // };
-
             try {
                 // The new PHP endpoint will take deliveryId from the URL.
                 // The formData (which is the 'request' part of the RPC) will be the body.
@@ -2466,18 +2477,43 @@ document.addEventListener('DOMContentLoaded', function () {
                     const errorDisplayElement = document.getElementById('edit-modal-error-display');
                     if (errorDisplayElement) errorDisplayElement.style.display = 'none';
                     refreshOrdersView();
+
+                    // --- PEMBARUAN UI DINAMIS ---
+                    if (result.data && result.data.ringkasan_update) {
+                        const { order_id, ringkasan_update } = result.data;
+                        const { total_harga_final } = ringkasan_update;
+
+                        // Cari elemen total harga di tabel berdasarkan order_id
+                        const totalHargaElement = document.querySelector(`.order-total-harga[data-order-id="${order_id}"]`);
+                        
+                        if (totalHargaElement) {
+                            console.log(`Updating order ${order_id} total to ${total_harga_final}`);
+                            // Format ke format Rupiah
+                            const formattedTotal = new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(total_harga_final);
+
+                            // Update teks di UI, dengan mempertahankan teks "Total: "
+                            totalHargaElement.textContent = `Total: ${formattedTotal.replace('Rp', 'Rp ')}`;
+                        }
+                    }
+                    // --- AKHIR PEMBARUAN ---
                 } else {
                     // Error from our PHP backend (either non-ok status or result.success === false)
                     throw new Error(result.message || `Failed to update order. Status: ${response.status}`);
                 }
             } catch (error) {
                 console.error('Error submitting edit order form via PHP backend:', error);
+                // Directly use showToast for all errors, removing the old way.
+                showToast('Error', error.message, 'error');
+                
                 const errorDisplayElement = document.getElementById('edit-modal-error-display');
                 if (errorDisplayElement) {
-                    errorDisplayElement.textContent = error.message;
-                    errorDisplayElement.style.display = 'block';
-                } else {
-                    showToast('Error', error.message, 'error');
+                    // It's good practice to still hide it in case it was ever shown by other logic.
+                    errorDisplayElement.style.display = 'none';
                 }
             } finally {
                 submitButton.disabled = false;

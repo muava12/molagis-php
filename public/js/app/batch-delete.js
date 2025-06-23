@@ -1,8 +1,10 @@
 // public/js/app/batch-delete.js
 
-const bootstrap = window.tabler?.bootstrap; // <--- ADD THIS LINE
+import { showToast } from './utils.js';
 
-function initializeBatchDeleteToast() {
+const bootstrap = window.tabler?.bootstrap;
+
+export function initializeBatchDeleteToast() {
     const toastElement = document.getElementById('batch-delete-toast');
     if (!toastElement) {
         // If the toast element isn't on the page, don't do anything.
@@ -31,8 +33,7 @@ function initializeBatchDeleteToast() {
             const activePane = document.querySelector('.tab-pane.active');
             if (!activePane) {
                 console.warn('No active tab pane found for batch delete.');
-                if (window.showToast) window.showToast('Error', 'Cannot determine active tab for batch delete.', 'error');
-                else alert('Cannot determine active tab for batch delete.');
+                showToast('Error', 'Cannot determine active tab for batch delete.', 'error');
                 return;
             }
 
@@ -42,8 +43,7 @@ function initializeBatchDeleteToast() {
 
             if (!activeTableContainer) {
                 console.warn('No active table container found within the active pane.');
-                if (window.showToast) window.showToast('Error', 'Cannot find table in active tab for batch delete.', 'error');
-                else alert('Cannot find table in active tab for batch delete.');
+                showToast('Error', 'Cannot find table in active tab for batch delete.', 'error');
                 return;
             }
 
@@ -99,12 +99,10 @@ function initializeBatchDeleteToast() {
                         console.warn("Fallback delete: Could not find active table container to update UI post-delete. A page reload might be needed.");
                     }
                     if (window.batchDeleteToast?.hide) window.batchDeleteToast.hide();
-                    if (window.showToast) window.showToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted.`, 'success');
-                    else alert(data.message || `${successfullyDeletedIds.length} item(s) deleted.`);
+                    showToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted.`, 'success');
                 })
                 .catch(error => {
-                    if (window.showToast) window.showToast('Error', error.message || 'Batch delete failed.', 'error');
-                    else alert(error.message || 'Batch delete failed.');
+                    showToast('Error', error.message || 'Batch delete failed.', 'error');
                 });
                 return; // End of fallback logic
             }
@@ -161,19 +159,11 @@ function initializeBatchDeleteToast() {
                     if (typeof window.batchDeleteToast !== 'undefined' && window.batchDeleteToast.hide) {
                         window.batchDeleteToast.hide();
                     }
-                    if (typeof window.showToast === 'function') {
-                        window.showToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`, 'success');
-                    } else {
-                        alert(data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`);
-                    }
+                    showToast('Success', data.message || `${successfullyDeletedIds.length} item(s) deleted successfully.`, 'success');
                 })
                 .catch(error => {
                     console.error('Error during batch delete:', error);
-                    if (typeof window.showToast === 'function') {
-                        window.showToast('Error', error.message || 'An error occurred while deleting items.', 'error');
-                    } else {
-                        alert(error.message || 'An error occurred while deleting items.');
-                    }
+                    showToast('Error', error.message || 'An error occurred while deleting items.', 'error');
                 });
             };
 
@@ -202,8 +192,5 @@ function initializeBatchDeleteToast() {
     // window.batchDeleteToast.show(5);
 }
 
-// Initialize the toast logic when the DOM is ready,
-// or call this function from your main application script.
-// document.addEventListener('DOMContentLoaded', initializeBatchDeleteToast);
-// For now, we will assume this function will be called explicitly from another script
-// that also handles the inclusion of the toast HTML.
+// Initialize the toast logic automatically when the script loads.
+document.addEventListener('DOMContentLoaded', initializeBatchDeleteToast);

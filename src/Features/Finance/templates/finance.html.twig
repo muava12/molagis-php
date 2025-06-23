@@ -136,7 +136,7 @@
                   <div class="d-flex align-items-center">
                     <div class="subheader">Total Expenses This Month</div>
                     <div class="ms-auto lh-1">
-                      <div class="h3 m-0 amount-cell text-danger">
+                      <div class="h3 m-0 amount-cell text-danger blur-target">
                         Rp {{ summary.total_expenses | default(0) | number_format(0, ',', '.') }}
                       </div>
                     </div>
@@ -283,7 +283,7 @@
                           </span>
                         </div>
                       </td>
-                      <td class="text-end amount-cell text-danger">
+                      <td class="text-end amount-cell text-danger blur-target">
                         Rp {{ record.amount | number_format(0, ',', '.') }}
                       </td>
                       <td>
