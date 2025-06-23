@@ -35,14 +35,9 @@ use Laminas\Diactoros\ServerRequestFactory;
 use Laminas\Diactoros\Response;
 use DI\ContainerBuilder;
 
-// Start session
-// session_start();
-
 // Load environment variables
 $dotenv = Dotenv::createImmutable($basePath);
 $dotenv->safeLoad();
-
-ConfigSession::init();
 
 // Initialize Dependency Injection Container
 $containerBuilder = new ContainerBuilder();
@@ -257,6 +252,9 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
             return $response->withStatus(405);
 
         case Dispatcher::FOUND:
+            // Start session only when a route is matched
+            ConfigSession::init();
+
             $routeData = $routeInfo[1];
             $vars = $routeInfo[2];
             [$controllerClass, $method] = $routeData[2];
