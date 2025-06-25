@@ -11,4 +11,4 @@ alwaysApply: true
 - untuk styling utamakan menggunakan utilitas dari tabler.io versi 1.3.0, jika tidak ada baru buta stytling customenya
 
 ## Databse
-- selalu validasi struktur database di supabase jika kamu punya akse MPC / tools Supabase sebelum memebuat kode untuk interaksi dengan database
+- selalu validasi struktur database di supabase jika kamu punya akse MPC / tools Supabase sebelum membuat kode untuk interaksi dengan database
