@@ -365,4 +365,342 @@ class FinanceService
             return ['data' => 0, 'error' => 'Gagal mengambil jumlah transaksi'];
         }
     }
+
+    /**
+     * Mengambil semua labels.
+     *
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (array labels) atau 'error'.
+     */
+    public function getLabels(?string $accessToken = null): array
+    {
+        try {
+            $response = $this->supabaseClient->get(
+                '/rest/v1/expense_categories?select=*&order=display_name.asc',
+                [],
+                $accessToken
+            );
+
+            if ($response['error']) {
+                error_log('Error fetching labels: ' . $response['error']);
+                return ['data' => null, 'error' => 'Gagal mengambil labels'];
+            }
+
+            return ['data' => $response['data'], 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in getLabels: ' . $e->getMessage());
+            return ['data' => null, 'error' => 'Gagal mengambil labels'];
+        }
+    }
+
+    /**
+     * Menambahkan label baru.
+     *
+     * @param array $data Data label.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (label baru) atau 'error'.
+     */
+    public function createLabel(array $data, ?string $accessToken = null): array
+    {
+        try {
+            // Validate required fields
+            $requiredFields = ['name', 'display_name'];
+            foreach ($requiredFields as $field) {
+                if (!isset($data[$field]) || empty($data[$field])) {
+                    return ['data' => null, 'error' => "Field {$field} wajib diisi"];
+                }
+            }
+
+            // Validate name format (alphanumeric and underscore only)
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $data['name'])) {
+                return ['data' => null, 'error' => 'Nama label hanya boleh berisi huruf, angka, dan underscore'];
+            }
+
+            // Check if name already exists
+            $existingResponse = $this->supabaseClient->get(
+                "/rest/v1/expense_categories?name=eq.{$data['name']}&select=id",
+                [],
+                $accessToken
+            );
+
+            if ($existingResponse['error']) {
+                error_log('Error checking existing label: ' . $existingResponse['error']);
+                return ['data' => null, 'error' => 'Gagal memeriksa label yang sudah ada'];
+            }
+
+            if (!empty($existingResponse['data'])) {
+                return ['data' => null, 'error' => 'Label dengan nama tersebut sudah ada'];
+            }
+
+            // Prepare data for insertion
+            $insertData = [
+                'name' => $data['name'],
+                'display_name' => $data['display_name'],
+                'color' => $data['color'] ?? '#206bc4',
+                'description' => $data['description'] ?? null,
+                'is_active' => $data['is_active'] ?? true
+            ];
+
+            $response = $this->supabaseClient->post(
+                '/rest/v1/expense_categories?select=*',
+                $insertData,
+                ['headers' => ['Prefer' => 'return=representation']],
+                $accessToken
+            );
+
+            if ($response['error']) {
+                error_log('Error creating label: ' . $response['error']);
+                return ['data' => null, 'error' => 'Gagal membuat label'];
+            }
+
+            return ['data' => $response['data'][0] ?? null, 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in createLabel: ' . $e->getMessage());
+            return ['data' => null, 'error' => 'Gagal membuat label'];
+        }
+    }
+
+    /**
+     * Mengupdate label.
+     *
+     * @param int $id ID label.
+     * @param array $data Data yang akan diupdate.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'data' (label yang diupdate) atau 'error'.
+     */
+    public function updateLabel(int $id, array $data, ?string $accessToken = null): array
+    {
+        try {
+            // Prepare data for update
+            $updateData = [];
+            
+            if (isset($data['display_name'])) {
+                $updateData['display_name'] = $data['display_name'];
+            }
+            
+            if (isset($data['color'])) {
+                $updateData['color'] = $data['color'];
+            }
+            
+            if (isset($data['description'])) {
+                $updateData['description'] = $data['description'];
+            }
+            
+            if (isset($data['is_active'])) {
+                $updateData['is_active'] = $data['is_active'];
+            }
+
+            if (empty($updateData)) {
+                return ['data' => null, 'error' => 'Tidak ada data yang diupdate'];
+            }
+
+            $response = $this->supabaseClient->update(
+                "/rest/v1/expense_categories?id=eq.{$id}&select=*",
+                $updateData,
+                ['headers' => ['Prefer' => 'return=representation']],
+                $accessToken
+            );
+
+            if ($response['error']) {
+                error_log('Error updating label: ' . $response['error']);
+                return ['data' => null, 'error' => 'Gagal mengupdate label'];
+            }
+
+            return ['data' => $response['data'][0] ?? null, 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in updateLabel: ' . $e->getMessage());
+            return ['data' => null, 'error' => 'Gagal mengupdate label'];
+        }
+    }
+
+    /**
+     * Menghapus label.
+     *
+     * @param int $id ID label.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'success' (boolean) atau 'error'.
+     */
+    public function deleteLabel(int $id, ?string $accessToken = null): array
+    {
+        try {
+            // Check if label is being used in any transactions
+            $usageResponse = $this->supabaseClient->get(
+                "/rest/v1/financial_records?category_id=eq.{$id}&select=id&limit=1",
+                [],
+                $accessToken
+            );
+
+            if ($usageResponse['error']) {
+                error_log('Error checking label usage: ' . $usageResponse['error']);
+                return ['success' => false, 'error' => 'Gagal memeriksa penggunaan label'];
+            }
+
+            if (!empty($usageResponse['data'])) {
+                return ['success' => false, 'error' => 'Label tidak dapat dihapus karena masih digunakan dalam transaksi'];
+            }
+
+            $response = $this->supabaseClient->delete(
+                "/rest/v1/expense_categories?id=eq.{$id}",
+                [],
+                $accessToken
+            );
+
+            if ($response['error']) {
+                error_log('Error deleting label: ' . $response['error']);
+                return ['success' => false, 'error' => 'Gagal menghapus label'];
+            }
+
+            return ['success' => true, 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in deleteLabel: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Gagal menghapus label'];
+        }
+    }
+
+    /**
+     * Export data keuangan ke Excel.
+     *
+     * @param string|null $accessToken Token akses pengguna.
+     * @param string|null $startDate Tanggal mulai filter.
+     * @param string|null $endDate Tanggal akhir filter.
+     * @param int|null $categoryId ID kategori untuk filter.
+     * @return array Hasil yang berisi 'data' (file path) atau 'error'.
+     */
+    public function exportData(?string $accessToken = null, ?string $startDate = null, ?string $endDate = null, ?int $categoryId = null): array
+    {
+        try {
+            // Get financial records for export
+            $recordsResult = $this->getFinancialRecords($accessToken, $startDate, $endDate, $categoryId, 10000, 0);
+            
+            if ($recordsResult['error']) {
+                return ['data' => null, 'error' => $recordsResult['error']];
+            }
+
+            $records = $recordsResult['data'] ?? [];
+
+            // Create CSV content
+            $csvContent = "Date,Description,Category,Amount\n";
+            
+            foreach ($records as $record) {
+                $date = $record['transaction_date'];
+                $description = $record['description'] ?? '';
+                $category = $record['expense_categories']['display_name'] ?? 'Unknown';
+                $amount = $record['amount'];
+                
+                $csvContent .= "\"{$date}\",\"{$description}\",\"{$category}\",{$amount}\n";
+            }
+
+            // Create temporary file
+            $tempFile = tempnam(sys_get_temp_dir(), 'finance_export_');
+            file_put_contents($tempFile, $csvContent);
+
+            return ['data' => $tempFile, 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in exportData: ' . $e->getMessage());
+            return ['data' => null, 'error' => 'Gagal export data'];
+        }
+    }
+
+    /**
+     * Import data keuangan dari file.
+     *
+     * @param \Psr\Http\Message\UploadedFileInterface $file File yang diupload.
+     * @param string|null $accessToken Token akses pengguna.
+     * @return array Hasil yang berisi 'imported_count' (int) dan 'data' atau 'error'.
+     */
+    public function importData($file, ?string $accessToken = null): array
+    {
+        try {
+            if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
+                return ['imported_count' => 0, 'data' => null, 'error' => 'File upload error'];
+            }
+
+            $content = $file->getStream()->getContents();
+            $lines = explode("\n", $content);
+            
+            // Remove header
+            array_shift($lines);
+            
+            $importedCount = 0;
+            $errors = [];
+
+            foreach ($lines as $lineNumber => $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+
+                $data = str_getcsv($line);
+                if (count($data) < 4) {
+                    $errors[] = "Line " . ($lineNumber + 2) . ": Invalid data format";
+                    continue;
+                }
+
+                [$date, $description, $categoryName, $amount] = $data;
+
+                // Validate date
+                if (!strtotime($date)) {
+                    $errors[] = "Line " . ($lineNumber + 2) . ": Invalid date format";
+                    continue;
+                }
+
+                // Validate amount
+                if (!is_numeric($amount) || $amount <= 0) {
+                    $errors[] = "Line " . ($lineNumber + 2) . ": Invalid amount";
+                    continue;
+                }
+
+                // Find category ID by name
+                $categoryResult = $this->getExpenseCategories($accessToken);
+                $categoryId = null;
+                
+                if (!$categoryResult['error']) {
+                    foreach ($categoryResult['data'] as $category) {
+                        if (strtolower($category['display_name']) === strtolower($categoryName)) {
+                            $categoryId = $category['id'];
+                            break;
+                        }
+                    }
+                }
+
+                if (!$categoryId) {
+                    $errors[] = "Line " . ($lineNumber + 2) . ": Category '{$categoryName}' not found";
+                    continue;
+                }
+
+                // Add record
+                $recordData = [
+                    'transaction_date' => $date,
+                    'description' => $description,
+                    'category_id' => $categoryId,
+                    'amount' => $amount
+                ];
+
+                $addResult = $this->addFinancialRecord($recordData, $accessToken);
+                
+                if (!$addResult['error']) {
+                    $importedCount++;
+                } else {
+                    $errors[] = "Line " . ($lineNumber + 2) . ": " . $addResult['error'];
+                }
+            }
+
+            if (!empty($errors)) {
+                return [
+                    'imported_count' => $importedCount,
+                    'data' => null,
+                    'error' => 'Import completed with errors: ' . implode('; ', array_slice($errors, 0, 5))
+                ];
+            }
+
+            return ['imported_count' => $importedCount, 'data' => null, 'error' => null];
+
+        } catch (\Exception $e) {
+            error_log('Exception in importData: ' . $e->getMessage());
+            return ['imported_count' => 0, 'data' => null, 'error' => 'Gagal import data'];
+        }
+    }
 }

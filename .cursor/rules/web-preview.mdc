@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Development
+- saya memekai valet untuk preview website selama proses development, alamatnya https://molagis-php.test
+
+## Structure
+- setiap perubahan/update data janganreload keseluruhan halaman, hanya fetch atau refresh bagian di website yg ada perubahan. misal pada pada tampilan table, jika ada perubahan salah satu row maka refersh hanya nilai dari row tersebut tanpa reload keseluruhan halaman.
+- untuk styling utamakan menggunakan utilitas dari tabler.io versi 1.3.0, jika tidak ada baru buta stytling customenya
+
+## Databse
+- selalu validasi struktur database di supabase jika kamu punya akse MPC / tools Supabase sebelum memebuat kode untuk interaksi dengan database

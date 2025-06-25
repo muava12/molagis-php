@@ -4,9 +4,11 @@ declare(strict_types=1);
 namespace Molagis\Features\Finance;
 
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Laminas\Diactoros\Response\JsonResponse;
 use Twig\Environment;
 use Molagis\Features\Settings\SettingsService;
+use Laminas\Diactoros\Response\Response;
 
 /**
  * Controller untuk mengelola halaman keuangan dan API endpoints.
@@ -290,6 +292,217 @@ class FinanceController
         return new JsonResponse([
             'success' => true,
             'message' => 'Transaksi berhasil dihapus'
+        ]);
+    }
+
+    /**
+     * API endpoint untuk mengambil semua labels.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return JsonResponse Response JSON
+     */
+    public function getLabels(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        
+        $result = $this->financeService->getLabels($accessToken);
+        
+        if ($result['error']) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $result['error']
+            ], 500);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'data' => $result['data']
+        ]);
+    }
+
+    /**
+     * API endpoint untuk menambahkan label baru.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return JsonResponse Response JSON
+     */
+    public function createLabel(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+
+        if (!$data) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Data tidak valid'
+            ], 400);
+        }
+
+        $result = $this->financeService->createLabel($data, $accessToken);
+
+        if ($result['error']) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $result['error']
+            ], 400);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Label berhasil dibuat',
+            'data' => $result['data']
+        ]);
+    }
+
+    /**
+     * API endpoint untuk mengupdate label.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return JsonResponse Response JSON
+     */
+    public function updateLabel(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $data = $request->getParsedBody();
+        $id = (int) $request->getAttribute('id');
+        
+        if (!$data || !$id) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Data tidak valid'
+            ], 400);
+        }
+
+        $result = $this->financeService->updateLabel($id, $data, $accessToken);
+        
+        if ($result['error']) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $result['error']
+            ], 400);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Label berhasil diupdate',
+            'data' => $result['data']
+        ]);
+    }
+
+    /**
+     * API endpoint untuk menghapus label.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return JsonResponse Response JSON
+     */
+    public function deleteLabel(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $id = (int) $request->getAttribute('id');
+        
+        if (!$id) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'ID tidak valid'
+            ], 400);
+        }
+
+        $result = $this->financeService->deleteLabel($id, $accessToken);
+        
+        if ($result['error']) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $result['error']
+            ], 400);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Label berhasil dihapus'
+        ]);
+    }
+
+    /**
+     * API endpoint untuk export data keuangan.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return ResponseInterface Response file
+     */
+    public function exportData(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $queryParams = $request->getQueryParams();
+        
+        $startDate = $queryParams['start_date'] ?? null;
+        $endDate = $queryParams['end_date'] ?? null;
+        $categoryId = isset($queryParams['category_id']) ? (int) $queryParams['category_id'] : null;
+
+        $result = $this->financeService->exportData($accessToken, $startDate, $endDate, $categoryId);
+
+        if ($result['error']) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $result['error']
+            ], 500);
+        }
+
+        $filePath = $result['data'];
+        
+        if (!file_exists($filePath)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'File export tidak ditemukan'
+            ], 500);
+        }
+
+        $content = file_get_contents($filePath);
+        $filename = 'finance_data_' . date('Y-m-d') . '.csv';
+
+        $response = new Response();
+        $response = $response->withHeader('Content-Type', 'text/csv');
+        $response = $response->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response = $response->withHeader('Content-Length', strlen($content));
+        $response->getBody()->write($content);
+
+        // Clean up temporary file
+        unlink($filePath);
+
+        return $response;
+    }
+
+    /**
+     * API endpoint untuk import data keuangan.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return JsonResponse Response JSON
+     */
+    public function importData(ServerRequestInterface $request): JsonResponse
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $uploadedFiles = $request->getUploadedFiles();
+        
+        if (empty($uploadedFiles) || !isset($uploadedFiles['file'])) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'File tidak ditemukan'
+            ], 400);
+        }
+
+        $file = $uploadedFiles['file'];
+        $result = $this->financeService->importData($file, $accessToken);
+
+        if ($result['error']) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $result['error']
+            ], 400);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Data berhasil diimport',
+            'imported_count' => $result['imported_count'],
+            'data' => $result['data']
         ]);
     }
 }

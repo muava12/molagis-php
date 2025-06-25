@@ -207,6 +207,12 @@ $routes = [
     ['POST', '/api/finance/records', [FinanceController::class, 'addFinancialRecord'], [AuthMiddleware::class]],
     ['PUT', '/api/finance/records/{id:\d+}', [FinanceController::class, 'updateFinancialRecord'], [AuthMiddleware::class]],
     ['DELETE', '/api/finance/records/{id:\d+}', [FinanceController::class, 'deleteFinancialRecord'], [AuthMiddleware::class]],
+    ['GET', '/api/finance/labels', [FinanceController::class, 'getLabels'], [AuthMiddleware::class]],
+    ['POST', '/api/finance/labels', [FinanceController::class, 'createLabel'], [AuthMiddleware::class]],
+    ['PUT', '/api/finance/labels/{id:\d+}', [FinanceController::class, 'updateLabel'], [AuthMiddleware::class]],
+    ['DELETE', '/api/finance/labels/{id:\d+}', [FinanceController::class, 'deleteLabel'], [AuthMiddleware::class]],
+    ['GET', '/api/finance/export', [FinanceController::class, 'exportData'], [AuthMiddleware::class]],
+    ['POST', '/api/finance/import', [FinanceController::class, 'importData'], [AuthMiddleware::class]],
 
     // Dev routes - no auth middleware for easy access in development
     ['GET', '/api/dev/orphan-orders', [DevController::class, 'getOrphanOrdersApi'], []],
@@ -308,6 +314,12 @@ function handleDispatch(Dispatcher $dispatcher, ServerRequestInterface $request,
                     'handleRemoveLabelFromCustomer' => [$request],
                     'getOrphanOrdersApi' => [$request],
                     'deleteOrderApi' => [$request, $vars],
+                    'getLabels' => [$request],
+                    'createLabel' => [$request],
+                    'updateLabel' => [$request, $vars],
+                    'deleteLabel' => [$request, $vars],
+                    'exportData' => [$request],
+                    'importData' => [$request],
                     default => []
                 };
 
