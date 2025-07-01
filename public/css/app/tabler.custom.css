@@ -1,10 +1,32 @@
 :root {
   --tblr-primary: #5F8D4E;
+  --tblr-input-transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 ::selection,
 .text-selected {
   background-color: color-mix(in srgb, var(--tblr-teal) 30%, transparent);
+}
+
+/* Form control transitions */
+.form-control,
+.form-select,
+textarea,
+input {
+  transition: var(--tblr-input-transition) !important;
+  transform: none !important;
+  animation: none !important;
+  will-change: auto !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea:focus,
+input:focus {
+  transition: var(--tblr-input-transition) !important;
+  transform: none !important;
+  animation: none !important;
+  will-change: auto !important;
 }
 
 .toast {
