@@ -221,6 +221,31 @@ class DashboardController
     }
 
     /**
+     * Mengambil daftar pesanan terbaru dengan jumlah yang dapat disesuaikan.
+     *
+     * @param ServerRequestInterface $request Permintaan HTTP
+     * @return ResponseInterface Respon JSON
+     */
+    public function getRecentOrders(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessToken = $_SESSION['user_token'] ?? null;
+        $queryParams = $request->getQueryParams();
+        $limit = (int) ($queryParams['limit'] ?? 5);
+
+        // Validasi limit
+        if ($limit < 1 || $limit > 20) {
+            $limit = 5;
+        }
+
+        $recentOrdersResult = $this->orderService->getRecentOrders($limit, $accessToken);
+
+        return new JsonResponse([
+            'orders' => $recentOrdersResult['data'] ?? [],
+            'error' => $recentOrdersResult['error'] ?? null,
+        ], $recentOrdersResult['error'] ? 500 : 200);
+    }
+
+    /**
      * Mengambil detail pengantaran untuk kurir tertentu atau tanpa kurir.
      *
      * @param ServerRequestInterface $request Permintaan HTTP

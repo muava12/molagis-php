@@ -384,17 +384,16 @@
 								{% else %}
 									<p class="text-muted mb-4">Statistik tidak tersedia.</p>
 								{% endif %}
-								<h4 class="mb-3">5 Pesanan Terakhir</h4>
-								{% if recent_orders is defined and recent_orders is not empty %}
-								<div class="d-flex justify-content-between align-items-center mb-2">
-									<div class="text-muted">Tampilkan:</div>
-									<select class="form-select form-select-sm w-auto" id="recentOrdersLimit">
+								<div class="d-flex justify-content-between align-items-center mb-3">
+									<h4 class="mb-0">5 Pesanan Terakhir</h4>
+									<select id="recent-orders-limit" class="form-select" style="width: auto;">
 										<option value="5">5 Pesanan</option>
 										<option value="10">10 Pesanan</option>
 										<option value="15">15 Pesanan</option>
 										<option value="20">20 Pesanan</option>
 									</select>
 								</div>
+								{% if recent_orders is defined and recent_orders is not empty %}
 								<div class="list-group list-group-flush" id="recentOrdersList">
 									{% for order in recent_orders %}
 										<div class="list-group-item">

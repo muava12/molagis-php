@@ -758,9 +758,55 @@ export function initDashboard() {
     initializeDashboardCharts(); // Panggil fungsi inisialisasi chart di sini
 }
 
-function initialize() {
-    initDashboard();
-    initOrder();
+async function initialize() {
+    try {
+        // Initialize dashboard and order
+        await initDashboard();
+        await initOrder();
+
+        // Setup recent orders limit dropdown
+        const recentOrdersLimit = document.getElementById('recent-orders-limit');
+        if (recentOrdersLimit) {
+            recentOrdersLimit.addEventListener('change', async function() {
+                try {
+                    const limit = this.value;
+                    const response = await fetch(`/api/dashboard/recent-orders?limit=${limit}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch recent orders');
+                    }
+                    const data = await response.json();
+                    
+                    // Update the list
+                    const recentOrdersList = document.getElementById('recentOrdersList');
+                    if (recentOrdersList) {
+                        recentOrdersList.innerHTML = data.orders.map(order => `
+                            <div class="list-group-item">
+                                <div class="row align-items-center">
+                                    <div class="col">
+                                        <div class="text-body">${order.customer_name}</div>
+                                        <div class="text-muted">${order.customer_address}</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="text-muted">#${order.order_id}</span>
+                                    </div>
+                                    <div class="col-auto text-end">
+                                        <span class="text-body">Rp ${Number(order.total_harga).toLocaleString('id-ID')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } catch (error) {
+                    console.error('Error fetching recent orders:', error);
+                    showToast('Error', 'Gagal memuat data pesanan terbaru', 'error');
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showToast('Error', 'Gagal memuat data awal: ' + error.message, 'error');
+        hideLoadingState();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initialize);

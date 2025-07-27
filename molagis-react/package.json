@@ -1,0 +1,42 @@
+{
+  "name": "molagis-react",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Molagis Admin Dashboard - React + Supabase version",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.0",
+    "@supabase/supabase-js": "^2.52.1",
+    "@tabler/core": "^1.4.0",
+    "@tabler/icons-react": "^3.34.1",
+    "date-fns": "^4.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.61.1",
+    "react-router-dom": "^7.7.1",
+    "zod": "^4.0.10"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/node": "^24.1.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "eslint": "^9.30.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.35.1",
+    "vite": "^7.0.4"
+  },
+  "author": "muava12",
+  "keywords": ["react", "typescript", "supabase", "catering", "dashboard"]
+}

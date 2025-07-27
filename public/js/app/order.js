@@ -74,6 +74,19 @@ async function initialize() {
         // Setup mobile enhancements
         setupMobileEnhancements();
 
+        // Setup modal shown event listener
+        const orderModal = document.getElementById('modal-add-order');
+        if (orderModal) {
+            orderModal.addEventListener('shown.bs.modal', () => {
+                // Add a small delay before focusing the input
+                setTimeout(() => {
+                    if (customerInput) {
+                        customerInput.focus();
+                    }
+                }, 100);
+            });
+        }
+
         // Hide loading state
         hideLoadingState();
 
